@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Sparkles, LayoutDashboard, PlusCircle, ExternalLink, Copy, Check, Lock } from "lucide-react";
+import { Sparkles, LayoutDashboard, PlusCircle, ExternalLink, Copy, Check, Lock } from "lucide-react";
+import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -17,8 +18,8 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { href: "/", label: "Attack Simulator", icon: Sparkles },
-    { href: "/dashboard", label: "Agent Dashboard", icon: LayoutDashboard },
-    { href: "/create", label: "Create Agent Key", icon: PlusCircle },
+    { href: "/dashboard", label: "Security Console", icon: LayoutDashboard },
+    { href: "/create", label: "Issue Passkey", icon: PlusCircle },
   ];
 
   return (
@@ -27,9 +28,7 @@ export const Navbar: React.FC = () => {
         {/* Brand */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm transition">
-              <Shield className="w-5 h-5 fill-white/20" />
-            </div>
+            <ScopeGuardLogo className="w-9 h-9 transition-transform group-hover:scale-105" size={36} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold text-slate-900 tracking-tight">
@@ -40,7 +39,7 @@ export const Navbar: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Safe spending cards for autonomous AI agents
+                Scoped spending passkeys for AI agents
               </p>
             </div>
           </Link>

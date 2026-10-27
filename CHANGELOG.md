@@ -8,6 +8,30 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Added - 2026-10-27 (Design System Polish, Gemini Vector Logo, Hydration & Console Hardening)
+
+- **Official ScopeGuard Vector Brand Mark**
+  - Generated distinctive vector brand identity (`web/components/ScopeGuardLogo.tsx`, `web/public/logo.svg`, `web/public/favicon.svg`) featuring a precision hex-shield, optical target reticle, and central passkey core in NEAR emerald and deep obsidian.
+  - Integrated the logo into `Navbar.tsx` and configured browser favicon and Apple touch icons in `RootLayout`.
+
+- **Hydration Storm Elimination (React #425 / #418 / #423)**
+  - Replaced dynamic `Date.now()` evaluation in `useState` with deterministic static base timestamps and an `isMounted` client-boundary pattern.
+  - Formatted time through an `isMounted` guard to eliminate server-versus-client timezone and tick divergence.
+
+- **Removal of Fake Precision and Hardcoded Marketing Copy**
+  - Stripped artificial `.00` precision suffixes from token balances across the console and creation wizard, aligning displays with honest whole-unit representations.
+  - Replaced hardcoded gas allowance strings with verified consensus protocol allowances ("0.25 NEAR Protocol Gas Allowance").
+  - Replaced static telegram handles and marketing text with transparent technical metrics ("Receipt Verification: Public NEAR RPC").
+
+- **Three Distinct Visual Zones (Reading, Acting, Verifying)**
+  - Zone 1 (Reading): Neutral slate cards for agent identity and 4-metric KPI strip (daily spend, gas budget, velocity throttle, and real custody vault balance).
+  - Zone 2 (Acting): Warm alert container with rose and amber accents for Emergency Owner Switches and Circuit Breakers.
+  - Zone 3 (Verifying): Monospace chain proofs, high-value timelock queue with live countdowns, and a first-class Rule Token taxonomy classifying rejections into exact invariant rules (Rule 1 through Rule 7).
+
+- **Cohesive Non-Custodial Modal and Mobile-First Layout**
+  - Redesigned the Owner Command Modal to match the console styling: light container with an embedded dark terminal code box, 1-click command copying, `Escape` key close listener, and backdrop click dismissal.
+  - Added a mobile card list view for the transaction ledger below `md:` breakpoints so that all action details and transaction links remain legible on mobile phones.
+
 ### Added - 2026-10-27 (Completeness Pass: Custody Token Call Ban, Real Timelock Trigger, Dynamic Ledger)
 
 - **Strict Custody Token Domain Isolation in Policy Engine**

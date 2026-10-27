@@ -14,12 +14,15 @@ export interface ActivityItem {
 }
 
 // Initialized with verified live NEAR testnet transactions
+// Static base timestamps prevent SSR and client hydration divergence
+const BASE_TIME = 1793122000000;
+
 let activityLog: ActivityItem[] = [
   {
     id: "act-veto-intent2-live",
     txHash: "AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp",
     type: "CANCELLED",
-    timestamp: Date.now() - 1000 * 60 * 1,
+    timestamp: BASE_TIME + 60000,
     agent: "trader.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -30,7 +33,7 @@ let activityLog: ActivityItem[] = [
     id: "act-unpause-live",
     txHash: "14sYk3Ve1g7qtwBvPx8mGDy4LcLZzCzAKVR55TPkBvC4",
     type: "UNPAUSE",
-    timestamp: Date.now() - 1000 * 60 * 3,
+    timestamp: BASE_TIME,
     agent: "trader.sergeo-guard.testnet",
     reason: "Agent unpaused by owner on guard2.sergeo-guard.testnet",
   },
@@ -38,7 +41,7 @@ let activityLog: ActivityItem[] = [
     id: "act-bypass-live",
     txHash: "FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z",
     type: "REJECT",
-    timestamp: Date.now() - 1000 * 60 * 5,
+    timestamp: BASE_TIME - 120000,
     agent: "trader.sergeo-guard.testnet",
     target: "sergeo-guard-token.testnet",
     method: "ft_transfer",
@@ -48,7 +51,7 @@ let activityLog: ActivityItem[] = [
     id: "act-rogue-live",
     txHash: "Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG",
     type: "REJECT",
-    timestamp: Date.now() - 1000 * 60 * 8,
+    timestamp: BASE_TIME - 300000,
     agent: "trader.sergeo-guard.testnet",
     target: "evil_contract.testnet",
     method: "drain",
@@ -58,7 +61,7 @@ let activityLog: ActivityItem[] = [
     id: "act-inject-live",
     txHash: "3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7",
     type: "REJECT",
-    timestamp: Date.now() - 1000 * 60 * 12,
+    timestamp: BASE_TIME - 500000,
     agent: "trader.sergeo-guard.testnet",
     target: "sergeo-guard-token.testnet",
     method: "ft_transfer",
@@ -68,7 +71,7 @@ let activityLog: ActivityItem[] = [
     id: "act-veto-live",
     txHash: "2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8",
     type: "CANCELLED",
-    timestamp: Date.now() - 1000 * 60 * 18,
+    timestamp: BASE_TIME - 800000,
     agent: "trader.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -79,7 +82,7 @@ let activityLog: ActivityItem[] = [
     id: "act-swap-live",
     txHash: "4B53MCvk4PDCtiWTPDE18sgt3BW43QnRH8xeD3jzbMir",
     type: "ALLOW",
-    timestamp: Date.now() - 1000 * 60 * 25,
+    timestamp: BASE_TIME - 1200000,
     agent: "trader.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",

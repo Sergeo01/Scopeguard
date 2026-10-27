@@ -214,7 +214,7 @@ export default function CreateAgentPage() {
                   </span>
                 </div>
                 <span className="font-mono font-bold text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
-                  ${dailyCap}.00 mUSD
+                  ${dailyCap} mUSD
                 </span>
               </div>
 

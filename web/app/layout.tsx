@@ -3,9 +3,14 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "ScopeGuard | Smart Spending Keys for Autonomous AI Agents",
+  title: "ScopeGuard | Scoped Spending Passkeys for AI Agents on NEAR",
   description:
-    "Give your AI agent a spending card that can only do its job. Onchain security enforced by NEAR Protocol access keys and deterministic policy verification.",
+    "Give your AI agent a key that can only do its job. Onchain policy enforcement and scoped passkeys on NEAR Protocol.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
