@@ -99,15 +99,17 @@ node scripts/testnet-demo-agent-e2e.js
 
 ---
 
-## 6. Pre-Demo Unpause & Status Verification
+## 6. Pre-Demo Reset and Status Verification
 
-If the agent has been paused by the circuit breaker during previous testing runs, evaluators can unpause the agent anytime:
+If the agent has been paused by the circuit breaker or has pending timelock entries from previous evaluations, judges can reset the environment with a single command:
 
 ```bash
-node scripts/upgrade-and-unpause-guard2.js
+node scripts/reset-demo.js
 ```
 
-Or execute directly with NEAR CLI:
+This unpauses the agent, vetoes and cleans any pending actions, and verifies that the 100 mUSD vault balance and spending limit are active and ready for live evaluation.
+
+Or execute unpause directly with NEAR CLI:
 
 ```bash
 near call guard2.sergeo-guard.testnet unpause '{"agent_account":"trader.sergeo-guard.testnet"}' --accountId sergeo-guard.testnet

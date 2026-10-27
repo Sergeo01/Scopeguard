@@ -16,6 +16,17 @@ export interface ActivityItem {
 // Initialized with verified live NEAR testnet transactions
 let activityLog: ActivityItem[] = [
   {
+    id: "act-veto-intent2-live",
+    txHash: "AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp",
+    type: "CANCELLED",
+    timestamp: Date.now() - 1000 * 60 * 1,
+    agent: "trader.sergeo-guard.testnet",
+    target: "sergeo-guard-dex.testnet",
+    method: "swap",
+    amount: "300",
+    reason: "Owner vetoed quarantined pending intent #2",
+  },
+  {
     id: "act-unpause-live",
     txHash: "14sYk3Ve1g7qtwBvPx8mGDy4LcLZzCzAKVR55TPkBvC4",
     type: "UNPAUSE",

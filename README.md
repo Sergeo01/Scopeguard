@@ -131,7 +131,7 @@ We believe in radical transparency:
 4. **Optimistic Settlement and Closed-Direction Invariant:** In v1, token transfers debit the internal vault balance and daily spend cap optimistically prior to cross-contract settlement. If a recipient contract refuses the transfer (for example an unregistered receiver), the spend cap remains debited. This fails closed in the direction that protects treasury funds against runaway drain, while full asynchronous rollback callbacks are slated for v2.
 5. **Non-Custodial Owner Controls:** The ScopeGuard web server never custodies owner master private keys. Emergency powers (pause, unpause, withdraw, revoke) are executed via NEAR CLI or user wallets directly onchain.
 6. **No Panic Invariant:** All policy rejections return structured value codes without panicking. Panicking on reject would revert state writes, which would silently erase the intrusion audit log and undo circuit breaker strikes.
-7. **Pre-Demo Unpause:** Because the onchain circuit breaker automatically freezes the agent after repeated attack declines during evaluation, evaluators can unpause the agent anytime via `node scripts/upgrade-and-unpause-guard2.js` or through the dashboard non-custodial command modal.
+7. **Pre-Demo Reset:** Because the onchain circuit breaker automatically freezes the agent after repeated attack declines during evaluation, evaluators can reset the agent and timelock queue anytime with one command: `node scripts/reset-demo.js`.
 
 ---
 
