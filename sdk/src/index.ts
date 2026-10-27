@@ -10,6 +10,31 @@ export interface ScopeGuardCredential {
   nodeUrl?: string;
 }
 
+export type GuardAction =
+  | {
+      Transfer: {
+        token: string;
+        to: string;
+        amount: string;
+        memo?: string | null;
+      };
+    }
+  | {
+      Swap: {
+        dex: string;
+        token_in: string;
+        amount_in: string;
+        min_out: string;
+      };
+    }
+  | {
+      ContractCall: {
+        target: string;
+        method: string;
+        args: string;
+      };
+    };
+
 export interface ActParams {
   target: string;
   method: string;
@@ -30,6 +55,7 @@ export interface BudgetView {
   remaining: string;
   actions_in_window: number;
   paused: boolean;
+  vault_balance: string;
 }
 
 export interface PendingAction {
@@ -79,23 +105,50 @@ export class ScopeGuardClient {
     return this.accountPromise;
   }
 
-  async act(params: ActParams): Promise<Outcome> {
+  async act(paramsOrAction: ActParams | GuardAction): Promise<Outcome> {
     const account = await this.getAccount();
-    const argsString =
-      typeof params.args === "string"
-        ? params.args
-        : JSON.stringify(params.args || {});
+    let action: GuardAction;
+
+    if ("Transfer" in paramsOrAction || "Swap" in paramsOrAction || "ContractCall" in paramsOrAction) {
+      action = paramsOrAction;
+    } else {
+      const p = paramsOrAction as ActParams;
+      const argsString =
+        typeof p.args === "string" ? p.args : JSON.stringify(p.args || {});
+
+      if (p.method === "swap") {
+        action = {
+          Swap: {
+            dex: p.target,
+            token_in: "token.near",
+            amount_in: p.amount || "0",
+            min_out: "0",
+          },
+        };
+      } else if (p.recipient) {
+        action = {
+          Transfer: {
+            token: p.target,
+            to: p.recipient,
+            amount: p.amount || "0",
+            memo: null,
+          },
+        };
+      } else {
+        action = {
+          ContractCall: {
+            target: p.target,
+            method: p.method,
+            args: argsString,
+          },
+        };
+      }
+    }
 
     const outcome = await account.functionCall({
       contractId: this.credential.policyContractId,
       methodName: "execute",
-      args: {
-        target: params.target,
-        method: params.method,
-        args: argsString,
-        amount: params.amount || "0",
-        recipient: params.recipient || null,
-      },
+      args: { action },
       gas: BigInt("50000000000000"), // 50 TGas
       attachedDeposit: BigInt(0),
     });

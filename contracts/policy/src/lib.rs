@@ -31,6 +31,8 @@ const MAX_PENDING_ACTIONS: usize = 8;
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Policy {
+    /// single registered NEP-141 token custodies by the vault in v1
+    pub token: AccountId,
     /// contract id -> method names the agent may call on it
     pub targets: HashMap<AccountId, Vec<String>>,
     /// max total value movable per 24h window, in vault token units
@@ -205,20 +207,7 @@ impl Contract {
     // Registration & Policy Management
     // ---------------------------------------------------------------
 
-    pub fn register_agent(&mut self, agent_account: AccountId, policy: Policy) {
-        let owner = env::predecessor_account_id();
-        assert!(
-            !self.agents.contains_key(&agent_account),
-            "agent already registered"
-        );
-
-        // Bind agent registration to owner: agent must be a sub-account of owner
-        assert!(
-            agent_account.as_str().ends_with(&format!(".{}", owner)) || agent_account == owner,
-            "Agent account must be a sub-account of the owner"
-        );
-
-        // Strict policy validation: no wildcards, non-zero cap, threshold <= cap
+    fn validate_policy(policy: &Policy) {
         assert!(policy.daily_cap > 0, "daily_cap must be greater than zero");
         assert!(
             policy.high_value_threshold <= policy.daily_cap,
@@ -233,6 +222,23 @@ impl Contract {
                 );
             }
         }
+    }
+
+    pub fn register_agent(&mut self, agent_account: AccountId, policy: Policy) {
+        let owner = env::predecessor_account_id();
+        assert!(
+            !self.agents.contains_key(&agent_account),
+            "agent already registered"
+        );
+
+        // Bind agent registration to owner: agent must be a sub-account of owner
+        assert!(
+            agent_account.as_str().ends_with(&format!(".{}", owner)) || agent_account == owner,
+            "Agent account must be a sub-account of the owner"
+        );
+
+        // Strict policy validation: no wildcards, non-zero cap, threshold <= cap
+        Self::validate_policy(&policy);
 
         let now = env::block_timestamp();
         self.agents.insert(
@@ -281,6 +287,10 @@ impl Contract {
             None => env::panic_str(REASON_NOT_AGENT),
         };
         assert_eq!(sender_id, rec.owner, "Only owner can deposit into agent vault");
+        // Predecessor MUST match the policy's registered token contract
+        let token_caller = env::predecessor_account_id();
+        assert_eq!(token_caller, rec.policy.token, "Unauthorized token contract");
+
         rec.vault_balance += amount.0;
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
@@ -291,9 +301,10 @@ impl Contract {
     }
 
     /// Owner only. Stages the new policy with effective_at = now + policy_change_delay_seconds.
-    /// Does not apply immediately.
+    /// Does not apply immediately. Strictly validates policy before staging.
     pub fn set_policy(&mut self, agent_account: AccountId, policy: Policy) {
         let mut rec = self.load_owned(&agent_account);
+        Self::validate_policy(&policy);
         let now_sec = env::block_timestamp() / 1_000_000_000;
         let effective_at = now_sec + rec.policy.policy_change_delay_seconds;
         rec.staged_policy = Some(StagedPolicy {
@@ -345,10 +356,11 @@ impl Contract {
     }
 
     /// Owner only, immediate. Withdraws custodied NEP-141 tokens from vault back to owner.
-    pub fn withdraw(&mut self, agent_account: AccountId, token: AccountId, amount: U128) -> Promise {
+    pub fn withdraw(&mut self, agent_account: AccountId, amount: U128) -> Promise {
         let mut rec = self.load_owned(&agent_account);
         assert!(rec.vault_balance >= amount.0, "insufficient vault balance");
         rec.vault_balance -= amount.0;
+        let token = rec.policy.token.clone();
         self.agents.insert(agent_account.clone(), rec.clone());
         emit(&format!(
             "{{\"event\":\"WITHDRAW\",\"agent\":\"{}\",\"token\":\"{}\",\"amount\":\"{}\"}}",
@@ -387,70 +399,31 @@ impl Contract {
     // Execution & Settlement
     // ---------------------------------------------------------------
 
-    /// Primary execution method: accepts either a strongly-typed `action`
-    /// or legacy flat parameters (`target`, `method`, `args`, `amount`, `recipient`).
-    /// All execution paths derive calldata through GuardAction so amount cannot be spoofed.
-    pub fn execute(
-        &mut self,
-        action: Option<GuardAction>,
-        target: Option<AccountId>,
-        method: Option<String>,
-        args: Option<String>,
-        amount: Option<U128>,
-        recipient: Option<AccountId>,
-    ) -> Outcome {
-        let (guard_action, tgt, meth, args_bytes, amt, recip) = if let Some(act) = action {
-            let (t, m, ab, a, r) = act.decompose();
-            (act, t, m, ab, a, r)
-        } else {
-            let target = target.expect("target or action required");
-            let method = method.expect("method or action required");
-            let amount_u128 = amount.unwrap_or(U128(0));
-            let args_str = args.unwrap_or_else(|| "{}".to_string());
-            let args_b = args_str.as_bytes().to_vec();
-            let act = if method == "ft_transfer" && recipient.is_some() {
-                GuardAction::Transfer {
-                    token: target.clone(),
-                    to: recipient.clone().unwrap(),
-                    amount: amount_u128,
-                    memo: None,
-                }
-            } else if method == "swap" {
-                GuardAction::Swap {
-                    dex: target.clone(),
-                    token_in: "token.near".parse().unwrap(),
-                    amount_in: amount_u128,
-                    min_out: U128(0),
-                }
-            } else {
-                GuardAction::ContractCall {
-                    target: target.clone(),
-                    method: method.clone(),
-                    args: args_str,
-                }
-            };
-            (act, target, method, args_b, amount_u128.0, recipient)
+    /// Primary execution method: strictly accepts strongly-typed GuardAction.
+    /// No flat arguments or bypass paths exist. The Guard constructs calldata.
+    pub fn execute(&mut self, action: GuardAction) -> Outcome {
+        let caller = env::predecessor_account_id();
+        let mut rec = match self.agents.get(&caller).cloned() {
+            Some(r) => r,
+            None => env::panic_str(REASON_NOT_AGENT),
         };
+        let now = env::block_timestamp();
+        let now_sec = now / 1_000_000_000;
 
+        // Lazy apply staged policy if effective_at has arrived.
+        Self::apply_staged_policy_if_due(&mut rec, now_sec, &caller);
+
+        // Security check: ContractCall must NEVER invoke token transfer methods.
+        // Token transfers must use GuardAction::Transfer with strictly verified amount and recipient.
+        if let GuardAction::ContractCall { method, .. } = &action {
+            if method == "ft_transfer" || method == "ft_transfer_call" {
+                return self.reject(&caller, &mut rec, REASON_METHOD, now);
+            }
+        }
+
+        let (target, method, args_bytes, amount, recipient) = action.decompose();
         let args_str = String::from_utf8(args_bytes.clone()).unwrap_or_default();
-        self.internal_execute(guard_action, tgt, meth, args_str, args_bytes, amt, recip)
-    }
-
-    /// Convenience wrapper for typed actions.
-    pub fn execute_action(&mut self, action: GuardAction) -> Outcome {
-        self.execute(Some(action), None, None, None, None, None)
-    }
-
-    /// Convenience wrapper for tests and raw string callers.
-    pub fn execute_raw(
-        &mut self,
-        target: AccountId,
-        method: String,
-        args: String,
-        amount: U128,
-        recipient: Option<AccountId>,
-    ) -> Outcome {
-        self.execute(None, Some(target), Some(method), Some(args), Some(amount), recipient)
+        self.internal_execute(action, target, method, args_str, args_bytes, amount, recipient)
     }
 
     fn internal_execute(
@@ -541,7 +514,10 @@ impl Contract {
             // Allowed immediately: record spend and velocity, persist, then act.
             rec.spent_in_window += amount;
             rec.actions_in_window += 1;
-            rec.vault_balance = rec.vault_balance.saturating_sub(amount);
+            // Only debit custodied vault balance when real tokens are transferred
+            if matches!(action, GuardAction::Transfer { .. }) {
+                rec.vault_balance = rec.vault_balance.saturating_sub(amount);
+            }
             self.agents.insert(caller.clone(), rec);
             emit(&format!(
                 "{{\"event\":\"ALLOW\",\"agent\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
@@ -622,7 +598,10 @@ impl Contract {
         // All checks passed. Record spend and velocity, persist, emit SETTLED, perform action.
         rec.spent_in_window += pending_action.amount;
         rec.actions_in_window += 1;
-        rec.vault_balance = rec.vault_balance.saturating_sub(pending_action.amount);
+        // Only debit custodied vault balance when real tokens are transferred
+        if matches!(pending_action.action, GuardAction::Transfer { .. }) {
+            rec.vault_balance = rec.vault_balance.saturating_sub(pending_action.amount);
+        }
         self.agents.insert(agent.clone(), rec);
         emit(&format!(
             "{{\"event\":\"SETTLED\",\"agent\":\"{}\",\"id\":{},\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
@@ -800,6 +779,7 @@ mod tests {
             vec!["ft_transfer".to_string()],
         );
         Policy {
+            token: "token.near".parse().unwrap(),
             targets,
             daily_cap: 1000,
             recipients: vec![recipient()],
@@ -809,6 +789,24 @@ mod tests {
             high_value_threshold: 0,
             high_value_delay_seconds: 3600,
             policy_change_delay_seconds: 600,
+        }
+    }
+
+    fn swap_action(amount: u128) -> GuardAction {
+        GuardAction::Swap {
+            dex: target(),
+            token_in: "token.near".parse().unwrap(),
+            amount_in: U128(amount),
+            min_out: U128(0),
+        }
+    }
+
+    fn transfer_action(amount: u128, to: AccountId) -> GuardAction {
+        GuardAction::Transfer {
+            token: "token.near".parse().unwrap(),
+            to,
+            amount: U128(amount),
+            memo: None,
         }
     }
 
@@ -862,13 +860,7 @@ mod tests {
         builder.predecessor_account_id("stranger.near".parse().unwrap());
         testing_env!(builder.build());
 
-        contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        contract.execute(swap_action(10));
     }
 
     #[test]
@@ -876,8 +868,8 @@ mod tests {
         let now = 1_000_000_000;
         let (mut contract, mut builder) = setup_contract(now);
 
-        // Owner deposits 5,000 tokens into the agent vault
-        builder.predecessor_account_id(owner());
+        // Predecessor must be the policy registered token ("token.near")
+        builder.predecessor_account_id("token.near".parse().unwrap());
         testing_env!(builder.build());
 
         let res = contract.ft_on_transfer(owner(), U128(5000), agent().to_string());
@@ -890,9 +882,24 @@ mod tests {
         assert_eq!(budget.vault_balance.0, 5000);
 
         // Owner withdraws 2,000 tokens
-        let _ = contract.withdraw(agent(), "token.near".parse().unwrap(), U128(2000));
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        let _ = contract.withdraw(agent(), U128(2000));
         let budget_after = contract.get_budget(agent()).unwrap();
         assert_eq!(budget_after.vault_balance.0, 3000);
+    }
+
+    #[test]
+    #[should_panic(expected = "Unauthorized token contract")]
+    fn test_unauthorized_token_cannot_deposit_to_vault() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Random fake token caller tries to inflate vault
+        builder.predecessor_account_id("fake_token.near".parse().unwrap());
+        testing_env!(builder.build());
+
+        let _ = contract.ft_on_transfer(owner(), U128(5000), agent().to_string());
     }
 
     #[test]
@@ -912,6 +919,22 @@ mod tests {
             .targets
             .insert("any.near".parse().unwrap(), vec!["*".to_string()]);
         contract.register_agent("bot.alice.near".parse().unwrap(), wild_policy);
+    }
+
+    #[test]
+    #[should_panic(expected = "wildcard method '*' is forbidden")]
+    fn test_staged_wildcard_policy_rejected() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+
+        let mut wild_policy = sample_policy();
+        wild_policy
+            .targets
+            .insert("any.near".parse().unwrap(), vec!["*".to_string()]);
+        contract.set_policy(agent(), wild_policy);
     }
 
     #[test]
@@ -947,12 +970,69 @@ mod tests {
             memo: Some("try to move 10000".to_string()),
         };
 
-        let outcome = contract.execute_action(action);
+        let outcome = contract.execute(action);
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_CAP.to_string()));
 
         let budget = contract.get_budget(agent()).unwrap();
         assert_eq!(budget.spent.0, 0); // No spend recorded
+    }
+
+    #[test]
+    fn test_contract_call_cannot_bypass_transfer_cap_or_recipient() {
+        // Critical test: an attacker attempting to call ft_transfer via generic ContractCall
+        // to evade recipient allowlist or daily cap is strictly refused with METHOD_NOT_ALLOWED.
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let bypass_action = GuardAction::ContractCall {
+            target: "token.near".parse().unwrap(),
+            method: "ft_transfer".to_string(),
+            args: serde_json::json!({
+                "receiver_id": bad_recipient(),
+                "amount": "100000"
+            })
+            .to_string(),
+        };
+
+        let outcome = contract.execute(bypass_action);
+        assert_eq!(outcome.status, "REJECTED");
+        assert_eq!(outcome.reason, Some(REASON_METHOD.to_string()));
+    }
+
+    #[test]
+    fn test_swap_does_not_falsely_debit_vault() {
+        // Honest accounting test: Swaps affect daily spend cap and velocity,
+        // but do not falsely decrement custodied vault balance when tokens did not leave the vault.
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Deposit 1,000 into vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.build());
+        let _ = contract.ft_on_transfer(owner(), U128(1000), agent().to_string());
+
+        // Agent performs legit swap of 200
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let outcome = contract.execute(swap_action(200));
+        assert_eq!(outcome.status, "ALLOWED");
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget.spent.0, 200);
+        assert_eq!(budget.remaining.0, 800);
+        // Vault balance remains intact at 1000 (no fake debiting)
+        assert_eq!(budget.vault_balance.0, 1000);
+
+        // Real transfer of 150 DOES debit vault
+        let transfer = contract.execute(transfer_action(150, recipient()));
+        assert_eq!(transfer.status, "ALLOWED");
+        let budget_after = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget_after.spent.0, 350);
+        assert_eq!(budget_after.vault_balance.0, 850);
     }
 
     #[test]
@@ -970,7 +1050,7 @@ mod tests {
             min_out: U128(0),
         };
 
-        let outcome = contract.execute_action(action);
+        let outcome = contract.execute(action);
         assert_eq!(outcome.status, "ALLOWED");
         assert_eq!(outcome.reason, None);
 
@@ -995,7 +1075,7 @@ mod tests {
             min_out: U128(0),
         };
 
-        let outcome = contract.execute_action(action);
+        let outcome = contract.execute(action);
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_TARGET.to_string()));
     }
@@ -1008,13 +1088,11 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let outcome = contract.execute_raw(
-            target(),
-            "drain".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        let outcome = contract.execute(GuardAction::ContractCall {
+            target: target(),
+            method: "drain".to_string(),
+            args: "{}".to_string(),
+        });
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_METHOD.to_string()));
     }
@@ -1027,13 +1105,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let outcome = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(1001),
-            None,
-        );
+        let outcome = contract.execute(swap_action(1001));
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_CAP.to_string()));
     }
@@ -1046,13 +1118,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let outcome = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(100),
-            Some(bad_recipient()),
-        );
+        let outcome = contract.execute(transfer_action(100, bad_recipient()));
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_RECIPIENT.to_string()));
     }
@@ -1066,23 +1132,15 @@ mod tests {
         testing_env!(builder.build());
 
         for _ in 0..3 {
-            let o = contract.execute_raw(
-                target(),
-                "swap".to_string(),
-                "{}".to_string(),
-                U128(10),
-                None,
-            );
+            let o = contract.execute(swap_action(10));
             assert_eq!(o.status, "ALLOWED");
         }
 
-        let o = contract.execute_raw(
-            bad_target(),
-            "drain".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        let o = contract.execute(GuardAction::ContractCall {
+            target: bad_target(),
+            method: "drain".to_string(),
+            args: "{}".to_string(),
+        });
         assert_eq!(o.status, "REJECTED");
         assert_eq!(o.reason, Some(REASON_OVER_VELOCITY.to_string()));
     }
@@ -1096,13 +1154,12 @@ mod tests {
         testing_env!(builder.build());
 
         for i in 0..5 {
-            let o = contract.execute_raw(
-                bad_target(),
-                "swap".to_string(),
-                "{}".to_string(),
-                U128(10),
-                None,
-            );
+            let o = contract.execute(GuardAction::Swap {
+                dex: bad_target(),
+                token_in: "token.near".parse().unwrap(),
+                amount_in: U128(10),
+                min_out: U128(0),
+            });
             assert_eq!(o.status, "REJECTED");
             assert_eq!(o.reason, Some(REASON_TARGET.to_string()));
             let budget = contract.get_budget(agent()).unwrap();
@@ -1113,13 +1170,7 @@ mod tests {
             }
         }
 
-        let o = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        let o = contract.execute(swap_action(10));
         assert_eq!(o.status, "REJECTED");
         assert_eq!(o.reason, Some(REASON_PAUSED.to_string()));
     }
@@ -1135,13 +1186,7 @@ mod tests {
 
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
-        let o = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        let o = contract.execute(swap_action(10));
         assert_eq!(o.status, "REJECTED");
         assert_eq!(o.reason, Some(REASON_PAUSED.to_string()));
 
@@ -1151,13 +1196,7 @@ mod tests {
 
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
-        let o2 = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(10),
-            None,
-        );
+        let o2 = contract.execute(swap_action(10));
         assert_eq!(o2.status, "ALLOWED");
     }
 
@@ -1169,13 +1208,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let o1 = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(500),
-            None,
-        );
+        let o1 = contract.execute(swap_action(500));
         assert_eq!(o1.status, "ALLOWED");
 
         let budget1 = contract.get_budget(agent()).unwrap();
@@ -1185,13 +1218,7 @@ mod tests {
         builder.block_timestamp(day_later);
         testing_env!(builder.build());
 
-        let o2 = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(600),
-            None,
-        );
+        let o2 = contract.execute(swap_action(600));
         assert_eq!(o2.status, "ALLOWED");
 
         let budget2 = contract.get_budget(agent()).unwrap();
@@ -1217,13 +1244,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let o = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(300),
-            None,
-        );
+        let o = contract.execute(swap_action(300));
         assert_eq!(o.status, "PENDING");
         let id = o.pending_id.unwrap();
 
@@ -1260,13 +1281,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let o = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(300),
-            None,
-        );
+        let o = contract.execute(swap_action(300));
         let id = o.pending_id.unwrap();
 
         // Fast forward past delay
@@ -1302,13 +1317,7 @@ mod tests {
         builder.predecessor_account_id(agent());
         testing_env!(builder.build());
 
-        let o = contract.execute_raw(
-            target(),
-            "swap".to_string(),
-            "{}".to_string(),
-            U128(300),
-            None,
-        );
+        let o = contract.execute(swap_action(300));
         let id = o.pending_id.unwrap();
         assert_eq!(contract.get_pending_actions(agent()).len(), 1);
 
@@ -1362,11 +1371,11 @@ mod tests {
         testing_env!(builder.build());
 
         // Below threshold (99) -> ALLOWED immediately
-        let o1 = contract.execute_raw(target(), "swap".to_string(), "{}".to_string(), U128(99), None);
+        let o1 = contract.execute(swap_action(99));
         assert_eq!(o1.status, "ALLOWED");
 
         // At threshold (100) -> PENDING in timelock
-        let o2 = contract.execute_raw(target(), "swap".to_string(), "{}".to_string(), U128(100), None);
+        let o2 = contract.execute(swap_action(100));
         assert_eq!(o2.status, "PENDING");
     }
 }

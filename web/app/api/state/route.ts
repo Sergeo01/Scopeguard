@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 
@@ -9,9 +11,10 @@ export async function GET() {
       keyStore: new keyStores.InMemoryKeyStore(),
     });
 
-    const account = await near.account("sergeo-guard.testnet");
-    const guardId = "guard.sergeo-guard.testnet";
-    const agentId = "trader.sergeo-guard.testnet";
+    const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+    const agentId = process.env.SCOPEGUARD_AGENT_ID || "trader.sergeo-guard.testnet";
+    const ownerId = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
+    const account = await near.account(ownerId);
 
     const budget = await account.viewFunction({
       contractId: guardId,

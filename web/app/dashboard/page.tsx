@@ -50,13 +50,13 @@ interface PendingActionItem {
 
 export default function DashboardPage() {
   const [agentId, setAgentId] = useState("trader.sergeo-guard.testnet");
-  const [guardId, setGuardId] = useState("guard.sergeo-guard.testnet");
+  const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
-  const [vaultBalance, setVaultBalance] = useState("75");
+  const [vaultBalance, setVaultBalance] = useState("100");
   const [dailyCapTotal, setDailyCapTotal] = useState(500);
-  const [dailyCapSpent, setDailyCapSpent] = useState(425);
-  const [velocityUsed, setVelocityUsed] = useState(1);
+  const [dailyCapSpent, setDailyCapSpent] = useState(25);
+  const [velocityUsed, setVelocityUsed] = useState(2);
   const [velocityMax, setVelocityMax] = useState(5);
   const [loading, setLoading] = useState(false);
   const [ledgerFilter, setLedgerFilter] = useState<"all" | "approved" | "declined">("all");
@@ -64,6 +64,14 @@ export default function DashboardPage() {
 
   const [stagedPolicy, setStagedPolicy] = useState<StagedPolicyItem | null>(null);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
+
+  // Non-custodial Owner Command Modal state
+  const [activeOwnerModal, setActiveOwnerModal] = useState<{
+    title: string;
+    description: string;
+    command: string;
+  } | null>(null);
+  const [copiedCmd, setCopiedCmd] = useState(false);
 
   const [activities, setActivities] = useState<ActivityItem[]>([
     {
@@ -134,7 +142,7 @@ export default function DashboardPage() {
           setIsPaused(data.budget.paused);
           setDailyCapTotal(Number(data.budget.cap) || 500);
           setDailyCapSpent(Number(data.budget.spent) || 0);
-          setVaultBalance(data.budget.remaining || "75");
+          setVaultBalance(data.budget.vault_balance || "100");
           setVelocityUsed(data.budget.actions_in_window || 0);
         }
         if (data.pendingActions && data.pendingActions.length > 0) {
@@ -176,152 +184,43 @@ export default function DashboardPage() {
   } | null>(null);
 
   const handlePause = async () => {
-    try {
-      const res = await fetch("/api/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pause", agentId }),
-      });
-      const data = await res.json();
-      setIsPaused(true);
-      if (data.txHash) {
-        setOwnerTxStatus({
-          message: "Agent operations paused onchain",
-          txHash: data.txHash,
-          explorerUrl: data.explorerUrl,
-        });
-      }
-      setActivities((prev) => [
-        {
-          id: `pause-${Date.now()}`,
-          type: "PAUSE",
-          timestamp: Date.now(),
-          agent: agentId,
-          reason: `Owner manual pause executed (Tx: ${data.txHash ? data.txHash.slice(0, 10) + "..." : "onchain"})`,
-        },
-        ...prev,
-      ]);
-    } catch (err: any) {
-      console.error("Pause failed:", err);
-    }
+    setActiveOwnerModal({
+      title: "Emergency Pause",
+      description: "Freezes all agent transactions on NEAR Testnet immediately. The Guard contract will refuse all calls until unpaused.",
+      command: `near call ${guardId} pause '{"agent_account":"${agentId}"}' --accountId sergeo-guard.testnet`,
+    });
   };
 
   const handleUnpause = async () => {
-    try {
-      const res = await fetch("/api/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "unpause", agentId }),
-      });
-      const data = await res.json();
-      setIsPaused(false);
-      setRejectCount(0);
-      if (data.txHash) {
-        setOwnerTxStatus({
-          message: "Agent operations unpaused onchain",
-          txHash: data.txHash,
-          explorerUrl: data.explorerUrl,
-        });
-      }
-      setActivities((prev) => [
-        {
-          id: `unpause-${Date.now()}`,
-          type: "UNPAUSE",
-          timestamp: Date.now(),
-          agent: agentId,
-          reason: `Owner manual unpause executed (Tx: ${data.txHash ? data.txHash.slice(0, 10) + "..." : "onchain"})`,
-        },
-        ...prev,
-      ]);
-    } catch (err: any) {
-      console.error("Unpause failed:", err);
-    }
+    setActiveOwnerModal({
+      title: "Unpause Agent",
+      description: "Resumes normal agent execution and clears consecutive reject counters.",
+      command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId sergeo-guard.testnet`,
+    });
   };
 
   const handleRevokeKey = async () => {
-    try {
-      const res = await fetch("/api/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "revoke", agentId }),
-      });
-      const data = await res.json();
-      setOwnerTxStatus({
-        message: "Function-call passkey permanently revoked on NEAR protocol consensus",
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
-      });
-      setActivities((prev) => [
-        {
-          id: `revoke-${Date.now()}`,
-          type: "CANCELLED",
-          timestamp: Date.now(),
-          agent: agentId,
-          reason: "Passkey permanently revoked on NEAR consensus layer",
-        },
-        ...prev,
-      ]);
-    } catch (err: any) {
-      console.error("Revoke failed:", err);
-    }
+    setActiveOwnerModal({
+      title: "Permanently Revoke Passkey",
+      description: "Deletes the restricted function-call passkey directly on NEAR consensus. The credential on the agent machine becomes completely dead.",
+      command: `near delete-key ${agentId} <AGENT_PUBLIC_KEY> --accountId ${agentId}`,
+    });
   };
 
   const handleWithdrawVault = async () => {
-    try {
-      const res = await fetch("/api/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "withdraw", agentId, amount: vaultBalance }),
-      });
-      const data = await res.json();
-      setVaultBalance("0");
-      setOwnerTxStatus({
-        message: "Emergency withdrawal complete: custodied vault tokens returned to owner wallet",
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
-      });
-      setActivities((prev) => [
-        {
-          id: `withdraw-${Date.now()}`,
-          type: "SETTLED",
-          timestamp: Date.now(),
-          agent: agentId,
-          reason: `Emergency vault withdrawal to owner (Tx: ${data.txHash ? data.txHash.slice(0, 10) + "..." : "onchain"})`,
-        },
-        ...prev,
-      ]);
-    } catch (err: any) {
-      console.error("Withdraw failed:", err);
-    }
+    setActiveOwnerModal({
+      title: "Emergency Vault Withdrawal",
+      description: "Transfers all custodied NEP-141 tokens from the Guard vault back to the owner wallet.",
+      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId sergeo-guard.testnet`,
+    });
   };
 
   const handleCancelPending = async (id: number) => {
-    try {
-      const res = await fetch("/api/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel_pending", agentId, id }),
-      });
-      const data = await res.json();
-      setPendingActions((prev) => prev.filter((a) => a.id !== id));
-      setOwnerTxStatus({
-        message: `Pending action #${id} cancelled by owner veto`,
-        txHash: data.txHash,
-        explorerUrl: data.explorerUrl,
-      });
-      setActivities((prev) => [
-        {
-          id: `cancel-${Date.now()}`,
-          type: "CANCELLED",
-          timestamp: Date.now(),
-          agent: agentId,
-          reason: `Pending action #${id} vetoed by owner onchain`,
-        },
-        ...prev,
-      ]);
-    } catch (err: any) {
-      console.error("Cancel pending failed:", err);
-    }
+    setActiveOwnerModal({
+      title: `Veto Pending Intent #${id}`,
+      description: "Cancels quarantined high-value action before the timelock delay expires.",
+      command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${id}}' --accountId sergeo-guard.testnet`,
+    });
   };
 
   const handleSimulatePending = () => {
@@ -738,6 +637,61 @@ export default function DashboardPage() {
           </table>
         </div>
       </div>
+
+      {activeOwnerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+                {activeOwnerModal.title}
+              </h3>
+              <button
+                onClick={() => { setActiveOwnerModal(null); setCopiedCmd(false); }}
+                className="text-zinc-400 hover:text-zinc-200 text-sm"
+              >
+                Close
+              </button>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              {activeOwnerModal.description}
+            </p>
+            <div className="rounded-lg bg-zinc-950 p-3 border border-zinc-800">
+              <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+                <span>NEAR CLI Command (Non-Custodial)</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(activeOwnerModal.command);
+                    setCopiedCmd(true);
+                    setTimeout(() => setCopiedCmd(false), 2000);
+                  }}
+                  className="text-emerald-400 hover:text-emerald-300 font-medium"
+                >
+                  {copiedCmd ? "Copied!" : "Copy Command"}
+                </button>
+              </div>
+              <code className="text-xs font-mono text-zinc-300 break-all select-all block bg-black/40 p-2 rounded border border-zinc-800/80">
+                {activeOwnerModal.command}
+              </code>
+            </div>
+            <div className="text-[11px] text-zinc-500 bg-zinc-950/60 p-3 rounded-lg border border-zinc-800/50">
+              <strong>Non-Custodial Security:</strong> ScopeGuard servers never custody your master private keys. To execute this owner power, sign via NEAR CLI or your connected hardware wallet.
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => {
+                  loadOnchainState();
+                  setActiveOwnerModal(null);
+                  setCopiedCmd(false);
+                }}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium"
+              >
+                Sync Onchain State
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

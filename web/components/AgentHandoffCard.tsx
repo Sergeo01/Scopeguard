@@ -40,7 +40,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
 
   // ponytail: Simulated active keypair for demo. In production, this matches the newly derived sub-account passkey.
   const samplePasskey = "ed25519:2YEm4xT9yBwVvE75zWqE9Q8YfV9dK5vN2m1L7zX4r8P6";
-  const guardContract = "guard.sergeo-guard.testnet";
+  const guardContract = "guard2.sergeo-guard.testnet";
 
   const cliCommand = `npx @scopeguard/cli connect --account ${agentName} --key ${samplePasskey} --guard ${guardContract}`;
 

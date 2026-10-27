@@ -152,7 +152,7 @@ export default function CreateAgentPage() {
     setTimeout(() => {
       setIsDeploying(false);
       setIssuedSuccess(true);
-    }, 750);
+    }, 400);
   };
 
   return (
@@ -451,15 +451,18 @@ export default function CreateAgentPage() {
               {isDeploying ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Registering Key on NEAR Consensus...</span>
+                  <span>Generating Policy Specification...</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Register Passkey Onchain</span>
+                  <span>Preview Scope & Generate Handoff</span>
                 </>
               )}
             </button>
+            <p className="text-[11px] text-slate-500 text-center">
+              Preview mode: generates ready-to-sign policy JSON and agent passkey format for NEAR consensus.
+            </p>
           </div>
 
           {/* Blueprint & Physical Card (Col 5) */}

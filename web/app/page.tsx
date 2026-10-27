@@ -352,7 +352,7 @@ export default function HomePage() {
 
   const parsedIntentJson = {
     agent_caller: "trader.sergeo-guard.testnet",
-    enforcing_guard: "guard.sergeo-guard.testnet",
+    enforcing_guard: "guard2.sergeo-guard.testnet",
     target_contract: targetAccount,
     target_method: methodName,
     call_arguments: {
@@ -769,11 +769,11 @@ export default function HomePage() {
             <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
               <tr>
                 <td className="py-2.5 pr-4 font-sans font-medium text-slate-800">Policy Guard</td>
-                <td className="py-2.5 px-4 text-slate-700">guard.sergeo-guard.testnet</td>
+                <td className="py-2.5 px-4 text-slate-700">guard2.sergeo-guard.testnet</td>
                 <td className="py-2.5 px-4 font-sans text-slate-500">Enforces 7 check rules & auto-pause</td>
                 <td className="py-2.5 pl-4 text-right font-sans">
                   <a
-                    href="https://testnet.nearblocks.io/address/guard.sergeo-guard.testnet"
+                    href="https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet"
                     target="_blank"
                     rel="noreferrer"
                     className="text-slate-600 hover:text-emerald-700 transition inline-flex items-center gap-1 font-medium"

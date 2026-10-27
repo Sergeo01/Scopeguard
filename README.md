@@ -11,7 +11,7 @@ Tracks: **AI Security & Defense** (Primary), **Agent Economy** (Secondary)
 
 To let an AI agent do anything with money today, its owner must give it credentials. Right now, that means the agent holds a full private key, sitting in a plaintext file on the owner's machine, next to third-party skills written by strangers.
 
-That creates an unacceptable situation: one mistake equals total loss.
+That creates an unacceptable equation: one trick equals total loss.
 
 - A stranger writes a malicious skill and the owner installs it. Audits of 2,857 skills on ClawHub found 341 malicious.
 - A stranger slips an instruction into something the agent reads (prompt injection). The agent cannot reliably distinguish a fake instruction from a real one.
@@ -26,7 +26,7 @@ In every case, the agent held a key that could do everything the owner could do,
 
 ScopeGuard replaces full keys with limited, scoped identity. An agent never holds a master key. It holds a small, restricted key that can only do its specific job. Every action it attempts is checked by an onchain Policy contract on NEAR against rules the owner signed.
 
-If the agent is tricked, injected, or compromised, the damage is bounded by those rules, recorded in a public audit log, and reversible by the owner with one tap.
+If the agent is tricked, injected, or compromised, the damage is bounded by those rules, recorded in a public audit log, and recoverable by the owner.
 
 The product promise: **"Give your agent a key that can only do its job."**
 
@@ -35,7 +35,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 ## 3. The Five Core Pieces
 
 1. **The Agent Sub-Account:** The agent operates under its own named sub-account (for example, `trader.alice.testnet`), completely isolated from the owner's main funds.
-2. **The Spending Pot (Vault):** The owner funds a limited working balance. That balance is the hard outer limit of what the agent can touch.
+2. **The Spending Pot (Vault):** The owner funds a limited working balance in the Guard contract. That balance is the hard outer limit of what the agent can touch.
 3. **The Scoped Passkey:** A NEAR function-call access key restricted at the protocol level to `receiver = Policy Contract`, `methods = ["execute"]`, with a capped NEAR gas allowance. It cannot transfer NEAR directly, call other contracts, add keys, or delete the account.
 4. **The Policy Guard Contract:** A Rust contract on NEAR implementing seven ordered checks. If checks pass, it executes the action. If any check fails, it writes to an onchain reject log, returns the machine-readable reason code without panicking, and trips an auto-pause circuit breaker if rejections spike.
 5. **The Owner Rule Card:** The owner's policy specifying allowed target contracts, allowed methods, a 24-hour rolling spend cap, a recipient allowlist, a velocity limit (actions per 10 minutes), and auto-pause settings.
@@ -48,7 +48,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 2. `PAUSED`: Agent must not be paused by owner or circuit breaker.
 3. `OVER_VELOCITY_CAP`: Actions in the current 10-minute window must be within the burst limit.
 4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist.
-5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target.
+5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target, and token calls must use typed `GuardAction::Transfer`.
 6. `OVER_DAILY_CAP`: 24-hour rolling spend plus requested amount must fit the daily cap.
 7. `RECIPIENT_NOT_ALLOWED`: External recipient must be explicitly allowlisted.
 
@@ -56,13 +56,13 @@ The product promise: **"Give your agent a key that can only do its job."**
 
 ## 5. Repository Layout
 
-- `contracts/policy`: Rust policy contract (near-sdk 5).
-- `contracts/mock-token`: NEP-141 token (`mUSD`) with faucet mint for demo use.
-- `contracts/mock-dex`: Mock exchange with fixed rate swap, the agent's legit target.
+- `contracts/policy`: Hardened Rust policy contract (near-sdk 5) with real token custody and strongly typed actions.
+- `contracts/mock-token`: NEP-141 token (`mUSD`) with faucet mint and storage registration for testnet verification.
+- `contracts/mock-dex`: Mock exchange with fixed rate swap, the agent's legitimate target.
 - `sdk`: TypeScript SDK (`loadCredential`, `act`, `budget`).
 - `demo-agent`: Deliberately naive Node.js agent with LLM in the loop.
 - `drafter`: AI scope drafter service with JSON Schema validation and lint checks.
-- `web`: Next.js frontend with wallet onboarding, policy review, dashboard, panic panel, and public attack demo page.
+- `web`: Next.js developer studio workbench with live attack simulator, agent treasury console, and interactive owner emergency controls.
 - `watcher`: Stateless notification service tailing reject events for Telegram and Discord alerts.
 
 ---
@@ -72,29 +72,34 @@ The product promise: **"Give your agent a key that can only do its job."**
 ScopeGuard is live and fully verified on the NEAR Testnet.
 
 ### Deployed Testnet Accounts & Contracts
-- **Policy Guard Contract:** [`guard.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard.sergeo-guard.testnet)
-- **Mock Token Contract (mUSD):** [`sergeo-guard-token.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-token.testnet)
+- **Policy Guard Contract:** [`guard2.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet)
+- **Token Vault (mUSD):** [`sergeo-guard-token.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-token.testnet)
 - **Mock DEX Contract:** [`sergeo-guard-dex.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-dex.testnet)
 - **Agent Sub-Account:** [`trader.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/trader.sergeo-guard.testnet)
 - **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
 
 ### Verified Onchain Execution Proofs
-1. **Contract Initialization:**
-   - Policy Contract Init: [7yBsfYhfz8ENoarDJVDmPNRP6NurNVfgCQHNKZAMnCtX](https://testnet.nearblocks.io/txns/7yBsfYhfz8ENoarDJVDmPNRP6NurNVfgCQHNKZAMnCtX)
-   - Mock Token Init: [A194m5aXgc6e9vnKXwTZhmQbhbWWd9N8GBeyzPcHpaBJ](https://testnet.nearblocks.io/txns/A194m5aXgc6e9vnKXwTZhmQbhbWWd9N8GBeyzPcHpaBJ)
-   - Mock DEX Init: [6YDYsWFDcGiQwVP6V6bxHuooQboqSnpyivv6DcydDCoR](https://testnet.nearblocks.io/txns/6YDYsWFDcGiQwVP6V6bxHuooQboqSnpyivv6DcydDCoR)
-2. **Authorized Cross-Contract Execution (ALLOW):**
-   - Agent passkey executes swap via Guard: `ALLOW` emitted and cross-contract `SWAP` executed on DEX.
-3. **High-Value Timelock Veto Lane (PENDING):**
-   - Action at or above 250 mUSD enters timelock queue: `PENDING` emitted with countdown timer.
-4. **Owner Immediate Veto (CANCELLED):**
-   - Owner cancels pending action with zero delay: [GMbGFNaDUcGHPV22o2zrEFWhxvAHEFKzPffSWTJn1HAX](https://testnet.nearblocks.io/txns/GMbGFNaDUcGHPV22o2zrEFWhxvAHEFKzPffSWTJn1HAX)
-5. **Delayed Settlement After Window (SETTLED):**
-   - Action settled onchain after delay window elapses: [66SgUA2YdxPSV2NcHa36rijSAERP1MW8FxLvfQEKbB6c](https://testnet.nearblocks.io/txns/66SgUA2YdxPSV2NcHa36rijSAERP1MW8FxLvfQEKbB6c)
-6. **Protocol-Level Enforcement (Consensus Layer):**
-   - Direct call to DEX blocked: `Wrong AccessKey used for transaction: transaction is sent to receiver_id=sergeo-guard-dex.testnet, but is signed with function call access key that restricted to only use with receiver_id=guard.sergeo-guard.testnet`
-   - Unauthorized method call blocked: `Transaction method name cancel_policy_change isn't allowed by the access key`
-   - Native token drain blocked: `The transaction contains more then one action, but it was signed with an access key which allows transaction to apply only one specific action`
+1. **Contract Deployment:**
+   - Policy Contract: [Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG](https://testnet.nearblocks.io/txns/Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG)
+   - Contract Init (`new`): [Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF](https://testnet.nearblocks.io/txns/Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF)
+2. **Agent Registration:**
+   - Bound to sub-account: [9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL](https://testnet.nearblocks.io/txns/9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL)
+3. **Scoped Passkey Added:**
+   - Function-call key restricted to Guard.execute: [57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc](https://testnet.nearblocks.io/txns/57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc)
+4. **Real NEP-141 Vault Deposit (100 mUSD):**
+   - Transferred via `ft_transfer_call`: [58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha](https://testnet.nearblocks.io/txns/58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha)
+5. **Authorized Execution (ALLOW):**
+   - Legit swap executed on DEX: [mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp](https://testnet.nearblocks.io/txns/mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp)
+6. **High-Value Timelock Quarantine (PENDING):**
+   - Exceeds threshold, queued in timelock: [DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa](https://testnet.nearblocks.io/txns/DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa)
+7. **Owner Veto Cancellation (CANCELLED):**
+   - Owner cancels pending action: [2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8](https://testnet.nearblocks.io/txns/2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8)
+8. **Prompt Injection Refusal (`RECIPIENT_NOT_ALLOWED`):**
+   - Attempt to drain pot to hacker refused: [3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7](https://testnet.nearblocks.io/txns/3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7)
+9. **Rogue Contract Refusal (`TARGET_NOT_ALLOWED`):**
+   - Call to unverified target refused: [Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG](https://testnet.nearblocks.io/txns/Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG)
+10. **Bypass Refusal & Auto-Pause (`METHOD_NOT_ALLOWED` & `AUTO_PAUSE`):**
+    - Raw ContractCall to ft_transfer blocked, emergency brake tripped: [FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z](https://testnet.nearblocks.io/txns/FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z)
 
 ---
 
@@ -105,7 +110,7 @@ Policy engines and spend permissions exist elsewhere in Web3 and Web2:
 - **EVM Smart Contract Wallets (Safe Modules, Squads on Solana):** These enforce rules onchain, but require full smart wallet deployments, audits, and higher transaction fees for every agent.
 
 **The ScopeGuard Differentiator on NEAR:**
-NEAR accounts natively support protocol-level function-call access keys. An agent holds a key that the blockchain consensus itself restricts to only calling `guard.near::execute` with a gas allowance. ScopeGuard adds the missing layer: **onchain value governance, NEP-141 token custody, typed action verification, rolling 24-hour spend accounting, recipient validation, anti-spam velocity limits, high-value timelock quarantine, and circuit breakers.**
+NEAR accounts natively support protocol-level function-call access keys. An agent holds a key that the blockchain consensus itself restricts to only calling `guard2.sergeo-guard.testnet::execute` with a gas allowance. ScopeGuard adds the missing layer: **onchain value governance, real NEP-141 token custody, typed action verification, rolling 24-hour spend accounting, recipient validation, anti-spam velocity limits, high-value timelock quarantine, and circuit breakers.**
 
 ---
 
@@ -117,17 +122,18 @@ While individual developers can deploy ScopeGuard directly, the primary benefici
 
 ---
 
-## 9. Honest Limits and Security Invariants
+## 9. Honest Limits, Known Gaps, and Security Invariants
 
-We believe in radical transparency. ScopeGuard provides bounded, visible, recoverable loss, not magic zero loss:
+We believe in radical transparency:
 1. **Bounded Loss, Not Zero Loss:** If an owner configures a $100 daily cap, an injected agent could still execute legitimate trades that lose up to $100 on that day. The guarantee is that the agent can *never* lose $10,000 or drain external wallets.
-2. **Typed Actions vs Arbitrary DeFi Simulation:** ScopeGuard enforces value movement through strongly typed actions (`Transfer`, `Swap`, `ContractCall`). Arbitrary smart contract calls with complex re-entrant liquidity routing require specialized adapters. Transaction simulation (dry-running and delta inspection) is the roadmap for v2.
-3. **Owner Single Point of Failure:** The master owner key holds emergency unpause, withdrawal, and policy management powers. For production treasuries with significant capital, the owner account should always be a multi-signature account.
-4. **No Panic Invariant:** All policy rejections return structured value codes without panicking. Panicking on reject would revert state writes, which would silently erase the intrusion audit log and undo circuit breaker strikes.
+2. **Single-Token Vault in v1:** In v1, each Guard policy specifies a single registered NEP-141 token pot (`policy.token`). The Guard strictly verifies the token contract on deposit and ensures transfers move that token. Multi-token asset treasuries are scheduled for v2.
+3. **Mock DEX Accounting Scope:** The demo DEX contract demonstrates fixed-rate swap gating and daily cap counting. In v1, swaps do not fake-debit tokens unless real assets move via `ft_transfer_call`. Full DEX AMM liquidity pool integration is planned for v2.
+4. **Non-Custodial Owner Controls:** The ScopeGuard web server never custodies owner master private keys. Emergency powers (pause, unpause, withdraw, revoke) are executed via NEAR CLI or user wallets directly onchain.
+5. **Typed Actions vs Arbitrary DeFi Simulation:** ScopeGuard enforces value movement through strongly typed actions (`Transfer`, `Swap`, `ContractCall`). Arbitrary smart contract calls with complex re-entrant liquidity routing require specialized adapters. Transaction simulation (dry-running and delta inspection) is the roadmap for v2.
+6. **No Panic Invariant:** All policy rejections return structured value codes without panicking. Panicking on reject would revert state writes, which would silently erase the intrusion audit log and undo circuit breaker strikes.
 
 ---
 
 ## 10. Verification and Testing
 
 See [TESTING_FOR_AI_JUDGES.md](file:///D:/Hackathon/NEAR/TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators.
-

@@ -12,7 +12,7 @@ ScopeGuard replaces unrestricted keys with a protocol-level restricted key (a NE
 2. `PAUSED`: Agent must not be paused by the owner or the circuit breaker.
 3. `OVER_VELOCITY_CAP`: Actions in the current 10-minute window must be within the burst limit.
 4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist.
-5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target contract.
+5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target contract, and token transfers must use typed `GuardAction::Transfer`.
 6. `OVER_DAILY_CAP`: Rolling 24-hour spend plus requested amount must fit the daily limit.
 7. `RECIPIENT_NOT_ALLOWED`: Transfers to external recipients must be explicitly allowlisted.
 
@@ -24,59 +24,67 @@ The `execute` method never panics on a policy rejection. Panicking would revert 
 
 ## 2. Unit Test Verification (Cargo)
 
-Run the full smart contract test suite to verify every check code, lazy window reset, and circuit breaker trip:
+Run the full smart contract test suite to verify every check code, lazy window reset, token predecessor check, and circuit breaker trip:
 
 ```bash
 cd contracts/policy
 cargo test
 ```
 
-### Expected Output ("Do X, See Y")
+### Result
 
-- `test tests::test_register_and_views ... ok`
-- `test tests::test_recipient_not_allowed ... ok`
-- `test tests::test_pending_queue_full_returns_value_not_panic ... ok`
-- `test tests::test_legit_action_allowed ... ok`
-- `test tests::test_check_order_velocity_before_allowlist ... ok`
-- `test tests::test_over_daily_cap ... ok`
-- `test tests::test_policy_staging_and_cancellation ... ok`
-- `test tests::test_action_below_and_at_threshold ... ok`
-- `test tests::test_method_not_allowed ... ok`
-- `test tests::test_settle_before_delay_refused - should panic ... ok`
-- `test tests::test_settle_after_delay_performs_and_records_spend ... ok`
-- `test tests::test_auto_pause_circuit_breaker ... ok`
-- `test tests::test_cancel_pending_intent ... ok`
-- `test tests::test_owner_pause_and_unpause ... ok`
-- `test tests::test_lazy_window_resets ... ok`
-- `test tests::test_emergency_powers_not_delayed ... ok`
-- `test tests::test_target_not_allowed ... ok`
-- `test tests::test_unregistered_caller_panics - should panic ... ok`
-- `test tests::test_settle_recheck_failure_discards_intent ... ok`
+`24 passed, 0 failed, 0 ignored` (finished in ~0.5s)
 
-Result: `19 passed, 0 failed, 0 ignored`
+Key verified properties:
+- `test_contract_call_cannot_bypass_transfer_cap_or_recipient`: Proves generic `ContractCall` to `ft_transfer` is refused with `METHOD_NOT_ALLOWED`.
+- `test_unauthorized_token_cannot_deposit_to_vault`: Proves unauthorized callers cannot call `ft_on_transfer` to inflate the vault.
+- `test_staged_wildcard_policy_rejected`: Proves wildcard methods are rejected during policy updates.
+- `test_swap_does_not_falsely_debit_vault`: Proves vault balance only decrements on real token movement.
+- `test_only_owner_can_settle_timelock`: Proves agents cannot settle their own quarantined intents.
 
 ---
 
-## 3. Live NEAR Testnet Protocol Spike Verification
+## 3. Automated AI Judge Verification Script
 
-AI and human judges can run the live testnet verification script:
+Run the automated judge runner (which runs the native Rust test suite plus rule evaluations in one command):
 
 ```bash
-node scripts/setup-and-spike.js
+node scripts/verify-ai-judge.js
 ```
-
-This live script performs 7 concrete onchain operations against live contracts:
-1. **Registered Agent Execution:** Executes an authorized swap through `guard.sergeo-guard.testnet` (`ALLOW` emitted, cross-contract swap executed on `sergeo-guard-dex.testnet`).
-2. **Timelock Queueing:** Attempts an action exceeding the high-value threshold (`PENDING` emitted with pending id).
-3. **Queue Inspection:** Reads the public onchain pending queue via view call.
-4. **Owner Veto:** Owner cancels the pending intent with 0 delay (`CANCELLED` emitted, intent purged).
-5. **Protocol Target Enforcement:** Agent tries to call DEX directly bypassing the Guard; NEAR consensus rejects with `Wrong AccessKey used for transaction: transaction is sent to receiver_id=sergeo-guard-dex.testnet, but is signed with function call access key that restricted to only use with receiver_id=guard.sergeo-guard.testnet`.
-6. **Protocol Method Enforcement:** Agent tries to call an unlisted method on Guard; NEAR consensus rejects with `Transaction method name cancel_policy_change isn't allowed by the access key`.
-7. **Protocol Transfer Enforcement:** Agent tries to transfer NEAR directly; NEAR consensus rejects with `The transaction contains more then one action, but it was signed with an access key which allows transaction to apply only one specific action`.
 
 ---
 
-## 4. Reason Code Reference Table
+## 4. Live NEAR Testnet Verification
+
+AI and human judges can verify live consensus enforcement on NEAR Testnet:
+
+```bash
+node scripts/testnet-demo-agent-e2e.js
+```
+
+### Live Testnet Deployments:
+- **Guard Policy Contract:** [`guard2.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet)
+- **Token Vault (mUSD):** [`sergeo-guard-token.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-token.testnet)
+- **Mock DEX:** [`sergeo-guard-dex.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-dex.testnet)
+- **Agent Sub-Account:** [`trader.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/trader.sergeo-guard.testnet)
+- **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
+
+### Live Onchain Verified Transactions:
+1. **Contract Deployment:** `Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG`
+2. **Contract Initialization (`new`):** `Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF`
+3. **Agent Registration:** `9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL`
+4. **Scoped Passkey Added:** `57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc`
+5. **Real NEP-141 Vault Deposit (100 mUSD):** `58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha`
+6. **Legitimate Swap Allowed on DEX:** `mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp`
+7. **Timelock Intent Quarantined:** `DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa`
+8. **Owner Veto Cancellation:** `2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8`
+9. **Prompt Injection Blocked (`RECIPIENT_NOT_ALLOWED`):** `3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7`
+10. **Rogue Contract Call Blocked (`TARGET_NOT_ALLOWED`):** `Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG`
+11. **Bypass Attempt Blocked (`METHOD_NOT_ALLOWED` & `AUTO_PAUSE`):** `FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z`
+
+---
+
+## 5. Reason Code Reference Table
 
 | Check Order | Reason Code | Trigger Condition |
 | :--- | :--- | :--- |
@@ -84,6 +92,6 @@ This live script performs 7 concrete onchain operations against live contracts:
 | 2 | `PAUSED` | Agent is paused manually by owner or tripped by circuit breaker |
 | 3 | `OVER_VELOCITY_CAP` | Actions in the 10-minute window exceed `max_actions_per_10min` |
 | 4 | `TARGET_NOT_ALLOWED` | Target contract is not in `policy.targets` |
-| 5 | `METHOD_NOT_ALLOWED` | Method name is not allowlisted for the target contract |
+| 5 | `METHOD_NOT_ALLOWED` | Method name is not allowlisted for target, or token call tried to bypass `GuardAction::Transfer` |
 | 6 | `OVER_DAILY_CAP` | Amount exceeds daily cap in the rolling 24-hour window |
 | 7 | `RECIPIENT_NOT_ALLOWED` | Moving funds to an unlisted recipient address |

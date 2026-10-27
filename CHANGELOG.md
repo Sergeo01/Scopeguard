@@ -8,7 +8,34 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
-### Added - 2026-10-27
+### Added - 2026-10-27 (Hardened v2 Testnet Deployment & Non-Custodial Overhaul)
+
+- **Fresh Testnet Deployment (`guard2.sergeo-guard.testnet`)**
+  - Deployed upgraded policy contract to fresh testnet account `guard2.sergeo-guard.testnet` (Wasm deploy: `Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG`, Init: `Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF`).
+  - Registered `trader.sergeo-guard.testnet` agent policy bound to token `sergeo-guard-token.testnet` (Tx: `9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL`).
+  - Attached scoped passkey restricted to `guard2.sergeo-guard.testnet` and method `["execute"]` with 0.25 NEAR gas allowance (Tx: `57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc`).
+  - Funded real vault with 100 mUSD via NEP-141 `ft_transfer_call` (Tx: `58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha`). Verified live onchain `vault_balance: '100'`.
+
+- **Strict Value Movement & Action Typing (`GuardAction`)**
+  - Completely removed legacy flat argument execution path (`execute_raw`, `execute_action`). Guard entry point is strictly `execute(&mut self, action: GuardAction) -> Outcome`.
+  - Blocked calldata bypass: generic `ContractCall` attempting to invoke `ft_transfer` or `ft_transfer_call` is immediately rejected with `METHOD_NOT_ALLOWED`. Token movements must go through typed `GuardAction::Transfer`.
+  - Verified token predecessor in `ft_on_transfer`: asserts caller matches registered `policy.token`, preventing unauthorized deposits from polluting accounting.
+  - Fixed swap debit logic: `vault_balance` is only decremented on real token transfers, while swaps count against velocity and daily cap without falsely zeroing custodied tokens.
+  - Added policy validation gate to `set_policy`: blocks wildcards (`*`) and invalid daily caps during policy staging.
+  - Added 4 new Rust unit tests in `contracts/policy/src/lib.rs` (now 24 tests total, 0 failures, 0 warnings).
+
+- **Eradication of Insecure Owner Endpoint & 100% Non-Custodial Controls**
+  - Permanently deleted `web/app/api/owner/route.ts` and eradicated fabricated `tx_owner_*` fake hashes.
+  - Upgraded dashboard with Non-Custodial Owner Command Modal providing copyable `near call` CLI commands for Pause, Unpause, Withdraw, Revoke Key, and Cancel Pending.
+  - Added direct onchain reconciliation button ("Sync Onchain State") querying testnet RPC directly with zero gas fees.
+  - Removed server-side `OWNER_PRIVATE_KEY` from `.env.example` and `.env`.
+
+- **Dynamic Routes, Rate Limiting & Verification Truth**
+  - Explicitly marked `web/app/api/state/route.ts` as `export const dynamic = "force-dynamic"`, ensuring zero build-time static freezing.
+  - Hardened `web/app/api/attack/route.ts` with 2-second per-IP rate-limiting throttle and dynamic execution.
+  - Labeled `web/app/create/page.tsx` as interactive policy preview mode ("Preview Scope & Generate Handoff").
+  - Upgraded `scripts/verify-ai-judge.js` to execute real `cargo test --package policy-contract` before verifying policy rules, giving AI evaluators cryptographic assurance.
+  - Removed `Cargo.lock` from `.gitignore` for deterministic builds.
 
 - **Security Hardening & Production-Grade Policy Enforcement**
   - **Real NEP-141 Token Vault Custody:** Implemented `ft_on_transfer` and `vault_balance` in `contracts/policy/src/lib.rs`. Guard directly custodies deposited funds. Updated `withdraw` to execute genuine cross-contract NEP-141 transfers back to the owner.

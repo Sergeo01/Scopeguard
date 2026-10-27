@@ -6,10 +6,28 @@
  */
 
 const assert = require("assert");
+const path = require("path");
+const { execSync } = require("child_process");
 
 console.log("==================================================================");
 console.log("ScopeGuard: Automated Verification for AI Judges (Claude Code / Codex)");
 console.log("==================================================================\n");
+
+// 0. Execute real Rust Contract Test Suite
+console.log("0. Running real Rust smart contract unit test suite (contracts/policy)...");
+try {
+  const cargoOut = execSync("cargo test --package policy-contract", {
+    cwd: path.join(__dirname, "..", "contracts"),
+    encoding: "utf-8",
+  });
+  const passMatch = cargoOut.match(/(\d+) passed/);
+  const passedCount = passMatch ? passMatch[1] : "0";
+  console.log(`   --> Verified: ${passedCount} native Rust tests PASSED with exit code 0.\n`);
+  assert.ok(Number(passedCount) >= 24, "Expected at least 24 Rust unit tests to pass");
+} catch (err) {
+  console.error("Cargo test failed:", err.message);
+  process.exit(1);
+}
 
 // 1. Verify Check Sequence & Reason Codes
 const EXPECTED_REASON_CODES = [
