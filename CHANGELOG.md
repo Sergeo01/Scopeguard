@@ -8,6 +8,23 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Added - 2026-10-27 (Asynchronous Promise Rollback Callback, SDK Decoupling, and Handoff State Precision)
+
+- **Asynchronous Cross-Contract Rollback Callback (`contracts/policy/src/lib.rs`)**
+  - **Eliminated Trapped Funds Risk**: Added `on_action_resolved` private callback handler attached via `.then()` to all value-bearing cross-contract execution promises.
+  - **Automatic Vault Balance Refund**: If the external NEP-141 token transfer or contract call fails onchain, `is_promise_success()` evaluates to false. The callback automatically refunds the agent's `vault_balance` (`rec.vault_balance += amount.0`) and rolls back the window spend (`rec.spent_in_window -= amount.0`), emitting an onchain `ACTION_FAILED` event.
+  - **Unit Test Coverage**: Added `test_transfer_failure_refunds_vault_balance` using `near_sdk::test_vm_config()` and `PromiseResult::Failed` mocking. Total contract test suite now stands at **30 passed, 0 failed**.
+  - **Live Testnet Deployment Upgrade**: Compiled release wasm (`443,373` bytes) and upgraded `guard2.sergeo-guard.testnet` (Tx: `4cv5gYj6uM4Zw4r48DuxwBSsQzAPC3xwyRbMS2RY4rzS`). Unpaused live agent `trader.sergeo-guard.testnet` (Tx: `8SHygnM3TyAuqBvRNBmehFH6ibcwEQm1judPkQa37iLs`).
+
+- **SDK Hardcoding Removal (`sdk/src/index.ts`)**
+  - Removed hardcoded `"token.near"` string in `Swap` action construction.
+  - Added optional `token?: string` parameter to `ActParams`, defaulting to `"sergeo-guard-token.testnet"` for mock DEX swaps or accepting custom token contracts.
+
+- **Handoff State Transparency & Honest UX (`web/components/AgentHandoffCard.tsx`)**
+  - Corrected badge from misleading *"Passkey Live on NEAR Testnet"* to *"Passkey Generated Locally (Pending Onchain Registration)"*.
+  - Updated headline to *"Passkey Ready for Onchain Activation"* with clear guidance directing the owner to complete registration via the NEAR CLI command tab.
+  - Stripped artificial `.00` precision from the daily budget display on the handoff card.
+
 ### Added - 2026-10-27 (Smart Contract Security Hardening, Cryptographic Passkey Derivation & AI Scope Drafter Flow)
 
 - **Smart Contract Security Hardening (`contracts/policy/src/lib.rs`)**

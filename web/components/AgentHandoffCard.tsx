@@ -60,7 +60,7 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
 - Account: ${agentName}
 - Scoped Passkey: ${actualPasskey}
 - Policy Guard Contract: ${guardContract}
-- Daily Spending Limit: $${dailyCap}.00 mUSD
+- Daily Spending Limit: $${dailyCap} mUSD
 - Enforced Rules:
   1. All trades must be routed through ${guardContract}::execute
   2. Direct asset withdrawals and unapproved contract calls are forbidden onchain
@@ -106,13 +106,13 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
         </div>
         <div className="space-y-1">
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block mb-1">
-            Passkey Live on NEAR Testnet
+            Passkey Generated Locally (Pending Onchain Registration)
           </span>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Key Generated and Scoped Successfully
+            Passkey Ready for Onchain Activation
           </h2>
           <p className="text-sm text-slate-600 max-w-lg mx-auto">
-            Your agent <span className="font-mono font-semibold text-slate-900">{agentName}</span> now holds a restricted key. It can only call the Guard contract within your parameters.
+            A cryptographic ED25519 passkey has been generated for <span className="font-mono font-semibold text-slate-900">{agentName}</span>. Next step: connect it to your agent and register the policy onchain.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
               Daily Limit
             </span>
             <span className="text-sm font-mono font-bold text-emerald-700">
-              ${dailyCap}.00 mUSD
+              ${dailyCap} mUSD
             </span>
           </div>
 

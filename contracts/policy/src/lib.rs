@@ -10,7 +10,8 @@ use near_sdk::json_types::U128;
 use near_sdk::serde_json;
 use near_sdk::store::LookupMap;
 use near_sdk::{
-    env, near, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue, Timestamp,
+    env, is_promise_success, near, AccountId, Gas, NearToken, PanicOnDefault, Promise,
+    PromiseOrValue, Timestamp,
 };
 use std::collections::HashMap;
 
@@ -543,7 +544,8 @@ impl Contract {
                 "{{\"event\":\"ALLOW\",\"agent\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
                 caller, target, method, amount
             ));
-            self.perform_action(&target, &method, &args_bytes);
+            let is_transfer = matches!(action, GuardAction::Transfer { .. });
+            self.perform_action(&caller, &target, &method, &args_bytes, amount, is_transfer);
             Outcome {
                 status: "ALLOWED".to_string(),
                 reason: None,
@@ -634,7 +636,15 @@ impl Contract {
             agent, id, pending_action.target, pending_action.method, pending_action.amount
         ));
         let (_, _, args_bytes, _, _) = pending_action.action.decompose();
-        self.perform_action(&pending_action.target, &pending_action.method, &args_bytes);
+        let is_transfer = matches!(pending_action.action, GuardAction::Transfer { .. });
+        self.perform_action(
+            &agent,
+            &pending_action.target,
+            &pending_action.method,
+            &args_bytes,
+            pending_action.amount,
+            is_transfer,
+        );
         Outcome {
             status: "SETTLED".to_string(),
             reason: None,
@@ -747,19 +757,64 @@ impl Contract {
         }
     }
 
-    fn perform_action(&self, target: &AccountId, method: &String, args_bytes: &[u8]) {
+    /// Private callback: invoked after the external cross-contract call completes.
+    /// If the external transfer or call failed, refunds the agent's vault balance
+    /// and rolls back spent_in_window so funds are never permanently trapped.
+    #[private]
+    pub fn on_action_resolved(
+        &mut self,
+        agent: AccountId,
+        amount: U128,
+        is_transfer: bool,
+    ) -> bool {
+        let success = is_promise_success();
+        if !success {
+            if let Some(mut rec) = self.agents.get(&agent).cloned() {
+                if is_transfer {
+                    rec.vault_balance = rec.vault_balance.saturating_add(amount.0);
+                }
+                rec.spent_in_window = rec.spent_in_window.saturating_sub(amount.0);
+                self.agents.insert(agent.clone(), rec);
+                emit(&format!(
+                    "{{\"event\":\"ACTION_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
+                    agent, amount.0
+                ));
+            }
+            return false;
+        }
+        true
+    }
+
+    fn perform_action(
+        &self,
+        caller: &AccountId,
+        target: &AccountId,
+        method: &String,
+        args_bytes: &[u8],
+        amount: u128,
+        is_transfer: bool,
+    ) {
         let call_gas = Gas::from_tgas(25);
+        let callback_gas = Gas::from_tgas(10);
         let attached_deposit = if method == "ft_transfer" || method == "ft_transfer_call" {
             NearToken::from_yoctonear(1)
         } else {
             NearToken::from_yoctonear(0)
         };
-        let _ = Promise::new(target.clone()).function_call(
+        let promise = Promise::new(target.clone()).function_call(
             method.clone(),
             args_bytes.to_vec(),
             attached_deposit,
             call_gas,
         );
+
+        if amount > 0 {
+            let _ = promise.then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(callback_gas)
+                    .on_action_resolved(caller.clone(), U128(amount), is_transfer),
+            );
+        }
     }
 }
 
@@ -1516,5 +1571,40 @@ mod tests {
         let out2 = contract.execute(huge_action);
         assert_eq!(out2.status, "REJECTED");
         assert_eq!(out2.reason.as_deref(), Some(REASON_CAP));
+    }
+
+    #[test]
+    fn test_transfer_failure_refunds_vault_balance() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        // Deposit 100 into agent vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.build());
+        let _ = contract.ft_on_transfer(owner(), U128(100), agent().to_string());
+
+        // Execute transfer of 40
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let out = contract.execute(transfer_action(40, recipient()));
+        assert_eq!(out.status, "ALLOWED");
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(60));
+        assert_eq!(contract.get_budget(agent()).unwrap().spent, U128(40));
+
+        // Simulate callback when external transfer failed (promise failed)
+        // Predecessor is the contract itself for #[private] callback methods
+        builder.predecessor_account_id("guard.near".parse().unwrap());
+        testing_env!(
+            builder.build(),
+            near_sdk::test_vm_config(),
+            near_sdk::RuntimeFeesConfig::test(),
+            std::collections::HashMap::default(),
+            vec![near_sdk::PromiseResult::Failed],
+        );
+        let handled = contract.on_action_resolved(agent(), U128(40), true);
+        assert!(!handled);
+
+        // Vault balance should be refunded to 100, and spent should be rolled back to 0
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(100));
+        assert_eq!(contract.get_budget(agent()).unwrap().spent, U128(0));
     }
 }

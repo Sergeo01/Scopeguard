@@ -41,6 +41,7 @@ export interface ActParams {
   args?: Record<string, any> | string;
   amount?: string;
   recipient?: string;
+  token?: string;
 }
 
 export interface Outcome {
@@ -120,7 +121,7 @@ export class ScopeGuardClient {
         action = {
           Swap: {
             dex: p.target,
-            token_in: "token.near",
+            token_in: p.token || "sergeo-guard-token.testnet",
             amount_in: p.amount || "0",
             min_out: "0",
           },
@@ -128,7 +129,7 @@ export class ScopeGuardClient {
       } else if (p.recipient) {
         action = {
           Transfer: {
-            token: p.target,
+            token: p.token || p.target,
             to: p.recipient,
             amount: p.amount || "0",
             memo: null,
