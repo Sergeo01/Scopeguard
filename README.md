@@ -126,14 +126,15 @@ While individual developers can deploy ScopeGuard directly, the primary benefici
 
 We believe in radical transparency:
 1. **Bounded Loss, Not Zero Loss:** If an owner configures a $100 daily cap, an injected agent could still execute legitimate trades that lose up to $100 on that day. The guarantee is that the agent can *never* lose $10,000 or drain external wallets.
-2. **Single-Token Vault in v1:** In v1, each Guard policy specifies a single registered NEP-141 token pot (`policy.token`). The Guard strictly verifies the token contract on deposit and ensures transfers move that token. Multi-token asset treasuries are scheduled for v2.
+2. **Single-Token Vault in v1:** In v1, each Guard policy specifies a single registered NEP-141 token pot (`policy.token`). The Guard strictly verifies the token contract on deposit and ensures transfers move that token. Generic `ContractCall` actions are prohibited from targeting `policy.token` directly, ensuring all value moves strictly through typed `Transfer`. Multi-token asset treasuries are scheduled for v2.
 3. **Mock DEX Accounting Scope:** The demo DEX contract demonstrates fixed-rate swap gating and daily cap counting. In v1, swaps do not fake-debit tokens unless real assets move via `ft_transfer_call`. Full DEX AMM liquidity pool integration is planned for v2.
-4. **Non-Custodial Owner Controls:** The ScopeGuard web server never custodies owner master private keys. Emergency powers (pause, unpause, withdraw, revoke) are executed via NEAR CLI or user wallets directly onchain.
-5. **Typed Actions vs Arbitrary DeFi Simulation:** ScopeGuard enforces value movement through strongly typed actions (`Transfer`, `Swap`, `ContractCall`). Arbitrary smart contract calls with complex re-entrant liquidity routing require specialized adapters. Transaction simulation (dry-running and delta inspection) is the roadmap for v2.
+4. **Optimistic Settlement and Closed-Direction Invariant:** In v1, token transfers debit the internal vault balance and daily spend cap optimistically prior to cross-contract settlement. If a recipient contract refuses the transfer (for example an unregistered receiver), the spend cap remains debited. This fails closed in the direction that protects treasury funds against runaway drain, while full asynchronous rollback callbacks are slated for v2.
+5. **Non-Custodial Owner Controls:** The ScopeGuard web server never custodies owner master private keys. Emergency powers (pause, unpause, withdraw, revoke) are executed via NEAR CLI or user wallets directly onchain.
 6. **No Panic Invariant:** All policy rejections return structured value codes without panicking. Panicking on reject would revert state writes, which would silently erase the intrusion audit log and undo circuit breaker strikes.
+7. **Pre-Demo Unpause:** Because the onchain circuit breaker automatically freezes the agent after repeated attack declines during evaluation, evaluators can unpause the agent anytime via `node scripts/upgrade-and-unpause-guard2.js` or through the dashboard non-custodial command modal.
 
 ---
 
 ## 10. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](file:///D:/Hackathon/NEAR/TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators.
+See [TESTING_FOR_AI_JUDGES.md](file:///D:/Hackathon/NEAR/TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (25 native Rust unit tests and automated check scripts).

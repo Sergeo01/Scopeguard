@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { connect, keyStores, KeyPair } from "near-api-js";
+import { recordActivity } from "@/lib/ledger";
 
 let lastAttackTimestamp = 0;
 
@@ -28,21 +29,25 @@ export async function POST(req: Request) {
       : path.join(process.cwd(), "..");
     const credPath = path.join(rootPath, "demo-agent", "credentials", "agent.json");
 
-    if (fs.existsSync(credPath)) {
-      cred = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-    } else if (process.env.AGENT_PRIVATE_KEY && process.env.AGENT_ACCOUNT_ID) {
+    // Standardized environment variables with seamless fallbacks
+    const envAgentKey = process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || process.env.AGENT_PRIVATE_KEY;
+    const envAgentAccount = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID;
+
+    if (envAgentKey && envAgentAccount) {
       cred = {
-        agentAccountId: process.env.AGENT_ACCOUNT_ID,
+        agentAccountId: envAgentAccount,
         policyContractId: process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet",
-        publicKey: process.env.AGENT_PUBLIC_KEY || "",
-        privateKey: process.env.AGENT_PRIVATE_KEY,
-        networkId: "testnet",
+        publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
+        privateKey: envAgentKey,
+        networkId: process.env.NEAR_NETWORK || "testnet",
         nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
       };
+    } else if (fs.existsSync(credPath)) {
+      cred = JSON.parse(fs.readFileSync(credPath, "utf-8"));
     } else {
       return NextResponse.json({
         success: false,
-        error: "Agent credentials not found on server. Ensure demo-agent/credentials/agent.json exists.",
+        error: "Agent credentials not found on server. Set SCOPEGUARD_AGENT_PRIVATE_KEY and SCOPEGUARD_AGENT_ACCOUNT.",
       }, { status: 500 });
     }
 
@@ -100,6 +105,26 @@ export async function POST(req: Request) {
     const parsedOutcome = JSON.parse(
       Buffer.from((callResult.status as any).SuccessValue, "base64").toString()
     );
+
+    // Record into live activity ledger
+    let activityType: "ALLOW" | "REJECT" | "PENDING" = "REJECT";
+    if (parsedOutcome.status === "ALLOWED") {
+      activityType = "ALLOW";
+    } else if (parsedOutcome.status === "PENDING") {
+      activityType = "PENDING";
+    }
+
+    recordActivity({
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      txHash,
+      type: activityType,
+      timestamp: Date.now(),
+      agent: cred.agentAccountId,
+      target,
+      method,
+      amount: amount && amount !== "0" ? amount : undefined,
+      reason: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "Action executed under verified policy" : parsedOutcome.status === "PENDING" ? `Queued in timelock quarantine (Intent #${parsedOutcome.pending_id || 1})` : undefined),
+    });
 
     return NextResponse.json({
       success: true,

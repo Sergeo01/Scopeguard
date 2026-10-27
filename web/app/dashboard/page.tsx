@@ -64,6 +64,7 @@ export default function DashboardPage() {
 
   const [stagedPolicy, setStagedPolicy] = useState<StagedPolicyItem | null>(null);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
+  const [isQueuingPending, setIsQueuingPending] = useState(false);
 
   // Non-custodial Owner Command Modal state
   const [activeOwnerModal, setActiveOwnerModal] = useState<{
@@ -145,10 +146,9 @@ export default function DashboardPage() {
           setVaultBalance(data.budget.vault_balance || "100");
           setVelocityUsed(data.budget.actions_in_window || 0);
         }
-        if (data.pendingActions && data.pendingActions.length > 0) {
-          setPendingActions(data.pendingActions);
-        }
-        if (data.stagedPolicy) setStagedPolicy(data.stagedPolicy);
+        setPendingActions(Array.isArray(data.pendingActions) ? data.pendingActions : []);
+        if (data.stagedPolicy !== undefined) setStagedPolicy(data.stagedPolicy);
+        if (data.activities && data.activities.length > 0) setActivities(data.activities);
       }
     } catch (e) {
       console.warn("Could not fetch /api/state", e);
@@ -223,18 +223,29 @@ export default function DashboardPage() {
     });
   };
 
-  const handleSimulatePending = () => {
-    const nowSec = Math.floor(Date.now() / 1000);
-    const newPending: PendingActionItem = {
-      id: Math.floor(Math.random() * 900) + 100,
-      target: "sergeo-guard-dex.testnet",
-      method: "swap",
-      amount: "300",
-      recipient: "sergeo-guard.testnet",
-      executable_at: nowSec + 60,
-      secondsRemaining: 60,
-    };
-    setPendingActions((prev) => [newPending, ...prev]);
+  const handleTriggerRealTimelock = async () => {
+    try {
+      setIsQueuingPending(true);
+      const res = await fetch("/api/attack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: "sergeo-guard-dex.testnet",
+          method: "swap",
+          amount: "300",
+          args: { amount: "300" },
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.warn("Notice triggering timelock action:", data.error);
+      }
+      await loadOnchainState();
+    } catch (err) {
+      console.error("Failed to trigger real timelock action:", err);
+    } finally {
+      setIsQueuingPending(false);
+    }
   };
 
   const handleCancelPolicyChange = async () => {
@@ -400,10 +411,11 @@ export default function DashboardPage() {
             {pendingActions.length === 0 && (
               <button
                 type="button"
-                onClick={handleSimulatePending}
-                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                onClick={handleTriggerRealTimelock}
+                disabled={isQueuingPending}
+                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:opacity-50"
               >
-                + Test Timelock Action ($300)
+                {isQueuingPending ? "Queuing onchain..." : "+ Test Timelock Action ($300)"}
               </button>
             )}
           </div>

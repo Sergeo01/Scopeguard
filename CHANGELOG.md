@@ -8,6 +8,36 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Added - 2026-10-27 (Completeness Pass: Custody Token Call Ban, Real Timelock Trigger, Dynamic Ledger)
+
+- **Strict Custody Token Domain Isolation in Policy Engine**
+  - Updated `contracts/policy/src/lib.rs` to reject any generic `ContractCall` targeting the registered custody token (`target == rec.policy.token`) with `TARGET_NOT_ALLOWED`. Even if a policy allowed the token address as a contract call target, all token movements are strictly constrained to typed `GuardAction::Transfer`.
+  - Added unit test `test_contract_call_cannot_target_custody_token` in `contracts/policy/src/lib.rs`, bringing native Rust unit test count to 25 (0 failures, 0 warnings).
+  - Built optimized Wasm and deployed upgrade to `guard2.sergeo-guard.testnet` (Tx: `3p3LgktzSvasRpy15nYV55qMCCqJYqCEUMPjKN8kjbdP`).
+  - Unpaused agent `trader.sergeo-guard.testnet` from owner account (Tx: `14sYk3Ve1g7qtwBvPx8mGDy4LcLZzCzAKVR55TPkBvC4`). Live onchain state verified `paused: false` and `vault_balance: '100'`.
+
+- **Environment Variable Harmonization for Serverless Deployments**
+  - Standardized environment variable naming with `SCOPEGUARD_` prefix across `.env`, `.env.example`, `/api/attack`, and `/api/state`:
+    - `SCOPEGUARD_POLICY_CONTRACT`
+    - `SCOPEGUARD_AGENT_ACCOUNT`
+    - `SCOPEGUARD_AGENT_PRIVATE_KEY`
+    - `SCOPEGUARD_OWNER_ACCOUNT`
+    - `NEAR_TESTNET_RPC`
+  - Added seamless fallbacks for local file credentials and legacy environment keys, enabling instant deployment on serverless platforms (Vercel, Render) without disk credential files.
+
+- **Real Onchain Timelock Queueing in Dashboard**
+  - Replaced local simulated pending state in `web/app/dashboard/page.tsx` with an authentic async trigger executing real high-value swap ($300) via `/api/attack`.
+  - Verified onchain quarantine on NEAR Testnet (Tx: `9yKSWV6tnGiRJu2YARrkVv7GkWTF6aFJJYhWgqAsxpJ1`), generating real timelock intent with authentic onchain ID and veto command.
+
+- **Dynamic Real-Time Transaction Ledger**
+  - Created `web/lib/ledger.ts` initialized with verified testnet receipts and real-time execution logging.
+  - Linked `/api/attack` to append real transaction hashes on execution, and `/api/state` to stream the live ledger to the treasury console.
+  - Added `revalidate = 0` and `fetchCache = "force-no-store"` to `/api/state` to prevent Next.js from caching underlying NEAR RPC responses.
+
+- **Honest Limits and Pre-Demo Unpause Documentation**
+  - Documented optimistic vault debit invariant in Section 9 of `README.md`: debits occur prior to cross-contract settlement to fail closed in the direction that protects treasury funds against drain.
+  - Added Section 6 to `TESTING_FOR_AI_JUDGES.md` with pre-demo unpause script instructions (`scripts/upgrade-and-unpause-guard2.js`).
+
 ### Added - 2026-10-27 (Hardened v2 Testnet Deployment & Non-Custodial Overhaul)
 
 - **Fresh Testnet Deployment (`guard2.sergeo-guard.testnet`)**

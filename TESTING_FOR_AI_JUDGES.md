@@ -33,9 +33,10 @@ cargo test
 
 ### Result
 
-`24 passed, 0 failed, 0 ignored` (finished in ~0.5s)
+`25 passed, 0 failed, 0 ignored` (finished in ~0.5s)
 
 Key verified properties:
+- `test_contract_call_cannot_target_custody_token`: Proves generic `ContractCall` cannot target the custody token to bypass typed transfers.
 - `test_contract_call_cannot_bypass_transfer_cap_or_recipient`: Proves generic `ContractCall` to `ft_transfer` is refused with `METHOD_NOT_ALLOWED`.
 - `test_unauthorized_token_cannot_deposit_to_vault`: Proves unauthorized callers cannot call `ft_on_transfer` to inflate the vault.
 - `test_staged_wildcard_policy_rejected`: Proves wildcard methods are rejected during policy updates.
@@ -95,3 +96,19 @@ node scripts/testnet-demo-agent-e2e.js
 | 5 | `METHOD_NOT_ALLOWED` | Method name is not allowlisted for target, or token call tried to bypass `GuardAction::Transfer` |
 | 6 | `OVER_DAILY_CAP` | Amount exceeds daily cap in the rolling 24-hour window |
 | 7 | `RECIPIENT_NOT_ALLOWED` | Moving funds to an unlisted recipient address |
+
+---
+
+## 6. Pre-Demo Unpause & Status Verification
+
+If the agent has been paused by the circuit breaker during previous testing runs, evaluators can unpause the agent anytime:
+
+```bash
+node scripts/upgrade-and-unpause-guard2.js
+```
+
+Or execute directly with NEAR CLI:
+
+```bash
+near call guard2.sergeo-guard.testnet unpause '{"agent_account":"trader.sergeo-guard.testnet"}' --accountId sergeo-guard.testnet
+```

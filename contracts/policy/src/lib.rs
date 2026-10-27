@@ -413,11 +413,14 @@ impl Contract {
         // Lazy apply staged policy if effective_at has arrived.
         Self::apply_staged_policy_if_due(&mut rec, now_sec, &caller);
 
-        // Security check: ContractCall must NEVER invoke token transfer methods.
-        // Token transfers must use GuardAction::Transfer with strictly verified amount and recipient.
-        if let GuardAction::ContractCall { method, .. } = &action {
+        // Security check: ContractCall must NEVER target the custody token, nor invoke token transfer methods.
+        // All token movements must use GuardAction::Transfer with strictly verified amount and recipient.
+        if let GuardAction::ContractCall { target, method, .. } = &action {
             if method == "ft_transfer" || method == "ft_transfer_call" {
                 return self.reject(&caller, &mut rec, REASON_METHOD, now);
+            }
+            if target == &rec.policy.token {
+                return self.reject(&caller, &mut rec, REASON_TARGET, now);
             }
         }
 
@@ -1001,6 +1004,27 @@ mod tests {
         let outcome = contract.execute(bypass_action);
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_METHOD.to_string()));
+    }
+
+    #[test]
+    fn test_contract_call_cannot_target_custody_token() {
+        // Critical test: generic ContractCall cannot target the custody token with arbitrary methods.
+        // All token movements must strictly use GuardAction::Transfer.
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let rogue_call = GuardAction::ContractCall {
+            target: "token.near".parse().unwrap(),
+            method: "custom_drain".to_string(),
+            args: serde_json::json!({ "to": bad_recipient(), "amount": "500" }).to_string(),
+        };
+
+        let outcome = contract.execute(rogue_call);
+        assert_eq!(outcome.status, "REJECTED");
+        assert_eq!(outcome.reason, Some(REASON_TARGET.to_string()));
     }
 
     #[test]

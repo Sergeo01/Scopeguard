@@ -1,19 +1,22 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
+import { getRecentActivities } from "@/lib/ledger";
 
 export async function GET() {
   try {
     const near = await connect({
-      networkId: "testnet",
+      networkId: process.env.NEAR_NETWORK || "testnet",
       nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
       keyStore: new keyStores.InMemoryKeyStore(),
     });
 
     const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
-    const agentId = process.env.SCOPEGUARD_AGENT_ID || "trader.sergeo-guard.testnet";
-    const ownerId = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
+    const agentId = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "trader.sergeo-guard.testnet";
+    const ownerId = process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
     const account = await near.account(ownerId);
 
     const budget = await account.viewFunction({
@@ -41,7 +44,8 @@ export async function GET() {
       stagedPolicy,
       guardId,
       agentId,
-      ownerId: "sergeo-guard.testnet",
+      ownerId,
+      activities: getRecentActivities(),
     });
   } catch (err: any) {
     return NextResponse.json({
