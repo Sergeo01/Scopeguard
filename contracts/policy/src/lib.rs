@@ -387,15 +387,61 @@ impl Contract {
     // Execution & Settlement
     // ---------------------------------------------------------------
 
-    /// Primary execution method: receives strongly typed GuardAction.
-    /// The Guard derives the calldata, ensuring the agent cannot spoof amount.
-    pub fn execute(&mut self, action: GuardAction) -> Outcome {
-        let (target, method, args_bytes, amount, recipient) = action.decompose();
+    /// Primary execution method: accepts either a strongly-typed `action`
+    /// or legacy flat parameters (`target`, `method`, `args`, `amount`, `recipient`).
+    /// All execution paths derive calldata through GuardAction so amount cannot be spoofed.
+    pub fn execute(
+        &mut self,
+        action: Option<GuardAction>,
+        target: Option<AccountId>,
+        method: Option<String>,
+        args: Option<String>,
+        amount: Option<U128>,
+        recipient: Option<AccountId>,
+    ) -> Outcome {
+        let (guard_action, tgt, meth, args_bytes, amt, recip) = if let Some(act) = action {
+            let (t, m, ab, a, r) = act.decompose();
+            (act, t, m, ab, a, r)
+        } else {
+            let target = target.expect("target or action required");
+            let method = method.expect("method or action required");
+            let amount_u128 = amount.unwrap_or(U128(0));
+            let args_str = args.unwrap_or_else(|| "{}".to_string());
+            let args_b = args_str.as_bytes().to_vec();
+            let act = if method == "ft_transfer" && recipient.is_some() {
+                GuardAction::Transfer {
+                    token: target.clone(),
+                    to: recipient.clone().unwrap(),
+                    amount: amount_u128,
+                    memo: None,
+                }
+            } else if method == "swap" {
+                GuardAction::Swap {
+                    dex: target.clone(),
+                    token_in: "token.near".parse().unwrap(),
+                    amount_in: amount_u128,
+                    min_out: U128(0),
+                }
+            } else {
+                GuardAction::ContractCall {
+                    target: target.clone(),
+                    method: method.clone(),
+                    args: args_str,
+                }
+            };
+            (act, target, method, args_b, amount_u128.0, recipient)
+        };
+
         let args_str = String::from_utf8(args_bytes.clone()).unwrap_or_default();
-        self.internal_execute(action, target, method, args_str, args_bytes, amount, recipient)
+        self.internal_execute(guard_action, tgt, meth, args_str, args_bytes, amt, recip)
     }
 
-    /// Legacy overload for backward compatibility with raw string arguments.
+    /// Convenience wrapper for typed actions.
+    pub fn execute_action(&mut self, action: GuardAction) -> Outcome {
+        self.execute(Some(action), None, None, None, None, None)
+    }
+
+    /// Convenience wrapper for tests and raw string callers.
     pub fn execute_raw(
         &mut self,
         target: AccountId,
@@ -404,29 +450,7 @@ impl Contract {
         amount: U128,
         recipient: Option<AccountId>,
     ) -> Outcome {
-        let action = if let Some(recip) = recipient.clone() {
-            GuardAction::Transfer {
-                token: target.clone(),
-                to: recip,
-                amount,
-                memo: None,
-            }
-        } else if method == "swap" {
-            GuardAction::Swap {
-                dex: target.clone(),
-                token_in: "token.near".parse().unwrap(),
-                amount_in: amount,
-                min_out: U128(0),
-            }
-        } else {
-            GuardAction::ContractCall {
-                target: target.clone(),
-                method: method.clone(),
-                args: args.clone(),
-            }
-        };
-        let args_bytes = args.as_bytes().to_vec();
-        self.internal_execute(action, target, method, args, args_bytes, amount.0, recipient)
+        self.execute(None, Some(target), Some(method), Some(args), Some(amount), recipient)
     }
 
     fn internal_execute(
@@ -923,7 +947,7 @@ mod tests {
             memo: Some("try to move 10000".to_string()),
         };
 
-        let outcome = contract.execute(action);
+        let outcome = contract.execute_action(action);
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_CAP.to_string()));
 
@@ -946,7 +970,7 @@ mod tests {
             min_out: U128(0),
         };
 
-        let outcome = contract.execute(action);
+        let outcome = contract.execute_action(action);
         assert_eq!(outcome.status, "ALLOWED");
         assert_eq!(outcome.reason, None);
 
@@ -971,7 +995,7 @@ mod tests {
             min_out: U128(0),
         };
 
-        let outcome = contract.execute(action);
+        let outcome = contract.execute_action(action);
         assert_eq!(outcome.status, "REJECTED");
         assert_eq!(outcome.reason, Some(REASON_TARGET.to_string()));
     }
