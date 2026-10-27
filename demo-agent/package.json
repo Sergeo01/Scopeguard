@@ -1,0 +1,17 @@
+{
+  "name": "@scopeguard/demo-agent",
+  "version": "0.1.0",
+  "description": "Deliberately naive demo agent for ScopeGuard attack verification",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@scopeguard/sdk": "file:../sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0"
+  }
+}

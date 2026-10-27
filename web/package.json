@@ -1,0 +1,28 @@
+{
+  "name": "@scopeguard/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ./node_modules/next/dist/bin/next dev",
+    "build": "node ./node_modules/next/dist/bin/next build",
+    "start": "node ./node_modules/next/dist/bin/next start",
+    "lint": "node ./node_modules/next/dist/bin/next lint"
+  },
+  "dependencies": {
+    "next": "14.2.24",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "near-api-js": "^4.0.0",
+    "lucide-react": "^0.378.0",
+    "@next/swc-win32-x64-msvc": "14.2.24"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.4.0"
+  }
+}

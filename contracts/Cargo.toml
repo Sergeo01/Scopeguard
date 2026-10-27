@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "policy",
+    "mock-token",
+    "mock-dex",
+]
+resolver = "2"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+
