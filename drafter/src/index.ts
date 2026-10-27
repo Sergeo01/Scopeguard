@@ -1,6 +1,7 @@
 import Ajv, { JSONSchemaType } from "ajv";
 
 export interface DrafterPolicy {
+  token: string;
   targets: Record<string, string[]>;
   daily_cap: string;
   recipients: string[];
@@ -30,6 +31,7 @@ const ajv = new Ajv();
 const policySchema: JSONSchemaType<DrafterPolicy> = {
   type: "object",
   properties: {
+    token: { type: "string" },
     targets: {
       type: "object",
       required: [],
@@ -51,6 +53,7 @@ const policySchema: JSONSchemaType<DrafterPolicy> = {
     policy_change_delay_seconds: { type: "integer", minimum: 0, maximum: 604800 },
   },
   required: [
+    "token",
     "targets",
     "daily_cap",
     "recipients",
@@ -70,7 +73,10 @@ export function getSafeDefaultPolicy(dailyCap = "100"): DrafterPolicy {
   const capNum = Number(dailyCap) || 100;
   const threshold = String(Math.floor(capNum / 2));
   return {
-    targets: {},
+    token: "sergeo-guard-token.testnet",
+    targets: {
+      "sergeo-guard-dex.testnet": ["swap"],
+    },
     daily_cap: String(capNum),
     recipients: [],
     max_actions_per_10min: 5,
@@ -232,6 +238,144 @@ export function parseAndValidateDraft(rawJson: string): DraftResult {
   return {
     policy: parsed,
     plainEnglish: generatePlainEnglish(parsed),
+    warnings,
+    isManualFallback: false,
+  };
+}
+
+export async function draftPolicyFromText(
+  promptText: string,
+  options?: { apiKey?: string }
+): Promise<DraftResult> {
+  const text = promptText.toLowerCase().trim();
+
+  // If Gemini API Key is present, attempt LLM-based drafting with schema validation
+  if (options?.apiKey) {
+    try {
+      const systemPrompt = `You are an AI Security Policy Drafter for ScopeGuard on NEAR Protocol.
+Draft a minimal-privilege JSON policy matching this schema:
+{
+  "token": "sergeo-guard-token.testnet",
+  "targets": { "<contract_id>": ["<method>"] },
+  "daily_cap": "<string_integer>",
+  "recipients": [],
+  "max_actions_per_10min": <integer 1-100>,
+  "auto_pause_rejects": <integer 1-50>,
+  "auto_pause_window_minutes": <integer 1-1440>,
+  "high_value_threshold": "<string_integer>",
+  "high_value_delay_seconds": <integer>,
+  "policy_change_delay_seconds": <integer>
+}
+Rules:
+1. Least privilege: recipients MUST be empty unless explicitly instructed.
+2. Never propose wildcards (*). Name exact methods.
+3. Return raw JSON only with zero markdown or fences.`;
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${options.apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `${systemPrompt}\n\nUser request: "${promptText}"` }],
+              },
+            ],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawContent) {
+          const result = parseAndValidateDraft(rawContent);
+          if (!result.isManualFallback) {
+            return result;
+          }
+        }
+      }
+    } catch {
+      // Fall through to deterministic parser
+    }
+  }
+
+  // Deterministic natural language parser following spec section 4
+  let isGuessDailyCap = true;
+  let isGuessVelocity = true;
+  let isGuessTimelock = true;
+
+  // Extract dollar amounts
+  let dailyCap = "100";
+  const capMatch = text.match(/(?:\$|cap of|limit of|up to|spend)\s*(\d+)/i) || text.match(/(\d+)\s*(?:musd|dollars|usd|\$)/i);
+  if (capMatch) {
+    dailyCap = capMatch[1];
+    isGuessDailyCap = false;
+  }
+
+  // Extract speed / velocity
+  let maxActions = 5;
+  const speedMatch = text.match(/(\d+)\s*(?:actions|trades|txs|calls|swaps)/i);
+  if (speedMatch) {
+    maxActions = Math.min(100, Math.max(1, parseInt(speedMatch[1], 10)));
+    isGuessVelocity = false;
+  }
+
+  // Extract circuit breaker rejects
+  let autoPauseRejects = 3;
+  const rejectMatch = text.match(/(\d+)\s*(?:rejects|strikes|failures|errors)/i);
+  if (rejectMatch) {
+    autoPauseRejects = Math.min(50, Math.max(1, parseInt(rejectMatch[1], 10)));
+  }
+
+  // Recognize target contracts
+  const targets: Record<string, string[]> = {};
+  if (text.includes("ref") || text.includes("ref finance")) {
+    targets["ref-finance-101.testnet"] = ["swap"];
+  }
+  if (text.includes("burrow")) {
+    targets["contract.burrow.testnet"] = ["deposit", "borrow"];
+  }
+  if (text.includes("dex") || text.includes("swap") || text.includes("mock") || Object.keys(targets).length === 0) {
+    targets["sergeo-guard-dex.testnet"] = ["swap"];
+  }
+
+  // Extract external recipient if explicitly specified
+  const recipients: string[] = [];
+  const recipientMatch = text.match(/(?:to|send to|recipient|pay)\s+([a-z0-9_-]+\.(?:testnet|near))/i);
+  if (recipientMatch) {
+    recipients.push(recipientMatch[1]);
+  }
+
+  const capNum = Number(dailyCap) || 100;
+  const threshold = String(Math.floor(capNum / 2));
+
+  const draft: DrafterPolicy = {
+    token: "sergeo-guard-token.testnet",
+    targets,
+    daily_cap: dailyCap,
+    recipients,
+    max_actions_per_10min: maxActions,
+    auto_pause_rejects: autoPauseRejects,
+    auto_pause_window_minutes: 10,
+    high_value_threshold: threshold,
+    high_value_delay_seconds: 60,
+    policy_change_delay_seconds: 600,
+  };
+
+  const plainEnglish = generatePlainEnglish(draft, {
+    isGuessDailyCap,
+    isGuessVelocity,
+    isGuessTimelock,
+  });
+
+  const warnings = lintPolicy(draft);
+
+  return {
+    policy: draft,
+    plainEnglish,
     warnings,
     isManualFallback: false,
   };

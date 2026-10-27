@@ -23,6 +23,9 @@ interface AgentHandoffCardProps {
   autoPauseAfter: number;
   autoPauseWindowMinutes: number;
   telegramChatId?: string;
+  passkey?: string;
+  publicKey?: string;
+  policyJson?: any;
   onReset: () => void;
 }
 
@@ -33,20 +36,29 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   autoPauseAfter,
   autoPauseWindowMinutes,
   telegramChatId,
+  passkey,
+  publicKey,
+  policyJson,
   onReset,
 }) => {
-  const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json">("cli");
+  const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // ponytail: Simulated active keypair for demo. In production, this matches the newly derived sub-account passkey.
-  const samplePasskey = "ed25519:2YEm4xT9yBwVvE75zWqE9Q8YfV9dK5vN2m1L7zX4r8P6";
+  const actualPasskey = passkey || "ed25519:2YEm4xT9yBwVvE75zWqE9Q8YfV9dK5vN2m1L7zX4r8P6";
+  const actualPublicKey = publicKey || "ed25519:D48j...5XwZ";
   const guardContract = "guard2.sergeo-guard.testnet";
 
-  const cliCommand = `npx @scopeguard/cli connect --account ${agentName} --key ${samplePasskey} --guard ${guardContract}`;
+  const cliCommand = `npx @scopeguard/cli connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
+
+  const nearSetupCommands = `# 1. Register agent policy on Guard contract
+near contract call-function as-transaction ${guardContract} register_agent json-args '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || { token: "sergeo-guard-token.testnet", targets: { "sergeo-guard-dex.testnet": ["swap"] }, daily_cap: String(dailyCap), recipients: [], max_actions_per_10min: 5, auto_pause_rejects: autoPauseAfter, auto_pause_window_minutes: autoPauseWindowMinutes, high_value_threshold: String(Math.floor(dailyCap / 2)), high_value_delay_seconds: 60, policy_change_delay_seconds: 600 })}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as <your-owner-account.testnet> network-config testnet
+
+# 2. Add scoped function-call passkey to agent account (restricted to Guard execute only)
+near account add-key ${agentName} ${actualPublicKey} grant-function-call-access --receiver-account-id ${guardContract} --allowance '1 NEAR' --method-names '["execute"]' sign-as <your-owner-account.testnet> network-config testnet`;
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}
-- Scoped Passkey: ${samplePasskey}
+- Scoped Passkey: ${actualPasskey}
 - Policy Guard Contract: ${guardContract}
 - Daily Spending Limit: $${dailyCap}.00 mUSD
 - Enforced Rules:
@@ -57,8 +69,8 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const credentialJson = {
     agentAccountId: agentName,
     policyContractId: guardContract,
-    publicKey: "ed25519:D48j...5XwZ",
-    privateKey: samplePasskey,
+    publicKey: actualPublicKey,
+    privateKey: actualPasskey,
     networkId: "testnet",
     nodeUrl: "https://test.rpc.fastnear.com",
     created_at: new Date().toISOString(),
@@ -216,6 +228,22 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
             <Download className="w-4 h-4 text-slate-500" />
             <span>Download agent.json</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("near")}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
+              activeTab === "near"
+                ? "border-emerald-600 text-slate-900 bg-white"
+                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+            }`}
+          >
+            <Shield className="w-4 h-4 text-emerald-600" />
+            <span>NEAR CLI Commands</span>
+            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
+              Non-Custodial
+            </span>
+          </button>
         </div>
 
         {/* Tab Body */}
@@ -276,11 +304,11 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
 
               <div className="relative group">
                 <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {samplePasskey}
+                  {actualPasskey}
                 </pre>
                 <button
                   type="button"
-                  onClick={() => handleCopy(samplePasskey, "key")}
+                  onClick={() => handleCopy(actualPasskey, "key")}
                   className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                 >
                   {copiedKey === "key" ? (
@@ -380,6 +408,48 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "near" && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold text-slate-900">
+                  Exact Signed-Ready NEAR CLI Commands
+                </h4>
+                <p className="text-xs text-slate-600">
+                  Run these two commands from your owner terminal to register the policy and grant the scoped function-call access key directly on NEAR.
+                </p>
+              </div>
+
+              <div className="relative group">
+                <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
+                  {nearSetupCommands}
+                </pre>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(nearSetupCommands, "near")}
+                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                >
+                  {copiedKey === "near" ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Copied Commands!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copy Commands</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 flex items-start gap-2 font-mono">
+                <span>
+                  Key Public Key: <strong className="text-slate-900">{actualPublicKey}</strong>
+                </span>
               </div>
             </div>
           )}

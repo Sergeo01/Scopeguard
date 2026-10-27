@@ -17,7 +17,9 @@ import {
   Bell,
   ExternalLink,
   Layers,
+  Sparkles,
 } from "lucide-react";
+import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
 
@@ -53,6 +55,11 @@ export default function CreateAgentPage() {
   const [activeView, setActiveView] = useState<"visual" | "json">("visual");
   const [isDeploying, setIsDeploying] = useState(false);
   const [issuedSuccess, setIssuedSuccess] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [draftResult, setDraftResult] = useState<any>(null);
+  const [generatedPasskey, setGeneratedPasskey] = useState<string>("");
+  const [generatedPublicKey, setGeneratedPublicKey] = useState<string>("");
 
   useEffect(() => {
     // ponytail: Inspect URL query param to allow direct inspection/testing of the handoff state
@@ -147,12 +154,66 @@ export default function CreateAgentPage() {
     telegram_notifications: telegramChatId.trim() || null,
   };
 
+  const handleAiDraft = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsDrafting(true);
+    try {
+      const res = await fetch("/api/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+      const data = await res.json();
+      if (data.success && data.draft?.policy) {
+        const p = data.draft.policy;
+        setDailyCap(Number(p.daily_cap) || 100);
+        setDailyCapInput(p.daily_cap || "100");
+        setSpeedLimit(p.max_actions_per_10min || 5);
+        setAutoPauseAfter(p.auto_pause_rejects || 3);
+        setAutoPauseWindowMinutes(p.auto_pause_window_minutes || 10);
+        setTimelockThreshold(Number(p.high_value_threshold) || 50);
+
+        if (p.targets && Object.keys(p.targets).length > 0) {
+          const newPlatforms = Object.entries(p.targets).map(([contract, methods], idx) => ({
+            id: `p-${Date.now()}-${idx}`,
+            contract,
+            methods: Array.isArray(methods) ? (methods as string[]).join(", ") : "swap",
+            label: contract.includes("dex") ? "ScopeGuard Testnet DEX" : contract,
+          }));
+          setPlatforms(newPlatforms);
+        }
+
+        if (p.recipients && p.recipients.length > 0) {
+          setAllowExternalTransfers(true);
+          setExternalRecipient(p.recipients[0]);
+        } else {
+          setAllowExternalTransfers(false);
+          setExternalRecipient("");
+        }
+
+        setDraftResult(data.draft);
+      }
+    } catch (err: any) {
+      console.error("AI Drafter error:", err);
+    } finally {
+      setIsDrafting(false);
+    }
+  };
+
   const handleIssueCard = () => {
     setIsDeploying(true);
-    setTimeout(() => {
+    try {
+      const keyPair = KeyPair.fromRandom("ed25519");
+      const pubKey = keyPair.getPublicKey().toString();
+      const privKey = keyPair.toString();
+      setGeneratedPasskey(privKey);
+      setGeneratedPublicKey(pubKey);
       setIsDeploying(false);
       setIssuedSuccess(true);
-    }, 400);
+    } catch (e: any) {
+      setIsDeploying(false);
+      alert("Failed to generate keypair: " + e.message);
+    }
   };
 
   return (
@@ -173,6 +234,73 @@ export default function CreateAgentPage() {
         </p>
       </div>
 
+      {/* AI Scope Drafter Hero Card */}
+      <div className="bg-gradient-to-r from-emerald-50/70 via-slate-50 to-purple-50/40 border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <Sparkles className="w-4 h-4 text-emerald-100" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                AI Scope Drafter
+              </h2>
+              <p className="text-xs text-slate-500">
+                Describe the agent's job in plain English. The AI service drafts the minimal required rule card.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-100/70 text-emerald-800 border border-emerald-200 hidden sm:inline-block">
+            Strict Schema Validated
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <input
+            type="text"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAiDraft();
+              }
+            }}
+            placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
+            className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <button
+            type="button"
+            onClick={handleAiDraft}
+            disabled={isDrafting || !aiPrompt.trim()}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shrink-0"
+          >
+            {isDrafting ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Drafting Policy...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Draft Policy with AI</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {draftResult?.plainEnglish && (
+          <div className="p-3.5 bg-white border border-emerald-200 rounded-xl space-y-1">
+            <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider block">
+              AI Proposed Rule Card (Signed Review)
+            </span>
+            <p className="text-xs text-slate-700 leading-relaxed font-sans">
+              {draftResult.plainEnglish}
+            </p>
+          </div>
+        )}
+      </div>
+
       {issuedSuccess ? (
         <AgentHandoffCard
           agentName={agentName}
@@ -181,6 +309,9 @@ export default function CreateAgentPage() {
           autoPauseAfter={autoPauseAfter}
           autoPauseWindowMinutes={autoPauseWindowMinutes}
           telegramChatId={telegramChatId}
+          passkey={generatedPasskey}
+          publicKey={generatedPublicKey}
+          policyJson={compiledPolicyJson}
           onReset={() => setIssuedSuccess(false)}
         />
       ) : (

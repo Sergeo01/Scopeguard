@@ -30,12 +30,37 @@ export class NaiveAgent {
   async processInstruction(task: InboxTask): Promise<Outcome> {
     console.log(`[Agent] Received task ${task.id}: "${task.instruction}"`);
 
-    // Parse parameters directly from task (defaults to the legitimate MockDEX target)
-    const target = task.target || "sergeo-guard-dex.testnet";
-    const method = task.method || "swap";
-    const args = task.args || { amount: task.amount || "10" };
-    const amount = task.amount || "0";
-    const recipient = task.recipient;
+    // Naive Agent Prompt Interpreter: turns plain text instructions into action parameters
+    let target = task.target;
+    let method = task.method;
+    let amount = task.amount;
+    let recipient = task.recipient;
+
+    if (task.instruction) {
+      const lower = task.instruction.toLowerCase();
+      const transferMatch = task.instruction.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*(\d*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
+      if (transferMatch) {
+        amount = amount || transferMatch[1] || "500";
+        recipient = recipient || transferMatch[2];
+        target = target || "sergeo-guard-token.testnet";
+        method = method || "ft_transfer";
+      } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
+        target = target || "evil_contract.testnet";
+        method = method || "drain";
+        amount = amount || "0";
+      } else if (lower.includes("swap") || lower.includes("trade")) {
+        const swapAmtMatch = task.instruction.match(/(\d+)/);
+        amount = amount || (swapAmtMatch ? swapAmtMatch[1] : "10");
+        target = target || "sergeo-guard-dex.testnet";
+        method = method || "swap";
+      }
+    }
+
+    // Default to the legitimate MockDEX target if not specified
+    target = target || "sergeo-guard-dex.testnet";
+    method = method || "swap";
+    amount = amount || "0";
+    const args = task.args || { amount };
 
     console.log(`[Agent] Attempting onchain action through ScopeGuard:`, {
       target,

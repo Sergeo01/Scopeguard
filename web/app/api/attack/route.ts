@@ -21,7 +21,37 @@ export async function POST(req: Request) {
     lastAttackTimestamp = now;
 
     const body = await req.json();
-    const { target = "sergeo-guard-dex.testnet", method = "swap", args, amount = "0", recipient } = body;
+    let target = body.target;
+    let method = body.method;
+    let amount = body.amount;
+    let recipient = body.recipient;
+    let args = body.args;
+    const promptText = (body.promptText || body.prompt || "").trim();
+
+    // Naive Agent Prompt Interpreter: turns natural language attack prompts into actions
+    if (promptText) {
+      const lower = promptText.toLowerCase();
+      const transferMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*(\d*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
+      if (transferMatch) {
+        amount = transferMatch[1] || "500";
+        recipient = transferMatch[2];
+        target = "sergeo-guard-token.testnet";
+        method = "ft_transfer";
+      } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
+        target = "evil_contract.testnet";
+        method = "drain";
+        amount = "0";
+      } else if (lower.includes("swap") || lower.includes("trade")) {
+        const swapAmtMatch = promptText.match(/(\d+)/);
+        amount = swapAmtMatch ? swapAmtMatch[1] : "10";
+        target = "sergeo-guard-dex.testnet";
+        method = "swap";
+      }
+    }
+
+    if (!target) target = "sergeo-guard-dex.testnet";
+    if (!method) method = "swap";
+    if (!amount) amount = "0";
 
     let cred: any = null;
     const rootPath = fs.existsSync(path.join(process.cwd(), "demo-agent"))
@@ -70,7 +100,7 @@ export async function POST(req: Request) {
       action = {
         Swap: {
           dex: target,
-          token_in: "token.near",
+          token_in: "sergeo-guard-token.testnet",
           amount_in: amount || "0",
           min_out: "0",
         },

@@ -20,6 +20,7 @@ pub const REASON_OVER_VELOCITY: &str = "OVER_VELOCITY_CAP";
 pub const REASON_TARGET: &str = "TARGET_NOT_ALLOWED";
 pub const REASON_METHOD: &str = "METHOD_NOT_ALLOWED";
 pub const REASON_CAP: &str = "OVER_DAILY_CAP";
+pub const REASON_INSUFFICIENT_VAULT: &str = "INSUFFICIENT_VAULT_BALANCE";
 pub const REASON_RECIPIENT: &str = "RECIPIENT_NOT_ALLOWED";
 pub const REASON_PENDING_QUEUE_FULL: &str = "PENDING_QUEUE_FULL";
 
@@ -413,10 +414,11 @@ impl Contract {
         // Lazy apply staged policy if effective_at has arrived.
         Self::apply_staged_policy_if_due(&mut rec, now_sec, &caller);
 
-        // Security check: ContractCall must NEVER target the custody token, nor invoke token transfer methods.
+        // Security check: ContractCall must NEVER target the custody token, nor invoke token transfer methods or swap.
         // All token movements must use GuardAction::Transfer with strictly verified amount and recipient.
+        // All DEX swaps must use GuardAction::Swap with explicit amounts checked against daily cap.
         if let GuardAction::ContractCall { target, method, .. } = &action {
-            if method == "ft_transfer" || method == "ft_transfer_call" {
+            if method == "ft_transfer" || method == "ft_transfer_call" || method == "swap" {
                 return self.reject(&caller, &mut rec, REASON_METHOD, now);
             }
             if target == &rec.policy.token {
@@ -467,6 +469,12 @@ impl Contract {
         if rec.actions_in_window >= rec.policy.max_actions_per_10min {
             return self.reject(&caller, &mut rec, REASON_OVER_VELOCITY, now);
         }
+        // Security check: if this is a Transfer, enforce that token must match the policy custody token
+        if let GuardAction::Transfer { token, .. } = &action {
+            if token != &rec.policy.token {
+                return self.reject(&caller, &mut rec, REASON_TARGET, now);
+            }
+        }
         let methods = match rec.policy.targets.get(&target) {
             Some(m) => m.clone(),
             None => return self.reject(&caller, &mut rec, REASON_TARGET, now),
@@ -474,13 +482,22 @@ impl Contract {
         if !methods.iter().any(|m| m == &method) {
             return self.reject(&caller, &mut rec, REASON_METHOD, now);
         }
-        if rec.spent_in_window + amount > rec.policy.daily_cap {
+        // Safe cap check: prevent arithmetic overflow from large attempted amounts
+        let new_spent = match rec.spent_in_window.checked_add(amount) {
+            Some(val) => val,
+            None => return self.reject(&caller, &mut rec, REASON_CAP, now),
+        };
+        if new_spent > rec.policy.daily_cap {
             return self.reject(&caller, &mut rec, REASON_CAP, now);
         }
         if let Some(r) = &recipient {
             if !rec.policy.recipients.iter().any(|x| x == r) {
                 return self.reject(&caller, &mut rec, REASON_RECIPIENT, now);
             }
+        }
+        // Bound transfers to agent's own recorded vault balance
+        if matches!(action, GuardAction::Transfer { .. }) && amount > rec.vault_balance {
+            return self.reject(&caller, &mut rec, REASON_INSUFFICIENT_VAULT, now);
         }
 
         // Check if high-value action should be queued into timelock lane.
@@ -515,11 +532,11 @@ impl Contract {
             }
         } else {
             // Allowed immediately: record spend and velocity, persist, then act.
-            rec.spent_in_window += amount;
+            rec.spent_in_window = new_spent;
             rec.actions_in_window += 1;
-            // Only debit custodied vault balance when real tokens are transferred
+            // Debit custodied vault balance when real tokens are transferred
             if matches!(action, GuardAction::Transfer { .. }) {
-                rec.vault_balance = rec.vault_balance.saturating_sub(amount);
+                rec.vault_balance -= amount;
             }
             self.agents.insert(caller.clone(), rec);
             emit(&format!(
@@ -589,7 +606,11 @@ impl Contract {
         if !methods.iter().any(|m| m == &pending_action.method) {
             return self.reject(&agent, &mut rec, REASON_METHOD, now);
         }
-        if rec.spent_in_window + pending_action.amount > rec.policy.daily_cap {
+        let new_spent = match rec.spent_in_window.checked_add(pending_action.amount) {
+            Some(val) => val,
+            None => return self.reject(&agent, &mut rec, REASON_CAP, now),
+        };
+        if new_spent > rec.policy.daily_cap {
             return self.reject(&agent, &mut rec, REASON_CAP, now);
         }
         if let Some(r) = &pending_action.recipient {
@@ -597,14 +618,16 @@ impl Contract {
                 return self.reject(&agent, &mut rec, REASON_RECIPIENT, now);
             }
         }
+        if matches!(pending_action.action, GuardAction::Transfer { .. }) {
+            if pending_action.amount > rec.vault_balance {
+                return self.reject(&agent, &mut rec, REASON_INSUFFICIENT_VAULT, now);
+            }
+            rec.vault_balance -= pending_action.amount;
+        }
 
         // All checks passed. Record spend and velocity, persist, emit SETTLED, perform action.
-        rec.spent_in_window += pending_action.amount;
+        rec.spent_in_window = new_spent;
         rec.actions_in_window += 1;
-        // Only debit custodied vault balance when real tokens are transferred
-        if matches!(pending_action.action, GuardAction::Transfer { .. }) {
-            rec.vault_balance = rec.vault_balance.saturating_sub(pending_action.amount);
-        }
         self.agents.insert(agent.clone(), rec);
         emit(&format!(
             "{{\"event\":\"SETTLED\",\"agent\":\"{}\",\"id\":{},\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
@@ -1401,5 +1424,97 @@ mod tests {
         // At threshold (100) -> PENDING in timelock
         let o2 = contract.execute(swap_action(100));
         assert_eq!(o2.status, "PENDING");
+    }
+
+    #[test]
+    fn test_transfer_exceeding_vault_balance_rejected() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        // Agent has 0 vault balance initially
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let out = contract.execute(transfer_action(50, recipient()));
+        assert_eq!(out.status, "REJECTED");
+        assert_eq!(out.reason.as_deref(), Some(REASON_INSUFFICIENT_VAULT));
+
+        // Deposit 100 into agent's vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.build());
+        let _ = contract.ft_on_transfer(owner(), U128(100), agent().to_string());
+
+        // Now attempt 50 -> should succeed
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let out_ok = contract.execute(transfer_action(50, recipient()));
+        assert_eq!(out_ok.status, "ALLOWED");
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(50));
+
+        // Attempt 60 -> exceeds remaining 50 -> rejected
+        let out_too_much = contract.execute(transfer_action(60, recipient()));
+        assert_eq!(out_too_much.status, "REJECTED");
+        assert_eq!(out_too_much.reason.as_deref(), Some(REASON_INSUFFICIENT_VAULT));
+    }
+
+    #[test]
+    fn test_transfer_unassigned_token_rejected() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let wrong_token_action = GuardAction::Transfer {
+            token: "other_token.near".parse().unwrap(),
+            to: recipient(),
+            amount: U128(10),
+            memo: None,
+        };
+
+        let out = contract.execute(wrong_token_action);
+        assert_eq!(out.status, "REJECTED");
+        assert_eq!(out.reason.as_deref(), Some(REASON_TARGET));
+    }
+
+    #[test]
+    fn test_contract_call_cannot_invoke_swap() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let rogue_call = GuardAction::ContractCall {
+            target: target(),
+            method: "swap".to_string(),
+            args: "{\"amount\":\"1000\"}".to_string(),
+        };
+
+        let out = contract.execute(rogue_call);
+        assert_eq!(out.status, "REJECTED");
+        assert_eq!(out.reason.as_deref(), Some(REASON_METHOD));
+    }
+
+    #[test]
+    fn test_max_u128_amount_does_not_panic_overflow() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        // Prior spend = 10
+        let out1 = contract.execute(swap_action(10));
+        assert_eq!(out1.status, "ALLOWED");
+
+        // Large amount that would overflow u128 if added to 10
+        let huge_action = GuardAction::Swap {
+            dex: target(),
+            token_in: "token.near".parse().unwrap(),
+            amount_in: U128(u128::MAX),
+            min_out: U128(0),
+        };
+
+        // Must reject cleanly with OVER_DAILY_CAP without panicking
+        let out2 = contract.execute(huge_action);
+        assert_eq!(out2.status, "REJECTED");
+        assert_eq!(out2.reason.as_deref(), Some(REASON_CAP));
     }
 }

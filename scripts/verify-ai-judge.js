@@ -23,7 +23,7 @@ try {
   const passMatch = cargoOut.match(/(\d+) passed/);
   const passedCount = passMatch ? passMatch[1] : "0";
   console.log(`   --> Verified: ${passedCount} native Rust tests PASSED with exit code 0.\n`);
-  assert.ok(Number(passedCount) >= 25, "Expected at least 25 Rust unit tests to pass");
+  assert.ok(Number(passedCount) >= 29, "Expected at least 29 Rust unit tests to pass");
 } catch (err) {
   console.error("Cargo test failed:", err.message);
   process.exit(1);
@@ -38,6 +38,7 @@ const EXPECTED_REASON_CODES = [
   "METHOD_NOT_ALLOWED",
   "OVER_DAILY_CAP",
   "RECIPIENT_NOT_ALLOWED",
+  "INSUFFICIENT_VAULT_BALANCE",
   "PENDING_QUEUE_FULL",
 ];
 
@@ -56,6 +57,7 @@ class SimulatedGuard {
     this.owner = "alice.testnet";
     this.paused = false;
     this.spent = 0;
+    this.vault_balance = 100;
     this.velocity = 0;
     this.rejectTimes = [];
     this.pendingActions = [];
@@ -100,7 +102,12 @@ class SimulatedGuard {
       return this.reject("RECIPIENT_NOT_ALLOWED");
     }
 
-    // Check 8: High-Value Timelock Lane
+    // Check 8: INSUFFICIENT_VAULT_BALANCE (transfers bounded by agent's vault balance)
+    if (method === "ft_transfer" && amount > this.vault_balance) {
+      return this.reject("INSUFFICIENT_VAULT_BALANCE");
+    }
+
+    // Check 9: High-Value Timelock Lane
     if (this.policy.high_value_threshold > 0 && amount >= this.policy.high_value_threshold) {
       this.velocity += 1;
       if (this.pendingActions.length >= 8) {
@@ -121,6 +128,9 @@ class SimulatedGuard {
     // Immediate execution
     this.spent += amount;
     this.velocity += 1;
+    if (method === "ft_transfer") {
+      this.vault_balance -= amount;
+    }
     return { status: "ALLOWED", reason: null, pending_id: null };
   }
 
@@ -158,9 +168,12 @@ class SimulatedGuard {
 console.log("2. Verifying rule enforcement engine...");
 
 const testPolicy = {
-  targets: { "mockdex.testnet": ["swap"] },
+  targets: {
+    "mockdex.testnet": ["swap"],
+    "token.testnet": ["ft_transfer"],
+  },
   daily_cap: 1000,
-  recipients: ["mockdex.testnet", "store.testnet"],
+  recipients: ["mockdex.testnet", "store.testnet", "bob.testnet"],
   max_actions_per_10min: 5,
   auto_pause_rejects: 5,
   auto_pause_window_minutes: 10,
@@ -215,6 +228,11 @@ console.log("   [Step G] Attempting 500 mUSD (remaining is 400 mUSD) -> REJECTED
 const badRecipientRes = guard.execute("trader.alice.testnet", "mockdex.testnet", "swap", 50, "hacker.testnet");
 assert.strictEqual(badRecipientRes.reason, "RECIPIENT_NOT_ALLOWED");
 console.log("   [Step H] Transfer to hacker.testnet -> REJECTED (RECIPIENT_NOT_ALLOWED)");
+
+// Test H2: Transfer exceeding agent's vault balance blocked
+const overVaultRes = guard.execute("trader.alice.testnet", "token.testnet", "ft_transfer", 150, "bob.testnet");
+assert.strictEqual(overVaultRes.reason, "INSUFFICIENT_VAULT_BALANCE");
+console.log("   [Step H2] Transfer 150 mUSD with 100 mUSD vault balance -> REJECTED (INSUFFICIENT_VAULT_BALANCE)");
 
 // Test I: 5th reject trips circuit breaker
 console.log("\n3. Verifying circuit breaker auto-pause...");

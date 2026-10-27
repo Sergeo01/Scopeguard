@@ -8,6 +8,40 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Added - 2026-10-27 (Smart Contract Security Hardening, Cryptographic Passkey Derivation & AI Scope Drafter Flow)
+
+- **Smart Contract Security Hardening (`contracts/policy/src/lib.rs`)**
+  - **Shared Vault Custody Isolation**: Added strict `amount <= rec.vault_balance` check in both immediate execution and pending settlement. If an agent attempts to transfer more than its recorded balance in the shared custody contract, the Guard immediately rejects with `INSUFFICIENT_VAULT_BALANCE` and increments the auto-pause reject count.
+  - **Custody Token Binding**: Added explicit validation that `Transfer.token` must match `rec.policy.token`. Prevents an agent from executing unauthorized token transfers on tokens outside its registered custody policy.
+  - **ContractCall Calldata Bypass Elimination**: Blocked `method == "swap"` within generic `GuardAction::ContractCall`. All swaps must now use typed `GuardAction::Swap`, guaranteeing that calldata amounts are counted toward the 24-hour daily cap and compared against high-value timelock thresholds.
+  - **Overflow-Safe Arithmetic**: Replaced unchecked raw addition (`rec.spent_in_window + amount`) with `checked_add`. Large attempted amounts (such as `u128::MAX`) cleanly reject with `OVER_DAILY_CAP` without arithmetic panics, ensuring state writes, audit logging, and circuit breakers fire reliably.
+  - **Unit Test Coverage**: Added 4 new native Rust unit tests (`test_transfer_exceeding_vault_balance_rejected`, `test_transfer_unassigned_token_rejected`, `test_contract_call_cannot_invoke_swap`, and `test_max_u128_amount_does_not_panic_overflow`). Total test suite now stands at 29 passed, 0 failed.
+
+- **Mock Token Integer Normalization (`contracts/mock-token/src/lib.rs`)**
+  - Normalized `decimals` from 18 to 0 in metadata so 1 unit = 1 whole dollar of mUSD, completely aligning onchain accounting with script, test, and user-interface dollar integer representations.
+
+- **Live Testnet Contract Deployment Upgrade**
+  - Deployed hardened Wasm release to `guard2.sergeo-guard.testnet` (Tx: `B1MPVbevVF5SGCuVaMwZfjsGq7obEE4sL4aXmUw6CHYj`).
+  - Unpaused agent `trader.sergeo-guard.testnet` from owner account (Tx: `CHio7AsNkEowXwFyYYCm2JFXJxFebqsqPS43gfZD6eSz`).
+  - Verified live onchain budget query: `{"cap":"500","spent":"25","remaining":"475","actions_in_window":0,"paused":false,"vault_balance":"100"}`.
+
+- **Authentic Client-Side Cryptographic Key Generation (`/create`)**
+  - Replaced dummy key with real in-browser ED25519 cryptographic key generation using `near-api-js` (`KeyPair.fromRandom("ed25519")`).
+  - Handed off real derived public key and private key to `AgentHandoffCard`.
+  - Added dedicated non-custodial NEAR CLI setup tab with copyable, signed-ready commands to register the agent policy and grant the scoped function-call access key.
+
+- **AI Scope Drafter Integration (`@scopeguard/drafter` & `/api/draft`)**
+  - Updated policy schema with mandatory `token` property.
+  - Implemented natural language drafter (`draftPolicyFromText`) with least-privilege defaults and lint warnings.
+  - Added `/api/draft` Next.js endpoint and integrated interactive "Draft Scope with AI" hero box into the `/create` wizard.
+
+- **Naive Agent Natural Language Prompt Interpretation**
+  - Updated `/api/attack` and `demo-agent/src/index.ts` to parse natural language instructions (transfer prompts, target names, amounts, recipient accounts) into structured `GuardAction` parameters.
+  - Preserved naive obedience: agent faithfully attempts injected instructions, allowing judges and users to verify onchain rejection directly.
+
+- **Automated AI Judge Verification (`scripts/verify-ai-judge.js`)**
+  - Updated verification runner to execute native Rust contract tests (29 passing) as Step 0, verify 9 consensus reason codes including `INSUFFICIENT_VAULT_BALANCE`, and simulate vault balance enforcement.
+
 ### Added - 2026-10-27 (Design System Polish, Gemini Vector Logo, Hydration & Console Hardening)
 
 - **Official ScopeGuard Vector Brand Mark**

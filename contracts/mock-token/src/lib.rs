@@ -30,7 +30,7 @@ impl MockTokenContract {
                 icon: None,
                 reference: None,
                 reference_hash: None,
-                decimals: 18,
+                decimals: 0,
             },
         }
     }
