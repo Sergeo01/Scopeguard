@@ -160,7 +160,7 @@ Rules:
 3. Return raw JSON only with zero markdown or fences.`;
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${options.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${options.apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -270,6 +270,6 @@ Rules:
     policy: draft,
     plainEnglish,
     warnings,
-    isManualFallback: false,
+    isManualFallback: true,
   };
 }

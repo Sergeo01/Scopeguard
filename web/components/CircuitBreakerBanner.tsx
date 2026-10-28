@@ -33,7 +33,7 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
     return null;
   }
 
-  const isTripped = isPaused && rejectCount >= maxRejects;
+  const isTripped = isPaused && (rejectCount >= maxRejects || rejectCount > 0);
 
   return (
     <div

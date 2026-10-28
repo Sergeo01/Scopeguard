@@ -27,14 +27,22 @@ function parseFlags(argv) {
 if (command === "connect") {
   const flags = parseFlags(args.slice(1));
   const account = flags.account || "trader.sergeo-guard.testnet";
-  const key = flags.key || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+  const key = flags.key || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || "ed25519:xqNiY8bEVWbtYvTewgedBmfa54fLpqDLdZfSi66s9xLfiJJ1K9eL39mCWbfZLVXpeREPQz6YXzVAoBkmg2PJKA1";
   const guard = flags.guard || "guard2.sergeo-guard.testnet";
   const outPath = flags.out || "./agent.json";
+
+  let publicKey = "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+  try {
+    const { KeyPair } = require("near-api-js");
+    publicKey = KeyPair.fromString(key).getPublicKey().toString();
+  } catch {
+    // Keep deterministic public key fallback
+  }
 
   const credential = {
     agentAccountId: account,
     policyContractId: guard,
-    publicKey: key.replace("ed25519:", "ed25519:pub_"),
+    publicKey,
     privateKey: key,
     networkId: "testnet",
     nodeUrl: process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
@@ -48,6 +56,7 @@ if (command === "connect") {
   console.log("  SCOPEGUARD: Agent Connected Successfully");
   console.log("==================================================");
   console.log(`✓ Agent Account : ${account}`);
+  console.log(`✓ Public Key    : ${publicKey}`);
   console.log(`✓ Scoped Passkey: ${key.slice(0, 18)}...`);
   console.log(`✓ Policy Guard  : ${guard}`);
   console.log(`✓ Credential File: ${resolvedOut}`);
@@ -60,7 +69,7 @@ if (command === "connect") {
 } else {
   console.log("ScopeGuard CLI");
   console.log("Usage:");
-  console.log("  npx @scopeguard/cli connect --account <id> --key <ed25519:...> --guard <contract>");
+  console.log("  node sdk/bin/cli.js connect --account <id> --key <ed25519:...> --guard <contract>");
   console.log("");
   console.log("Options:");
   console.log("  --account   The agent sub-account (e.g. trader.sergeo-guard.testnet)");

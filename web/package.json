@@ -13,8 +13,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "near-api-js": "^4.0.0",
-    "lucide-react": "^0.378.0",
-    "@next/swc-win32-x64-msvc": "14.2.24"
+    "lucide-react": "^0.378.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

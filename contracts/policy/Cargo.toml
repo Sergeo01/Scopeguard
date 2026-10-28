@@ -7,6 +7,9 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+near-sdk = { version = "5" }
+
+[dev-dependencies]
 near-sdk = { version = "5", features = ["unit-testing"] }
 
 

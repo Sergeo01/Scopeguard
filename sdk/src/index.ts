@@ -42,6 +42,8 @@ export interface ActParams {
   amount?: string;
   recipient?: string;
   token?: string;
+  min_out?: string;
+  memo?: string | null;
 }
 
 export interface Outcome {
@@ -127,16 +129,21 @@ export class ScopeGuardAgentClient {
             dex: p.target,
             token_in: p.token || "sergeo-guard-token.testnet",
             amount_in: p.amount || "0",
-            min_out: "0",
+            min_out: p.min_out || "0",
           },
         };
-      } else if (p.recipient) {
+      } else if (
+        p.method === "ft_transfer" ||
+        p.method === "ft_transfer_call" ||
+        p.target === "sergeo-guard-token.testnet" ||
+        p.token
+      ) {
         action = {
           Transfer: {
             token: p.token || p.target,
-            to: p.recipient,
+            to: p.recipient || "",
             amount: p.amount || "0",
-            memo: null,
+            memo: p.memo || null,
           },
         };
       } else {

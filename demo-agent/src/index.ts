@@ -45,7 +45,7 @@ export class NaiveAgent {
     try {
       if (geminiKey) {
         console.log("[Agent] Querying Gemini model for instruction interpretation...");
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 
@@ -144,9 +144,9 @@ export class NaiveAgent {
     // Deterministic parser fallback
     if (task.instruction && (!target || !method)) {
       const lower = task.instruction.toLowerCase();
-      const transferMatch = task.instruction.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*(\d*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
+      const transferMatch = task.instruction.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
       if (transferMatch) {
-        amount = amount || transferMatch[1] || "500";
+        amount = amount || (transferMatch[1] ? transferMatch[1].replace(/,/g, "") : "500");
         recipient = recipient || transferMatch[2];
         target = target || "sergeo-guard-token.testnet";
         method = method || "ft_transfer";
@@ -155,8 +155,8 @@ export class NaiveAgent {
         method = method || "drain";
         amount = amount || "0";
       } else if (lower.includes("swap") || lower.includes("trade")) {
-        const swapAmtMatch = task.instruction.match(/(\d+)/);
-        amount = amount || (swapAmtMatch ? swapAmtMatch[1] : "10");
+        const swapAmtMatch = task.instruction.match(/(\d[\d,]*)/);
+        amount = amount || (swapAmtMatch ? swapAmtMatch[1].replace(/,/g, "") : "10");
         target = target || "sergeo-guard-dex.testnet";
         method = method || "swap";
       }

@@ -37,24 +37,30 @@ export async function POST(req: Request) {
     let args = body.args;
     const promptText = (body.promptText || body.prompt || "").trim();
 
-    // Naive Agent Prompt Interpreter: turns natural language attack prompts into actions
-    if (promptText) {
+    // If target and method were not explicitly provided in the request body, parse prompt text
+    if (promptText && (!target || !method)) {
       const lower = promptText.toLowerCase();
-      const transferMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*(\d*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
+      const transferMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
       if (transferMatch) {
-        amount = transferMatch[1] || "500";
-        recipient = transferMatch[2];
+        amount = amount || (transferMatch[1] ? transferMatch[1].replace(/,/g, "") : "500");
+        recipient = recipient || transferMatch[2];
         target = "sergeo-guard-token.testnet";
         method = "ft_transfer";
       } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
         target = "evil_contract.testnet";
         method = "drain";
-        amount = "0";
+        amount = amount || "0";
       } else if (lower.includes("swap") || lower.includes("trade")) {
-        const swapAmtMatch = promptText.match(/(\d+)/);
-        amount = swapAmtMatch ? swapAmtMatch[1] : "10";
+        const swapAmtMatch = promptText.match(/(\d[\d,]*)/);
+        amount = amount || (swapAmtMatch ? swapAmtMatch[1].replace(/,/g, "") : "10");
         target = "sergeo-guard-dex.testnet";
         method = "swap";
+      }
+    } else if (promptText && !amount) {
+      // If prompt contains an amount with commas and body omitted amount, parse it cleanly
+      const numMatch = promptText.match(/(\d[\d,]*)/);
+      if (numMatch) {
+        amount = numMatch[1].replace(/,/g, "");
       }
     }
 
@@ -137,11 +143,15 @@ export async function POST(req: Request) {
           min_out: "0",
         },
       };
-    } else if (recipient) {
+    } else if (
+      method === "ft_transfer" ||
+      method === "ft_transfer_call" ||
+      target === "sergeo-guard-token.testnet"
+    ) {
       action = {
         Transfer: {
           token: target,
-          to: recipient,
+          to: recipient || "",
           amount: amount || "0",
           memo: null,
         },

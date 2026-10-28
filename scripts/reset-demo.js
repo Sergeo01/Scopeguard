@@ -123,13 +123,13 @@ async function main() {
   }
 
   // 4. Final verification
-  const finalBudget = await ownerAccount.viewFunction({
+  const finalBudget = await account.viewFunction({
     contractId: GUARD_ID,
     methodName: "get_budget",
     args: { agent_account: TRADER_ID },
   });
 
-  const finalPending = await ownerAccount.viewFunction({
+  const finalPending = await account.viewFunction({
     contractId: GUARD_ID,
     methodName: "get_pending_actions",
     args: { agent_account: TRADER_ID },

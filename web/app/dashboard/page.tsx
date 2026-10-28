@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   CreditCard,
@@ -272,6 +272,20 @@ export default function DashboardPage() {
     return null;
   };
 
+  // Derive recent policy rejections from activity ledger for circuit breaker telemetry
+  const recentRejections: RejectionEvent[] = useMemo(() => {
+    return activities
+      .filter((a) => a.type === "REJECT" || a.type === "AUTO_PAUSE")
+      .map((a) => ({
+        timestamp: a.timestamp ? new Date(a.timestamp).getTime() : Date.now(),
+        reason: a.reason || "POLICY_VIOLATION",
+        target: a.target,
+        method: a.method,
+      }));
+  }, [activities]);
+
+  const effectiveRejectCount = recentRejections.length;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* ========================================================================= */}
@@ -352,10 +366,10 @@ export default function DashboardPage() {
 
         <CircuitBreakerBanner
           isPaused={isPaused}
-          rejectCount={rejectCount}
+          rejectCount={effectiveRejectCount}
           maxRejects={3}
           windowMinutes={10}
-          recentRejections={[]}
+          recentRejections={recentRejections}
           onUnpause={handleUnpause}
           isOwner={true}
         />

@@ -44,8 +44,8 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const actualPasskey = passkey || "ed25519:2YEm4xT9yBwVvE75zWqE9Q8YfV9dK5vN2m1L7zX4r8P6";
-  const actualPublicKey = publicKey || "ed25519:D48j...5XwZ";
+  const actualPasskey = passkey || "ed25519:xqNiY8bEVWbtYvTewgedBmfa54fLpqDLdZfSi66s9xLfiJJ1K9eL39mCWbfZLVXpeREPQz6YXzVAoBkmg2PJKA1";
+  const actualPublicKey = publicKey || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
   const guardContract = "guard2.sergeo-guard.testnet";
 
   const cliCommand = `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
@@ -58,7 +58,7 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}
-- Scoped Passkey: ${actualPasskey}
+- Scoped Passkey: Load from environment variable (SCOPEGUARD_AGENT_PRIVATE_KEY) or credentials/agent.json
 - Policy Guard Contract: ${guardContract}
 - Daily Spending Limit: $${dailyCap} mUSD
 - Enforced Rules:
@@ -72,7 +72,7 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
     publicKey: actualPublicKey,
     privateKey: actualPasskey,
     networkId: "testnet",
-    nodeUrl: "https://test.rpc.fastnear.com",
+    nodeUrl: "https://rpc.testnet.near.org",
     created_at: new Date().toISOString(),
   };
 
