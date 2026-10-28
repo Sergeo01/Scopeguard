@@ -13,7 +13,7 @@ ScopeGuard replaces unrestricted keys with a protocol-level restricted key (a NE
 3. `OVER_VELOCITY_CAP`: Actions in the current 10-minute window must be within the burst limit.
 4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist.
 5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target contract, and token transfers must use typed `GuardAction::Transfer`.
-6. `OVER_DAILY_CAP`: Rolling 24-hour spend plus requested amount must fit the daily limit.
+6. `OVER_DAILY_CAP`: Spend in the current 24-hour budget window plus requested amount must fit the daily cap.
 7. `RECIPIENT_NOT_ALLOWED`: Transfers to external recipients must be explicitly allowlisted.
 
 ### Critical Engineering Invariant
@@ -33,7 +33,7 @@ cargo test
 
 ### Result
 
-`25 passed, 0 failed, 0 ignored` (finished in ~0.5s)
+`30 passed, 0 failed, 0 ignored` (finished in ~0.5s)
 
 Key verified properties:
 - `test_contract_call_cannot_target_custody_token`: Proves generic `ContractCall` cannot target the custody token to bypass typed transfers.
@@ -75,13 +75,15 @@ node scripts/testnet-demo-agent-e2e.js
 2. **Contract Initialization (`new`):** `Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF`
 3. **Agent Registration:** `9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL`
 4. **Scoped Passkey Added:** `57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc`
-5. **Real NEP-141 Vault Deposit (100 mUSD):** `58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha`
-6. **Legitimate Swap Allowed on DEX:** `mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp`
-7. **Timelock Intent Quarantined:** `DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa`
-8. **Owner Veto Cancellation:** `2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8`
-9. **Prompt Injection Blocked (`RECIPIENT_NOT_ALLOWED`):** `3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7`
-10. **Rogue Contract Call Blocked (`TARGET_NOT_ALLOWED`):** `Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG`
-11. **Bypass Attempt Blocked (`METHOD_NOT_ALLOWED` & `AUTO_PAUSE`):** `FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z`
+5. **Clean Passkey Cryptographic Isolation (0 FullAccess Keys):** `5tKBMR7b7GEFpt1Mh8LkCceygmDBfbvRxAbaAKgHJ8Lv`
+6. **Stale Old Key Deleted:** `6UnuFDAzghb9JCb2igbtFVhDC2cNQiRS7z5eUkyGWKPh`
+7. **Duplicate Key Deleted:** `DULYWiS4Eb98tob7b6doJowXiftj5TVNt9iMXg3RVHCK`
+8. **Real NEP-141 Vault Deposit (100 mUSD):** `58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha`
+9. **Passkey Onchain Rejection (`TARGET_NOT_ALLOWED`):** `7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv`
+10. **Owner Veto Cancellation (Pending Intent #3):** `A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj`
+11. **Owner Veto Cancellation (Pending Intent #2):** `AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp`
+12. **Owner Veto Cancellation (Pending Intent #1):** `2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8`
+13. **Owner Emergency Unpause on Guard2:** `7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt`
 
 ---
 

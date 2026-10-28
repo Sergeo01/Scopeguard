@@ -223,7 +223,12 @@ export default function DashboardPage() {
   };
 
   const handleCancelPolicyChange = async () => {
-    setStagedPolicy(null);
+    setActiveOwnerModal({
+      title: "Cancel Staged Policy Change",
+      description: "Discards the staged policy update onchain before the timelock window activates it. Only the owner account can sign this cancellation.",
+      command: `near contract call-function as-transaction ${guardId} cancel_policy_change json-args '{"agent_account":"${agentId}"}' prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' sign-as <your-owner-account.testnet> network-config testnet`,
+      isDanger: true,
+    });
   };
 
   const filteredActivities = activities.filter((item) => {

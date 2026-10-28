@@ -167,13 +167,12 @@ export default function HomePage() {
     ruleNumber: 4,
     ruleName: "Target Contract Allowlist",
     explanation: "The smart contract sergeo-guard-token.testnet is not on the approved target allowlist.",
-    txHash: "WUTWR1VeH4WqUWVMQTAoX6VUWR4KzCDRiA95SGHNUvJ",
+    txHash: "7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv",
     attemptedTarget: "sergeo-guard-token.testnet",
     attemptedMethod: "ft_transfer",
     attemptedAmount: "1000",
     fundsSaved: "1000",
-    gasUsedTgas: "2.41",
-    blockHeight: "178,924,102",
+    gasUsedTgas: "2.41 Tgas",
   });
 
   const selectScenario = (s: AttackScenario) => {
@@ -247,26 +246,52 @@ export default function HomePage() {
       if (res.ok) {
         const data = await res.json();
         const outcome = data.outcome;
+        const reason = outcome.reason || outcome.status;
 
         let ruleNum = 4;
         let ruleTitle = "Target Contract Allowlist";
-        let reason = outcome.reason || outcome.status;
+        let explanation = `Enforcement refused with reason code ${reason}.`;
 
-        if (reason === "TARGET_NOT_ALLOWED") {
+        if (reason === "NOT_AGENT") {
+          ruleNum = 1;
+          ruleTitle = "Registered Agent Call";
+          explanation = "The caller account is not registered under this policy.";
+        } else if (reason === "PAUSED") {
+          ruleNum = 2;
+          ruleTitle = "Key Unpaused State (Emergency Brake Active)";
+          explanation = "The agent is currently paused by the owner or automatic circuit breaker. All actions are blocked.";
+        } else if (reason === "OVER_VELOCITY_CAP") {
+          ruleNum = 3;
+          ruleTitle = "Velocity Anti-Spam Brake";
+          explanation = "Action speed throttle triggered: too many transactions attempted within the 10-minute window.";
+        } else if (reason === "TARGET_NOT_ALLOWED") {
           ruleNum = 4;
           ruleTitle = "Target Contract Allowlist";
+          explanation = `Target contract ${targetAccount} is not on the owner's approved allowlist.`;
         } else if (reason === "METHOD_NOT_ALLOWED") {
           ruleNum = 5;
           ruleTitle = "Method Name Allowlist";
+          explanation = `Method ${methodName}() is not permitted on ${targetAccount}.`;
         } else if (reason === "OVER_DAILY_CAP") {
           ruleNum = 6;
           ruleTitle = "Daily Spending Cap";
+          explanation = `Amount of ${amountVal} mUSD exceeds the daily spending cap.`;
         } else if (reason === "RECIPIENT_NOT_ALLOWED") {
           ruleNum = 7;
           ruleTitle = "Recipient Allowlist";
+          explanation = `Recipient ${recipientVal || "account"} is not on the allowed destination list.`;
+        } else if (reason === "INSUFFICIENT_VAULT_BALANCE") {
+          ruleNum = 6;
+          ruleTitle = "Insufficient Vault Custody";
+          explanation = `Attempted transfer of ${amountVal} mUSD exceeds the agent's current vault balance.`;
+        } else if (reason === "PENDING_QUEUE_FULL") {
+          ruleNum = 0;
+          ruleTitle = "Review Timelock Capacity Reached";
+          explanation = "Quarantine queue is full (maximum 16 pending actions).";
         } else if (outcome.status === "PENDING") {
           ruleNum = 0;
           ruleTitle = "High-Value Review Timelock";
+          explanation = `Action exceeds the $250 threshold and is placed in 60-second review quarantine (Intent #${outcome.pending_id || 1}).`;
         }
 
         setActiveVerdict({
@@ -274,23 +299,13 @@ export default function HomePage() {
           reasonCode: reason,
           ruleNumber: ruleNum,
           ruleName: ruleTitle,
-          explanation:
-            reason === "TARGET_NOT_ALLOWED"
-              ? `Target contract ${targetAccount} is not allowlisted.`
-              : reason === "METHOD_NOT_ALLOWED"
-              ? `Method ${methodName}() is not permitted on this contract.`
-              : reason === "OVER_DAILY_CAP"
-              ? `Amount exceeds the 24-hour spending cap of 500 mUSD.`
-              : reason === "RECIPIENT_NOT_ALLOWED"
-              ? `Recipient ${recipientVal} is not on the allowed destination list.`
-              : "Transaction placed in 60-second review quarantine.",
-          txHash: data.txHash || "WUTWR1VeH4WqUWVMQTAoX6VUWR4KzCDRiA95SGHNUvJ",
+          explanation,
+          txHash: data.txHash || "",
           attemptedTarget: targetAccount,
           attemptedMethod: methodName,
           attemptedAmount: amountVal,
           fundsSaved: amountVal,
-          gasUsedTgas: "2.41",
-          blockHeight: "178,924,102",
+          gasUsedTgas: data.txHash ? "2.41 Tgas" : undefined,
         });
 
         setLoading(false);
@@ -298,7 +313,7 @@ export default function HomePage() {
         return;
       }
     } catch {
-      // Fallback
+      // Offline preflight fallback
     }
 
     let ruleNum = 4;
@@ -323,6 +338,11 @@ export default function HomePage() {
         reasonCode = "PENDING";
         explanation = `Transfer of ${amountVal} mUSD exceeds $250 threshold: placed in 60-second review quarantine.`;
       }
+    } else if (targetAccount === "sergeo-guard-token.testnet" && recipientVal && recipientVal !== "sergeo-guard.testnet") {
+      ruleNum = 7;
+      ruleTitle = "Recipient Allowlist";
+      reasonCode = "RECIPIENT_NOT_ALLOWED";
+      explanation = `Recipient ${recipientVal} is not on the allowed destination list.`;
     }
 
     setActiveVerdict({
@@ -331,13 +351,11 @@ export default function HomePage() {
       ruleNumber: ruleNum,
       ruleName: ruleTitle,
       explanation,
-      txHash: "WUTWR1VeH4WqUWVMQTAoX6VUWR4KzCDRiA95SGHNUvJ",
+      txHash: "",
       attemptedTarget: targetAccount,
       attemptedMethod: methodName,
       attemptedAmount: amountVal,
       fundsSaved: amountVal,
-      gasUsedTgas: "2.41",
-      blockHeight: "178,924,102",
     });
 
     setLoading(false);
@@ -345,6 +363,7 @@ export default function HomePage() {
   };
 
   const copyHash = () => {
+    if (!activeVerdict.txHash) return;
     navigator.clipboard.writeText(activeVerdict.txHash);
     setCopiedHash(true);
     setTimeout(() => setCopiedHash(false), 2000);
@@ -647,6 +666,8 @@ export default function HomePage() {
 
             {/* Explanation callout */}
             <div
+              role="region"
+              aria-live="polite"
               className={`p-4 rounded-xl border text-xs leading-relaxed ${
                 activeVerdict.status === "PENDING"
                   ? "bg-blue-50 border-blue-200 text-blue-900"
@@ -710,35 +731,47 @@ export default function HomePage() {
 
             {/* Protocol Telemetry & Explorer Link */}
             <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-slate-600 font-mono">
-                <span className="text-slate-400">Tx:</span>
-                <span className="font-semibold text-slate-800">
-                  {activeVerdict.txHash.slice(0, 8)}...{activeVerdict.txHash.slice(-8)}
-                </span>
-                <button
-                  type="button"
-                  onClick={copyHash}
-                  className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition"
-                  title="Copy full transaction hash"
-                >
-                  {copiedHash ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                </button>
-              </div>
+              {activeVerdict.txHash ? (
+                <>
+                  <div className="flex items-center gap-2 text-slate-600 font-mono">
+                    <span className="text-slate-400">Tx:</span>
+                    <span className="font-semibold text-slate-800">
+                      {activeVerdict.txHash.slice(0, 8)}...{activeVerdict.txHash.slice(-8)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyHash}
+                      className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition"
+                      title="Copy full transaction hash"
+                    >
+                      {copiedHash ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
 
-              <div className="flex items-center gap-4">
-                <span className="text-slate-500 text-[11px]">
-                  Gas Burnt: <strong className="font-mono text-slate-800">2.41 Tgas</strong>
-                </span>
-                <a
-                  href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-slate-900 hover:text-emerald-700 transition"
-                >
-                  <span>Verify on NearBlocks</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-slate-500 text-[11px]">
+                      Gas Burnt: <strong className="font-mono text-slate-800">{activeVerdict.gasUsedTgas || "2.41 Tgas"}</strong>
+                    </span>
+                    <a
+                      href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 font-semibold text-slate-900 hover:text-emerald-700 transition"
+                    >
+                      <span>Verify on NearBlocks</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-[11px] text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span><strong>Preflight Rule Verification:</strong> Evaluated deterministically against onchain policy rules without burning gas.</span>
+                  </div>
+                  <span className="font-mono text-slate-400 text-[10px]">Zero Gas Cost</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

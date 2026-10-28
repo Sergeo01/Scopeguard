@@ -21,16 +21,22 @@ async function loadOwnerKey() {
 
 async function main() {
   console.log("==================================================================");
-  console.log(" ScopeGuard: One-Command Testnet Demo Reset");
+  console.log(" ScopeGuard: One-Command Testnet Demo Reset & State Verifier");
   console.log("==================================================================");
   console.log(`RPC:     ${RPC_URL}`);
   console.log(`Guard:   ${GUARD_ID}`);
   console.log(`Agent:   ${TRADER_ID}`);
   console.log(`Owner:   ${OWNER_ID}`);
 
+  const isDryRun = process.argv.includes("--dry-run") || process.argv.includes("--status");
+  const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${OWNER_ID}.json`);
+  const hasOwnerKey = fs.existsSync(credPath);
+
   const keyStore = new keyStores.InMemoryKeyStore();
-  const ownerKey = await loadOwnerKey();
-  await keyStore.setKey(NETWORK_ID, OWNER_ID, ownerKey);
+  if (hasOwnerKey && !isDryRun) {
+    const ownerKey = await loadOwnerKey();
+    await keyStore.setKey(NETWORK_ID, OWNER_ID, ownerKey);
+  }
 
   const near = await connect({
     networkId: NETWORK_ID,
@@ -38,10 +44,10 @@ async function main() {
     keyStore,
   });
 
-  const ownerAccount = await near.account(OWNER_ID);
+  const account = await near.account(OWNER_ID);
 
-  // 1. Query current budget and pause state
-  const budget = await ownerAccount.viewFunction({
+  // 1. Query current budget and pause state via view method
+  const budget = await account.viewFunction({
     contractId: GUARD_ID,
     methodName: "get_budget",
     args: { agent_account: TRADER_ID },
@@ -52,10 +58,48 @@ async function main() {
   console.log(`  Remaining:     ${budget.remaining} mUSD (Cap: ${budget.cap})`);
   console.log(`  Vault Balance: ${budget.vault_balance} mUSD`);
 
-  // 2. Unpause if paused
+  // 2. Query access keys on agent account to verify restricted passkey status
+  try {
+    const keyQuery = await near.connection.provider.query({
+      request_type: "view_access_key_list",
+      finality: "final",
+      account_id: TRADER_ID,
+    });
+    console.log(`  Access Keys:   ${keyQuery.keys.length} key(s) registered on NEAR consensus.`);
+    for (const k of keyQuery.keys) {
+      const perm = k.access_key.permission;
+      if (typeof perm === "string") {
+        console.log(`    - ${k.public_key.slice(0, 16)}... [${perm}]`);
+      } else {
+        console.log(`    - ${k.public_key.slice(0, 16)}... [FunctionCall -> ${perm.FunctionCall.receiver_id}::${perm.FunctionCall.method_names.join(",")}]`);
+      }
+    }
+  } catch (keyErr) {
+    console.warn("  Could not fetch access key list:", keyErr.message);
+  }
+
+  // 3. Inspect Timelock Quarantine
+  const pendingActions = await account.viewFunction({
+    contractId: GUARD_ID,
+    methodName: "get_pending_actions",
+    args: { agent_account: TRADER_ID },
+  });
+  console.log(`\n[Step 2] Checking Timelock Queue: ${pendingActions.length} item(s) pending.`);
+
+  if (isDryRun || !hasOwnerKey) {
+    console.log("\n==================================================================");
+    console.log(" Read-Only Inspection Complete (--dry-run / observer mode)");
+    console.log("==================================================================");
+    if (!hasOwnerKey) {
+      console.log(" Note: To submit onchain state resets, configure owner key in ~/.near-credentials.");
+    }
+    return;
+  }
+
+  // 4. Unpause if paused (Owner signing required)
   if (budget.paused) {
-    console.log("\n[Step 2] Agent is paused. Submitting unpause transaction...");
-    const unpauseRes = await ownerAccount.functionCall({
+    console.log("\n[Step 3] Agent is paused. Submitting unpause transaction...");
+    const unpauseRes = await account.functionCall({
       contractId: GUARD_ID,
       methodName: "unpause",
       args: { agent_account: TRADER_ID },
@@ -63,20 +107,13 @@ async function main() {
     });
     console.log(`  --> Successfully unpaused! Tx: ${unpauseRes.transaction.hash}`);
   } else {
-    console.log("\n[Step 2] Agent is already active (unpaused).");
+    console.log("\n[Step 3] Agent is already active (unpaused).");
   }
 
-  // 3. Clear pending timelock actions queue if any
-  const pendingActions = await ownerAccount.viewFunction({
-    contractId: GUARD_ID,
-    methodName: "get_pending_actions",
-    args: { agent_account: TRADER_ID },
-  });
-
-  console.log(`\n[Step 3] Checking Timelock Queue: ${pendingActions.length} item(s) pending.`);
+  // 5. Clear pending timelock actions queue if any
   for (const item of pendingActions) {
     console.log(`  Vetoing quarantined pending intent #${item.id} (${item.amount} mUSD)...`);
-    const cancelRes = await ownerAccount.functionCall({
+    const cancelRes = await account.functionCall({
       contractId: GUARD_ID,
       methodName: "cancel_pending",
       args: { agent_account: TRADER_ID, id: item.id },

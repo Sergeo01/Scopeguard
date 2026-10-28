@@ -38,7 +38,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 2. **The Spending Pot (Vault):** The owner funds a limited working balance in the Guard contract. That balance is the hard outer limit of what the agent can touch.
 3. **The Scoped Passkey:** A NEAR function-call access key restricted at the protocol level to `receiver = Policy Contract`, `methods = ["execute"]`, with a capped NEAR gas allowance. It cannot transfer NEAR directly, call other contracts, add keys, or delete the account.
 4. **The Policy Guard Contract:** A Rust contract on NEAR implementing seven ordered checks. If checks pass, it executes the action. If any check fails, it writes to an onchain reject log, returns the machine-readable reason code without panicking, and trips an auto-pause circuit breaker if rejections spike.
-5. **The Owner Rule Card:** The owner's policy specifying allowed target contracts, allowed methods, a 24-hour rolling spend cap, a recipient allowlist, a velocity limit (actions per 10 minutes), and auto-pause settings.
+5. **The Owner Rule Card:** The owner's policy specifying allowed target contracts, allowed methods, a fixed 24-hour spend cap window (protected by a 10-minute velocity throttle against boundary bursts), a recipient allowlist, a velocity limit (actions per 10 minutes), and auto-pause settings.
 
 ---
 
@@ -49,7 +49,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 3. `OVER_VELOCITY_CAP`: Actions in the current 10-minute window must be within the burst limit.
 4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist.
 5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target, and token calls must use typed `GuardAction::Transfer`.
-6. `OVER_DAILY_CAP`: 24-hour rolling spend plus requested amount must fit the daily cap.
+6. `OVER_DAILY_CAP`: spend in the current 24-hour budget window plus requested amount must fit the daily cap.
 7. `RECIPIENT_NOT_ALLOWED`: External recipient must be explicitly allowlisted.
 
 ---
@@ -86,20 +86,20 @@ ScopeGuard is live and fully verified on the NEAR Testnet.
    - Bound to sub-account: [9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL](https://testnet.nearblocks.io/txns/9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL)
 3. **Scoped Passkey Added:**
    - Function-call key restricted to Guard.execute: [57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc](https://testnet.nearblocks.io/txns/57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc)
-4. **Real NEP-141 Vault Deposit (100 mUSD):**
+4. **Clean Passkey Cryptographic Isolation (0 FullAccess Keys):**
+   - FullAccess key deleted from agent sub-account: [5tKBMR7b7GEFpt1Mh8LkCceygmDBfbvRxAbaAKgHJ8Lv](https://testnet.nearblocks.io/txns/5tKBMR7b7GEFpt1Mh8LkCceygmDBfbvRxAbaAKgHJ8Lv)
+   - Stale old key deleted: [6UnuFDAzghb9JCb2igbtFVhDC2cNQiRS7z5eUkyGWKPh](https://testnet.nearblocks.io/txns/6UnuFDAzghb9JCb2igbtFVhDC2cNQiRS7z5eUkyGWKPh)
+   - Duplicate key deleted: [DULYWiS4Eb98tob7b6doJowXiftj5TVNt9iMXg3RVHCK](https://testnet.nearblocks.io/txns/DULYWiS4Eb98tob7b6doJowXiftj5TVNt9iMXg3RVHCK)
+5. **Real NEP-141 Vault Deposit (100 mUSD):**
    - Transferred via `ft_transfer_call`: [58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha](https://testnet.nearblocks.io/txns/58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha)
-5. **Authorized Execution (ALLOW):**
-   - Legit swap executed on DEX: [mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp](https://testnet.nearblocks.io/txns/mzA18HKp6DEg3RKtNLLdxLTekg4TvkUb9FEJYMd1nVp)
-6. **High-Value Timelock Quarantine (PENDING):**
-   - Exceeds threshold, queued in timelock: [DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa](https://testnet.nearblocks.io/txns/DiQFdBMVvi4T3MMu84DBhMYDrf7E2RBxY7KRodw7nCWa)
+6. **Passkey Onchain Rejection (`TARGET_NOT_ALLOWED`):**
+   - Unauthorized contract call refused onchain without panic: [7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv](https://testnet.nearblocks.io/txns/7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv)
 7. **Owner Veto Cancellation (CANCELLED):**
-   - Owner cancels pending action: [2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8](https://testnet.nearblocks.io/txns/2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8)
-8. **Prompt Injection Refusal (`RECIPIENT_NOT_ALLOWED`):**
-   - Attempt to drain pot to hacker refused: [3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7](https://testnet.nearblocks.io/txns/3L7ysZD5rfHYTGUwtyzoY57iXReqNfXs91sasGKTvsV7)
-9. **Rogue Contract Refusal (`TARGET_NOT_ALLOWED`):**
-   - Call to unverified target refused: [Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG](https://testnet.nearblocks.io/txns/Bguq14HrksWRw5ChCFeHbzPRNzarrL2yr51uLCevSxG)
-10. **Bypass Refusal & Auto-Pause (`METHOD_NOT_ALLOWED` & `AUTO_PAUSE`):**
-    - Raw ContractCall to ft_transfer blocked, emergency brake tripped: [FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z](https://testnet.nearblocks.io/txns/FUyNWR84dQqx1EPJxX7FhmSZn7CeFHfTJocgxrd5Nb8Z)
+   - Owner veto of pending intent #3: [A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj](https://testnet.nearblocks.io/txns/A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj)
+   - Owner veto of pending intent #2: [AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp](https://testnet.nearblocks.io/txns/AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp)
+   - Owner veto of pending intent #1: [2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8](https://testnet.nearblocks.io/txns/2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8)
+8. **Owner Unpause on Guard2:**
+   - Active state restored by owner: [7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt](https://testnet.nearblocks.io/txns/7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt)
 
 ---
 
@@ -110,7 +110,7 @@ Policy engines and spend permissions exist elsewhere in Web3 and Web2:
 - **EVM Smart Contract Wallets (Safe Modules, Squads on Solana):** These enforce rules onchain, but require full smart wallet deployments, audits, and higher transaction fees for every agent.
 
 **The ScopeGuard Differentiator on NEAR:**
-NEAR accounts natively support protocol-level function-call access keys. An agent holds a key that the blockchain consensus itself restricts to only calling `guard2.sergeo-guard.testnet::execute` with a gas allowance. ScopeGuard adds the missing layer: **onchain value governance, real NEP-141 token custody, typed action verification, rolling 24-hour spend accounting, recipient validation, anti-spam velocity limits, high-value timelock quarantine, and circuit breakers.**
+NEAR accounts natively support protocol-level function-call access keys. An agent holds a key that the blockchain consensus itself restricts to only calling `guard2.sergeo-guard.testnet::execute` with a gas allowance. ScopeGuard adds the missing layer: **onchain value governance, real NEP-141 token custody, typed action verification, fixed 24-hour spend window accounting with velocity anti-burst throttling, recipient validation, anti-spam velocity limits, high-value timelock quarantine, and circuit breakers.**
 
 ---
 
@@ -137,4 +137,4 @@ We believe in radical transparency:
 
 ## 10. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](file:///D:/Hackathon/NEAR/TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (25 native Rust unit tests and automated check scripts).
+See [TESTING_FOR_AI_JUDGES.md](file:///D:/Hackathon/NEAR/TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (30 native Rust unit tests and automated check scripts).

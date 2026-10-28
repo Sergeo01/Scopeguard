@@ -7,8 +7,17 @@ import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
 
 let lastAttackTimestamp = 0;
+let isAttackInProgress = false;
 
 export async function POST(req: Request) {
+  if (isAttackInProgress) {
+    return NextResponse.json({
+      success: false,
+      error: "Another attack execution is currently processing onchain. Please wait a moment.",
+    }, { status: 429 });
+  }
+
+  isAttackInProgress = true;
   try {
     // Basic throttle to prevent gas draining and DDoS
     const now = Date.now();
@@ -86,11 +95,34 @@ export async function POST(req: Request) {
 
     const near = await connect({
       networkId: cred.networkId || "testnet",
-      nodeUrl: cred.nodeUrl || "https://test.rpc.fastnear.com",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || cred.nodeUrl || "https://rpc.testnet.near.org",
       keyStore,
     });
 
     const agentAccount = await near.account(cred.agentAccountId);
+
+    // Fast pre-check: if agent is currently PAUSED onchain, return PAUSED outcome immediately
+    try {
+      const budget = await agentAccount.viewFunction({
+        contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
+        methodName: "get_budget",
+        args: { agent_account: cred.agentAccountId },
+      });
+
+      if (budget && budget.paused) {
+        return NextResponse.json({
+          success: true,
+          outcome: {
+            status: "REJECTED",
+            reason: "PAUSED",
+            pending_id: null,
+          },
+          note: "Agent is currently in PAUSED state. Enforcement check rejected without gas expenditure.",
+        });
+      }
+    } catch {
+      // Continue to function call if view query fails
+    }
 
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});
@@ -167,5 +199,7 @@ export async function POST(req: Request) {
       success: false,
       error: err.message,
     }, { status: 500 });
+  } finally {
+    isAttackInProgress = false;
   }
 }

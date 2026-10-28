@@ -48,7 +48,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const actualPublicKey = publicKey || "ed25519:D48j...5XwZ";
   const guardContract = "guard2.sergeo-guard.testnet";
 
-  const cliCommand = `npx @scopeguard/cli connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
+  const cliCommand = `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
 
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
 near contract call-function as-transaction ${guardContract} register_agent json-args '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || { token: "sergeo-guard-token.testnet", targets: { "sergeo-guard-dex.testnet": ["swap"] }, daily_cap: String(dailyCap), recipients: [], max_actions_per_10min: 5, auto_pause_rejects: autoPauseAfter, auto_pause_window_minutes: autoPauseWindowMinutes, high_value_threshold: String(Math.floor(dailyCap / 2)), high_value_delay_seconds: 60, policy_change_delay_seconds: 600 })}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as <your-owner-account.testnet> network-config testnet
