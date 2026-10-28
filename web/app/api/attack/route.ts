@@ -8,6 +8,9 @@ import { recordActivity } from "@/lib/ledger";
 
 let lastAttackTimestamp = 0;
 let isAttackInProgress = false;
+const attackTimestamps: number[] = [];
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const MAX_ATTACKS_PER_WINDOW = 12;
 
 export async function POST(req: Request) {
   if (isAttackInProgress) {
@@ -17,17 +20,29 @@ export async function POST(req: Request) {
     }, { status: 429 });
   }
 
+  const now = Date.now();
+  // Clean expired timestamps from sliding window
+  while (attackTimestamps.length > 0 && attackTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
+    attackTimestamps.shift();
+  }
+  if (attackTimestamps.length >= MAX_ATTACKS_PER_WINDOW) {
+    return NextResponse.json({
+      success: false,
+      error: "Rate limit: maximum 12 live attack simulations per minute to conserve testnet gas. Please wait a moment.",
+    }, { status: 429 });
+  }
+
   isAttackInProgress = true;
   try {
-    // Basic throttle to prevent gas draining and DDoS
-    const now = Date.now();
-    if (now - lastAttackTimestamp < 2000) {
+    // Basic spacing throttle between rapid sequential calls
+    if (now - lastAttackTimestamp < 1500) {
       return NextResponse.json({
         success: false,
-        error: "Rate limit: please wait 2 seconds between live simulation attacks.",
+        error: "Rate limit: please wait 1.5 seconds between simulation calls.",
       }, { status: 429 });
     }
     lastAttackTimestamp = now;
+    attackTimestamps.push(now);
 
     const body = await req.json();
     let target = body.target;

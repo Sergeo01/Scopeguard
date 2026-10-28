@@ -312,58 +312,14 @@ export class ScopeGuardOwnerClient {
 }
 
 /**
- * Backwards compatible ScopeGuardClient extending ScopeGuardAgentClient.
+ * ScopeGuardClient alias for ScopeGuardAgentClient (backward compatibility).
+ * Exposes strictly agent execution methods (act, budget, getPendingActions, getStagedPolicy).
  */
-export class ScopeGuardClient extends ScopeGuardAgentClient {
-  async settlePending(id: number): Promise<Outcome> {
-    const account = await this.getAccount();
-    const outcome = await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "settle_pending",
-      args: {
-        agent: this.credential.agentAccountId,
-        id,
-      },
-      gas: BigInt("40000000000000"),
-      attachedDeposit: BigInt(0),
-    });
+export const ScopeGuardClient = ScopeGuardAgentClient;
+export type ScopeGuardClient = ScopeGuardAgentClient;
 
-    const parsed = JSON.parse(
-      Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
-    ) as Outcome;
-    return parsed;
-  }
-
-  async cancelPending(id: number): Promise<void> {
-    const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "cancel_pending",
-      args: {
-        agent_account: this.credential.agentAccountId,
-        id,
-      },
-      gas: BigInt("20000000000000"),
-      attachedDeposit: BigInt(0),
-    });
-  }
-
-  async cancelPolicyChange(): Promise<void> {
-    const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "cancel_policy_change",
-      args: {
-        agent_account: this.credential.agentAccountId,
-      },
-      gas: BigInt("20000000000000"),
-      attachedDeposit: BigInt(0),
-    });
-  }
-}
-
-export function loadCredential(path: string): ScopeGuardClient {
+export function loadCredential(path: string): ScopeGuardAgentClient {
   const content = fs.readFileSync(path, "utf-8");
   const cred = JSON.parse(content) as ScopeGuardCredential;
-  return new ScopeGuardClient(cred);
+  return new ScopeGuardAgentClient(cred);
 }

@@ -212,6 +212,26 @@ impl Contract {
     fn validate_policy(policy: &Policy) {
         assert!(policy.daily_cap > 0, "daily_cap must be greater than zero");
         assert!(
+            policy.max_actions_per_10min > 0,
+            "max_actions_per_10min must be greater than zero"
+        );
+        assert!(
+            policy.auto_pause_rejects > 0,
+            "auto_pause_rejects must be greater than zero"
+        );
+        assert!(
+            policy.auto_pause_window_minutes > 0,
+            "auto_pause_window_minutes must be greater than zero"
+        );
+        assert!(
+            policy.high_value_delay_seconds > 0,
+            "high_value_delay_seconds must be greater than zero"
+        );
+        assert!(
+            policy.policy_change_delay_seconds > 0,
+            "policy_change_delay_seconds must be greater than zero"
+        );
+        assert!(
             policy.high_value_threshold <= policy.daily_cap,
             "high_value_threshold cannot exceed daily_cap"
         );
@@ -368,17 +388,23 @@ impl Contract {
             "{{\"event\":\"WITHDRAW\",\"agent\":\"{}\",\"token\":\"{}\",\"amount\":\"{}\"}}",
             agent_account, token, amount.0
         ));
-        Promise::new(token).function_call(
-            "ft_transfer".to_string(),
-            serde_json::to_vec(&serde_json::json!({
-                "receiver_id": rec.owner,
-                "amount": amount,
-                "memo": "ScopeGuard owner withdrawal"
-            }))
-            .unwrap(),
-            NearToken::from_yoctonear(1), // 1 yoctoNEAR required by NEP-141
-            Gas::from_tgas(20),
-        )
+        Promise::new(token)
+            .function_call(
+                "ft_transfer".to_string(),
+                serde_json::to_vec(&serde_json::json!({
+                    "receiver_id": rec.owner,
+                    "amount": amount,
+                    "memo": "ScopeGuard owner withdrawal"
+                }))
+                .unwrap(),
+                NearToken::from_yoctonear(1), // 1 yoctoNEAR required by NEP-141
+                Gas::from_tgas(20),
+            )
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(Gas::from_tgas(10))
+                    .on_withdraw_resolved(agent_account, amount),
+            )
     }
 
     /// Owner only, immediate. Removes the intent from pending queue.
@@ -574,15 +600,11 @@ impl Contract {
         // Lazy apply staged policy if effective_at has arrived.
         Self::apply_staged_policy_if_due(&mut rec, now_sec, &agent);
 
-        let action_index = match rec.pending_actions.iter().position(|a| a.id == id) {
-            Some(idx) => idx,
+        let pending_action = match rec.pending_actions.iter().find(|a| a.id == id) {
+            Some(a) => a.clone(),
             None => env::panic_str("pending action not found"),
         };
-
-        let pending_action = &rec.pending_actions[action_index];
         assert!(now_sec >= pending_action.executable_at, "action not executable yet");
-
-        let pending_action = rec.pending_actions.remove(action_index);
 
         // Lazy window resets.
         if now >= rec.day_window_start + DAY_NS {
@@ -594,38 +616,78 @@ impl Contract {
             rec.actions_in_window = 0;
         }
 
-        // Re-run all seven checks against current policy and windows.
+        // Re-run checks against current policy and windows.
+        // Owner-triggered settle checks do not penalize the agent with reject strikes.
         if rec.paused {
-            return self.reject(&agent, &mut rec, REASON_PAUSED, now);
+            return Outcome {
+                status: "REJECTED".to_string(),
+                reason: Some(REASON_PAUSED.to_string()),
+                pending_id: Some(id),
+            };
         }
         if rec.actions_in_window >= rec.policy.max_actions_per_10min {
-            return self.reject(&agent, &mut rec, REASON_OVER_VELOCITY, now);
+            return Outcome {
+                status: "REJECTED".to_string(),
+                reason: Some(REASON_OVER_VELOCITY.to_string()),
+                pending_id: Some(id),
+            };
         }
         let methods = match rec.policy.targets.get(&pending_action.target) {
             Some(m) => m.clone(),
-            None => return self.reject(&agent, &mut rec, REASON_TARGET, now),
+            None => {
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_TARGET.to_string()),
+                    pending_id: Some(id),
+                }
+            }
         };
         if !methods.iter().any(|m| m == &pending_action.method) {
-            return self.reject(&agent, &mut rec, REASON_METHOD, now);
+            return Outcome {
+                status: "REJECTED".to_string(),
+                reason: Some(REASON_METHOD.to_string()),
+                pending_id: Some(id),
+            };
         }
         let new_spent = match rec.spent_in_window.checked_add(pending_action.amount) {
             Some(val) => val,
-            None => return self.reject(&agent, &mut rec, REASON_CAP, now),
+            None => {
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_CAP.to_string()),
+                    pending_id: Some(id),
+                }
+            }
         };
         if new_spent > rec.policy.daily_cap {
-            return self.reject(&agent, &mut rec, REASON_CAP, now);
+            return Outcome {
+                status: "REJECTED".to_string(),
+                reason: Some(REASON_CAP.to_string()),
+                pending_id: Some(id),
+            };
         }
         if let Some(r) = &pending_action.recipient {
             if !rec.policy.recipients.iter().any(|x| x == r) {
-                return self.reject(&agent, &mut rec, REASON_RECIPIENT, now);
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_RECIPIENT.to_string()),
+                    pending_id: Some(id),
+                };
             }
         }
         if matches!(pending_action.action, GuardAction::Transfer { .. }) {
             if pending_action.amount > rec.vault_balance {
-                return self.reject(&agent, &mut rec, REASON_INSUFFICIENT_VAULT, now);
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_INSUFFICIENT_VAULT.to_string()),
+                    pending_id: Some(id),
+                };
             }
             rec.vault_balance -= pending_action.amount;
         }
+
+        // All checks passed. Now remove the pending action from the queue.
+        rec.pending_actions.retain(|a| a.id != id);
 
         // All checks passed. Record spend and velocity, persist, emit SETTLED, perform action.
         rec.spent_in_window = new_spent;
@@ -777,6 +839,29 @@ impl Contract {
                 self.agents.insert(agent.clone(), rec);
                 emit(&format!(
                     "{{\"event\":\"ACTION_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
+                    agent, amount.0
+                ));
+            }
+            return false;
+        }
+        true
+    }
+
+    /// Private callback: invoked after owner withdraw cross-contract call completes.
+    /// If the token transfer failed, restores the agent's vault balance so funds are not trapped.
+    #[private]
+    pub fn on_withdraw_resolved(
+        &mut self,
+        agent: AccountId,
+        amount: U128,
+    ) -> bool {
+        let success = is_promise_success();
+        if !success {
+            if let Some(mut rec) = self.agents.get(&agent).cloned() {
+                rec.vault_balance = rec.vault_balance.saturating_add(amount.0);
+                self.agents.insert(agent.clone(), rec);
+                emit(&format!(
+                    "{{\"event\":\"WITHDRAW_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
                     agent, amount.0
                 ));
             }
@@ -1606,5 +1691,36 @@ mod tests {
         // Vault balance should be refunded to 100, and spent should be rolled back to 0
         assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(100));
         assert_eq!(contract.get_budget(agent()).unwrap().spent, U128(0));
+    }
+
+    #[test]
+    fn test_withdraw_failure_refunds_vault_balance() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        // Deposit 100 into agent vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.build());
+        let _ = contract.ft_on_transfer(owner(), U128(100), agent().to_string());
+
+        // Owner initiates withdrawal of 40
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        let _ = contract.withdraw(agent(), U128(40));
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(60));
+
+        // Simulate callback when external ft_transfer failed
+        builder.predecessor_account_id("guard.near".parse().unwrap());
+        testing_env!(
+            builder.build(),
+            near_sdk::test_vm_config(),
+            near_sdk::RuntimeFeesConfig::test(),
+            std::collections::HashMap::default(),
+            vec![near_sdk::PromiseResult::Failed],
+        );
+        let handled = contract.on_withdraw_resolved(agent(), U128(40));
+        assert!(!handled);
+
+        // Vault balance should be refunded to 100
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(100));
     }
 }
