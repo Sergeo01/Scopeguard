@@ -89,7 +89,11 @@ export async function sendWebhookAlert(webhookUrl: string, message: string): Pro
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: message, text: message }),
+      body: JSON.stringify({
+        content: message,
+        text: message,
+        allowed_mentions: { parse: [] },
+      }),
     });
     return res.ok;
   } catch (err) {

@@ -37,7 +37,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 Judges and evaluators can verify the entire project locally and on testnet in under 30 seconds:
 
 ```bash
-# 1. Run all 32 native Rust smart contract unit tests
+# 1. Run all 33 native Rust smart contract unit tests
 cargo test --manifest-path contracts/Cargo.toml
 
 # 2. Run automated judge verification script (rules, codes, timelocks, and consensus behavior)
@@ -157,4 +157,4 @@ We believe in radical transparency:
 
 ## 11. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (32 native Rust unit tests and automated check scripts).
+See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (33 native Rust unit tests and automated check scripts).

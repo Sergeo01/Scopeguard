@@ -33,11 +33,12 @@ cargo test
 
 ### Result
 
-`32 passed, 0 failed, 0 ignored` (finished in ~0.8s)
+`33 passed, 0 failed, 0 ignored` (finished in ~0.5s)
 
 Key verified properties:
 - `test_contract_call_cannot_target_custody_token`: Proves generic `ContractCall` cannot target the custody token to bypass typed transfers.
 - `test_contract_call_cannot_bypass_transfer_cap_or_recipient`: Proves generic `ContractCall` to `ft_transfer` is refused with `METHOD_NOT_ALLOWED`.
+- `test_check_order_paused_before_contract_call_method_check`: Proves `PAUSED` (Check 2) is evaluated strictly before method and target checks.
 - `test_unauthorized_token_cannot_deposit_to_vault`: Proves unauthorized callers cannot call `ft_on_transfer` to inflate the vault.
 - `test_staged_wildcard_policy_rejected`: Proves wildcard methods are rejected during policy updates.
 - `test_swap_does_not_falsely_debit_vault`: Proves vault balance only decrements on real token movement.

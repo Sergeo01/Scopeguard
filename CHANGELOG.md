@@ -8,7 +8,18 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
-### Added - 2026-10-28 (Withdrawal Rollback Safety, Settlement Ordering Hardening, Telegram Alerts, and Version Telemetry)
+### Added - 2026-10-28 (Check-Order Alignment, Webhook Sanitization, Dynamic Policy Telemetry, and Telegram Alerts)
+
+- **Check-Order Alignment in Guard Engine (`contracts/policy/src/lib.rs`)**
+  - Moved generic `ContractCall` custody token and transfer method checks inside `internal_execute()`.
+  - Guarantees strict adherence to the 7-check sequence: Check 2 (`PAUSED`) and Check 3 (`OVER_VELOCITY_CAP`) evaluate strictly before target and method checks.
+  - Added unit test `test_check_order_paused_before_contract_call_method_check`. Total contract test suite now stands at **33 passed, 0 failed**.
+
+- **Webhook Mention Sanitization (`watcher/src/index.ts`)**
+  - Attached `allowed_mentions: { parse: [] }` to outbound webhook payloads, preventing potential `@everyone` or `@here` ping hijacking in Discord alert channels.
+
+- **Dynamic Onchain Policy Binding (`web/app/api/state/route.ts` & `web/app/dashboard/page.tsx`)**
+  - Dynamically bound dashboard circuit breaker and velocity gauges to live onchain policy state (`auto_pause_rejects`, `auto_pause_window_minutes`, `max_actions_per_10min`).
 
 - **Withdrawal Trapped Funds Elimination (`contracts/policy/src/lib.rs`)**
   - Attached `on_withdraw_resolved` private callback handler via `.then()` to owner `withdraw` operations.
@@ -24,7 +35,7 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 - **Contract Version Telemetry (`contracts/policy/src/lib.rs`)**
   - Added `pub fn get_version(&self) -> String` returning the contract package version (`0.1.0`).
-  - Added unit test `test_get_version`. Total contract test suite now stands at **32 passed, 0 failed**.
+  - Added unit test `test_get_version`.
 
 - **Native Telegram Bot Alerts (`watcher/src/index.ts`)**
   - Added native `sendTelegramAlert` function using Node fetch to `https://api.telegram.org/bot<token>/sendMessage`.

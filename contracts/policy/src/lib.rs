@@ -430,29 +430,6 @@ impl Contract {
     /// Primary execution method: strictly accepts strongly-typed GuardAction.
     /// No flat arguments or bypass paths exist. The Guard constructs calldata.
     pub fn execute(&mut self, action: GuardAction) -> Outcome {
-        let caller = env::predecessor_account_id();
-        let mut rec = match self.agents.get(&caller).cloned() {
-            Some(r) => r,
-            None => env::panic_str(REASON_NOT_AGENT),
-        };
-        let now = env::block_timestamp();
-        let now_sec = now / 1_000_000_000;
-
-        // Lazy apply staged policy if effective_at has arrived.
-        Self::apply_staged_policy_if_due(&mut rec, now_sec, &caller);
-
-        // Security check: ContractCall must NEVER target the custody token, nor invoke token transfer methods or swap.
-        // All token movements must use GuardAction::Transfer with strictly verified amount and recipient.
-        // All DEX swaps must use GuardAction::Swap with explicit amounts checked against daily cap.
-        if let GuardAction::ContractCall { target, method, .. } = &action {
-            if method == "ft_transfer" || method == "ft_transfer_call" || method == "swap" {
-                return self.reject(&caller, &mut rec, REASON_METHOD, now);
-            }
-            if target == &rec.policy.token {
-                return self.reject(&caller, &mut rec, REASON_TARGET, now);
-            }
-        }
-
         let (target, method, args_bytes, amount, recipient) = action.decompose();
         let args_str = String::from_utf8(args_bytes.clone()).unwrap_or_default();
         self.internal_execute(action, target, method, args_str, args_bytes, amount, recipient)
@@ -502,12 +479,24 @@ impl Contract {
                 return self.reject(&caller, &mut rec, REASON_TARGET, now);
             }
         }
+        // Security check: ContractCall must NEVER target the custody token
+        if let GuardAction::ContractCall { target: ref cc_target, .. } = &action {
+            if cc_target == &rec.policy.token {
+                return self.reject(&caller, &mut rec, REASON_TARGET, now);
+            }
+        }
         let methods = match rec.policy.targets.get(&target) {
             Some(m) => m.clone(),
             None => return self.reject(&caller, &mut rec, REASON_TARGET, now),
         };
         if !methods.iter().any(|m| m == &method) {
             return self.reject(&caller, &mut rec, REASON_METHOD, now);
+        }
+        // Security check: ContractCall must NEVER invoke token transfer methods or swap
+        if let GuardAction::ContractCall { method: ref cc_method, .. } = &action {
+            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" {
+                return self.reject(&caller, &mut rec, REASON_METHOD, now);
+            }
         }
         // Safe cap check: prevent arithmetic overflow from large attempted amounts
         let new_spent = match rec.spent_in_window.checked_add(amount) {
@@ -1159,7 +1148,7 @@ mod tests {
         testing_env!(builder.build());
 
         let bypass_action = GuardAction::ContractCall {
-            target: "token.near".parse().unwrap(),
+            target: target(),
             method: "ft_transfer".to_string(),
             args: serde_json::json!({
                 "receiver_id": bad_recipient(),
@@ -1334,6 +1323,30 @@ mod tests {
         });
         assert_eq!(o.status, "REJECTED");
         assert_eq!(o.reason, Some(REASON_OVER_VELOCITY.to_string()));
+    }
+
+    #[test]
+    fn test_check_order_paused_before_contract_call_method_check() {
+        let (mut contract, mut builder) = setup_contract(100);
+
+        // Pause agent from owner account
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        contract.pause(agent());
+
+        // Agent attempts rogue ContractCall to ft_transfer
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let rogue_call = GuardAction::ContractCall {
+            target: target(),
+            method: "ft_transfer".to_string(),
+            args: "{}".to_string(),
+        };
+
+        // Check 2 (PAUSED) must fire before Check 5 (METHOD_NOT_ALLOWED)
+        let out = contract.execute(rogue_call);
+        assert_eq!(out.status, "REJECTED");
+        assert_eq!(out.reason.as_deref(), Some(REASON_PAUSED));
     }
 
     #[test]
