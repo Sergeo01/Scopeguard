@@ -55,6 +55,8 @@ export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("trader.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
+  const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
+  const [agentPublicKey, setAgentPublicKey] = useState("ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm");
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
   const [vaultBalance, setVaultBalance] = useState("100");
@@ -108,6 +110,8 @@ export default function DashboardPage() {
       if (data.success) {
         if (data.agentId) setAgentId(data.agentId);
         if (data.guardId) setGuardId(data.guardId);
+        if (data.ownerId) setOwnerId(data.ownerId);
+        if (data.agentPublicKey) setAgentPublicKey(data.agentPublicKey);
         if (data.budget) {
           setIsPaused(Boolean(data.budget.paused));
           setDailyCapTotal(Number(data.budget.cap) || 500);
@@ -156,7 +160,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Emergency Pause Key",
       description: "Freezes all agent transactions on NEAR Testnet immediately. The Guard contract will refuse all calls until unpaused by the owner.",
-      command: `near call ${guardId} pause '{"agent_account":"${agentId}"}' --accountId sergeo-guard.testnet`,
+      command: `near contract call-function as-transaction ${guardId} pause json-args '{"agent_account":"${agentId}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
       isDanger: false,
     });
   };
@@ -165,7 +169,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Unpause Agent Key",
       description: "Resumes normal agent execution and clears consecutive reject counters.",
-      command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId sergeo-guard.testnet`,
+      command: `near contract call-function as-transaction ${guardId} unpause json-args '{"agent_account":"${agentId}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
       isDanger: false,
     });
   };
@@ -174,7 +178,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Permanently Revoke Passkey",
       description: "Deletes the restricted function-call passkey directly on NEAR consensus. The credential on the agent machine becomes completely dead.",
-      command: `near delete-key ${agentId} <AGENT_PUBLIC_KEY> --accountId ${agentId}`,
+      command: `near account delete-key ${agentId} ${agentPublicKey} sign-as ${ownerId} network-config testnet`,
       isDanger: true,
     });
   };
@@ -183,7 +187,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Emergency Vault Evacuation",
       description: `Transfers all custodied ${vaultBalance} mUSD tokens from the Guard vault directly back to the owner account.`,
-      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId sergeo-guard.testnet`,
+      command: `near contract call-function as-transaction ${guardId} withdraw json-args '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
       isDanger: true,
     });
   };
@@ -192,7 +196,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: `Veto Pending Intent #${id}`,
       description: "Cancels quarantined high-value action before the timelock delay expires.",
-      command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${id}}' --accountId sergeo-guard.testnet`,
+      command: `near contract call-function as-transaction ${guardId} cancel_pending json-args '{"agent_account":"${agentId}","id":${id}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
       isDanger: true,
     });
   };
@@ -226,7 +230,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Cancel Staged Policy Change",
       description: "Discards the staged policy update onchain before the timelock window activates it. Only the owner account can sign this cancellation.",
-      command: `near contract call-function as-transaction ${guardId} cancel_policy_change json-args '{"agent_account":"${agentId}"}' prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' sign-as <your-owner-account.testnet> network-config testnet`,
+      command: `near contract call-function as-transaction ${guardId} cancel_policy_change json-args '{"agent_account":"${agentId}"}' prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
       isDanger: true,
     });
   };

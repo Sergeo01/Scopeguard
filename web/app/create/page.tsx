@@ -310,6 +310,7 @@ export default function CreateAgentPage() {
           autoPauseAfter={autoPauseAfter}
           autoPauseWindowMinutes={autoPauseWindowMinutes}
           telegramChatId={telegramChatId}
+          ownerAccount={process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet"}
           passkey={generatedPasskey}
           publicKey={generatedPublicKey}
           policyJson={compiledPolicyJson}

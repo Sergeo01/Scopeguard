@@ -50,6 +50,17 @@ export async function GET() {
       args: { agent_account: agentId },
     });
 
+    let agentPublicKey = process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+    try {
+      const agentAccount = await near.account(agentId);
+      const accessKeys = await agentAccount.getAccessKeys();
+      if (accessKeys && accessKeys.length > 0) {
+        agentPublicKey = accessKeys[0].public_key;
+      }
+    } catch {
+      // Fallback to configured key
+    }
+
     const statePayload = {
       success: true,
       budget,
@@ -58,6 +69,7 @@ export async function GET() {
       guardId,
       agentId,
       ownerId,
+      agentPublicKey,
       activities: getRecentActivities(),
     };
 

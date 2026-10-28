@@ -11,9 +11,12 @@ const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.
 const TRADER_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
 
 async function loadOwnerKey() {
+  if (process.env.OWNER_PRIVATE_KEY) {
+    return KeyPair.fromString(process.env.OWNER_PRIVATE_KEY);
+  }
   const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${OWNER_ID}.json`);
   if (!fs.existsSync(credPath)) {
-    throw new Error(`Owner credentials not found at ${credPath}. Ensure owner key is present in ~/.near-credentials.`);
+    throw new Error(`Owner credentials not found at ${credPath} or in OWNER_PRIVATE_KEY environment variable.`);
   }
   const data = JSON.parse(fs.readFileSync(credPath, "utf-8"));
   return KeyPair.fromString(data.private_key || data.secret_key);
@@ -30,7 +33,7 @@ async function main() {
 
   const isDryRun = process.argv.includes("--dry-run") || process.argv.includes("--status");
   const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${OWNER_ID}.json`);
-  const hasOwnerKey = fs.existsSync(credPath);
+  const hasOwnerKey = Boolean(process.env.OWNER_PRIVATE_KEY) || fs.existsSync(credPath);
 
   const keyStore = new keyStores.InMemoryKeyStore();
   if (hasOwnerKey && !isDryRun) {

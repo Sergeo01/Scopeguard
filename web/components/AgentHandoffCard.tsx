@@ -23,6 +23,7 @@ interface AgentHandoffCardProps {
   autoPauseAfter: number;
   autoPauseWindowMinutes: number;
   telegramChatId?: string;
+  ownerAccount?: string;
   passkey?: string;
   publicKey?: string;
   policyJson?: any;
@@ -36,6 +37,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   autoPauseAfter,
   autoPauseWindowMinutes,
   telegramChatId,
+  ownerAccount,
   passkey,
   publicKey,
   policyJson,
@@ -46,15 +48,16 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
 
   const actualPasskey = passkey || "ed25519:xqNiY8bEVWbtYvTewgedBmfa54fLpqDLdZfSi66s9xLfiJJ1K9eL39mCWbfZLVXpeREPQz6YXzVAoBkmg2PJKA1";
   const actualPublicKey = publicKey || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
-  const guardContract = "guard2.sergeo-guard.testnet";
+  const guardContract = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
+  const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const cliCommand = `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
 
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
-near contract call-function as-transaction ${guardContract} register_agent json-args '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || { token: "sergeo-guard-token.testnet", targets: { "sergeo-guard-dex.testnet": ["swap"] }, daily_cap: String(dailyCap), recipients: [], max_actions_per_10min: 5, auto_pause_rejects: autoPauseAfter, auto_pause_window_minutes: autoPauseWindowMinutes, high_value_threshold: String(Math.floor(dailyCap / 2)), high_value_delay_seconds: 60, policy_change_delay_seconds: 600 })}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as <your-owner-account.testnet> network-config testnet
+near contract call-function as-transaction ${guardContract} register_agent json-args '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || { token: "sergeo-guard-token.testnet", targets: { "sergeo-guard-dex.testnet": ["swap"] }, daily_cap: String(dailyCap), recipients: [], max_actions_per_10min: 5, auto_pause_rejects: autoPauseAfter, auto_pause_window_minutes: autoPauseWindowMinutes, high_value_threshold: String(Math.floor(dailyCap / 2)), high_value_delay_seconds: 60, policy_change_delay_seconds: 600 })}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerName} network-config testnet
 
 # 2. Add scoped function-call passkey to agent account (restricted to Guard execute only)
-near account add-key ${agentName} ${actualPublicKey} grant-function-call-access --receiver-account-id ${guardContract} --allowance '1 NEAR' --method-names '["execute"]' sign-as <your-owner-account.testnet> network-config testnet`;
+near account add-key ${agentName} ${actualPublicKey} grant-function-call-access --receiver-account-id ${guardContract} --allowance '1 NEAR' --method-names '["execute"]' sign-as ${ownerName} network-config testnet`;
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}
