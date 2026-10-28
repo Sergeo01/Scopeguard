@@ -75,15 +75,19 @@ export interface StagedPolicy {
   effective_at: number;
 }
 
-export class ScopeGuardClient {
-  private credential: ScopeGuardCredential;
-  private accountPromise: Promise<Account> | null = null;
+/**
+ * Agent Client: Strictly for agents operating under restricted function-call passkeys.
+ * Enforces protocol-level least privilege: can only call execute and query public state.
+ */
+export class ScopeGuardAgentClient {
+  protected credential: ScopeGuardCredential;
+  protected accountPromise: Promise<Account> | null = null;
 
   constructor(credential: ScopeGuardCredential) {
     this.credential = credential;
   }
 
-  private async getAccount(): Promise<Account> {
+  protected async getAccount(): Promise<Account> {
     if (this.accountPromise) {
       return this.accountPromise;
     }
@@ -96,7 +100,7 @@ export class ScopeGuardClient {
 
       const near = await connect({
         networkId,
-        nodeUrl: this.credential.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
+        nodeUrl: this.credential.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
         keyStore,
       });
 
@@ -160,52 +164,6 @@ export class ScopeGuardClient {
     return parsed;
   }
 
-  async settlePending(id: number): Promise<Outcome> {
-    const account = await this.getAccount();
-    const outcome = await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "settle_pending",
-      args: {
-        agent: this.credential.agentAccountId,
-        id,
-      },
-      gas: BigInt("40000000000000"), // 40 TGas
-      attachedDeposit: BigInt(0),
-    });
-
-    const parsed = JSON.parse(
-      Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
-    ) as Outcome;
-    return parsed;
-  }
-
-  async cancelPending(id: number): Promise<void> {
-    const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "cancel_pending",
-      args: {
-        agent_account: this.credential.agentAccountId,
-        id,
-      },
-      gas: BigInt("20000000000000"), // 20 TGas
-      attachedDeposit: BigInt(0),
-    });
-  }
-
-  async cancelPolicyChange(): Promise<void> {
-    const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.credential.policyContractId,
-      methodName: "cancel_policy_change",
-      args: {
-        agent_account: this.credential.agentAccountId,
-      },
-      gas: BigInt("20000000000000"), // 20 TGas
-      attachedDeposit: BigInt(0),
-    });
-  }
-
   async budget(): Promise<BudgetView | null> {
     const account = await this.getAccount();
     return account.viewFunction({
@@ -230,6 +188,169 @@ export class ScopeGuardClient {
       contractId: this.credential.policyContractId,
       methodName: "get_staged_policy",
       args: { agent_account: this.credential.agentAccountId },
+    });
+  }
+}
+
+/**
+ * Owner Client: Strictly for owner accounts managing agent policies and emergency controls.
+ * Uses owner master keys to sign administrative operations.
+ */
+export class ScopeGuardOwnerClient {
+  private ownerAccountId: string;
+  private policyContractId: string;
+  private privateKey: string;
+  private networkId: string;
+  private nodeUrl: string;
+  private accountPromise: Promise<Account> | null = null;
+
+  constructor(config: {
+    ownerAccountId: string;
+    policyContractId: string;
+    privateKey: string;
+    networkId?: string;
+    nodeUrl?: string;
+  }) {
+    this.ownerAccountId = config.ownerAccountId;
+    this.policyContractId = config.policyContractId;
+    this.privateKey = config.privateKey;
+    this.networkId = config.networkId || "testnet";
+    this.nodeUrl = config.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+  }
+
+  private async getAccount(): Promise<Account> {
+    if (this.accountPromise) {
+      return this.accountPromise;
+    }
+
+    this.accountPromise = (async () => {
+      const keyStore = new keyStores.InMemoryKeyStore();
+      const keyPair = KeyPair.fromString(this.privateKey as any);
+      await keyStore.setKey(this.networkId, this.ownerAccountId, keyPair);
+
+      const near = await connect({
+        networkId: this.networkId,
+        nodeUrl: this.nodeUrl,
+        keyStore,
+      });
+
+      return near.account(this.ownerAccountId);
+    })();
+
+    return this.accountPromise;
+  }
+
+  async pause(agentAccount: string): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "pause",
+      args: { agent_account: agentAccount },
+      gas: BigInt("30000000000000"),
+    });
+  }
+
+  async unpause(agentAccount: string): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "unpause",
+      args: { agent_account: agentAccount },
+      gas: BigInt("30000000000000"),
+    });
+  }
+
+  async settlePending(agentAccount: string, id: number): Promise<Outcome> {
+    const account = await this.getAccount();
+    const outcome = await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "settle_pending",
+      args: { agent: agentAccount, id },
+      gas: BigInt("40000000000000"),
+    });
+    return JSON.parse(
+      Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
+    ) as Outcome;
+  }
+
+  async cancelPending(agentAccount: string, id: number): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "cancel_pending",
+      args: { agent_account: agentAccount, id },
+      gas: BigInt("20000000000000"),
+    });
+  }
+
+  async cancelPolicyChange(agentAccount: string): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "cancel_policy_change",
+      args: { agent_account: agentAccount },
+      gas: BigInt("20000000000000"),
+    });
+  }
+
+  async withdraw(agentAccount: string, amount: string): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.policyContractId,
+      methodName: "withdraw",
+      args: { agent_account: agentAccount, amount },
+      gas: BigInt("50000000000000"),
+    });
+  }
+}
+
+/**
+ * Backwards compatible ScopeGuardClient extending ScopeGuardAgentClient.
+ */
+export class ScopeGuardClient extends ScopeGuardAgentClient {
+  async settlePending(id: number): Promise<Outcome> {
+    const account = await this.getAccount();
+    const outcome = await account.functionCall({
+      contractId: this.credential.policyContractId,
+      methodName: "settle_pending",
+      args: {
+        agent: this.credential.agentAccountId,
+        id,
+      },
+      gas: BigInt("40000000000000"),
+      attachedDeposit: BigInt(0),
+    });
+
+    const parsed = JSON.parse(
+      Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
+    ) as Outcome;
+    return parsed;
+  }
+
+  async cancelPending(id: number): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.credential.policyContractId,
+      methodName: "cancel_pending",
+      args: {
+        agent_account: this.credential.agentAccountId,
+        id,
+      },
+      gas: BigInt("20000000000000"),
+      attachedDeposit: BigInt(0),
+    });
+  }
+
+  async cancelPolicyChange(): Promise<void> {
+    const account = await this.getAccount();
+    await account.functionCall({
+      contractId: this.credential.policyContractId,
+      methodName: "cancel_policy_change",
+      args: {
+        agent_account: this.credential.agentAccountId,
+      },
+      gas: BigInt("20000000000000"),
+      attachedDeposit: BigInt(0),
     });
   }
 }

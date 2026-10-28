@@ -27,8 +27,8 @@ function parseFlags(argv) {
 if (command === "connect") {
   const flags = parseFlags(args.slice(1));
   const account = flags.account || "trader.sergeo-guard.testnet";
-  const key = flags.key || "ed25519:2YEm4xT9yBwVvE75zWqE9Q8YfV9dK5vN2m1L7zX4r8P6";
-  const guard = flags.guard || "guard.sergeo-guard.testnet";
+  const key = flags.key || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+  const guard = flags.guard || "guard2.sergeo-guard.testnet";
   const outPath = flags.out || "./agent.json";
 
   const credential = {
@@ -37,7 +37,7 @@ if (command === "connect") {
     publicKey: key.replace("ed25519:", "ed25519:pub_"),
     privateKey: key,
     networkId: "testnet",
-    nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
+    nodeUrl: process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
     connected_at: new Date().toISOString(),
   };
 

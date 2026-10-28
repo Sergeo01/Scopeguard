@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 const { connect, keyStores, KeyPair } = require(path.join(__dirname, "..", "sdk", "node_modules", "near-api-js"));
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";

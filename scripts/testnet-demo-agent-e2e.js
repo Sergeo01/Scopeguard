@@ -4,7 +4,7 @@ const os = require("os");
 const { connect, keyStores, KeyPair } = require(path.join(__dirname, "..", "sdk", "node_modules", "near-api-js"));
 const { NaiveAgent } = require(path.join(__dirname, "..", "demo-agent", "dist", "index.js"));
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
 const NETWORK_ID = "testnet";
 
 const OWNER_ID = "sergeo-guard.testnet";
