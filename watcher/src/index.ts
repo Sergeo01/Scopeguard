@@ -5,6 +5,8 @@ export interface WatcherConfig {
   rpcUrl: string;
   policyContractId: string;
   webhookUrl?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
   pollIntervalMs?: number;
 }
 
@@ -92,6 +94,28 @@ export async function sendWebhookAlert(webhookUrl: string, message: string): Pro
     return res.ok;
   } catch (err) {
     console.error("Failed to deliver alert to webhook:", err);
+    return false;
+  }
+}
+
+export async function sendTelegramAlert(
+  botToken: string,
+  chatId: string,
+  message: string
+): Promise<boolean> {
+  try {
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("Failed to deliver alert to Telegram:", err);
     return false;
   }
 }
@@ -194,6 +218,13 @@ export class ScopeGuardWatcher {
             if (this.config.webhookUrl) {
               await sendWebhookAlert(this.config.webhookUrl, alert);
             }
+            if (this.config.telegramBotToken && this.config.telegramChatId) {
+              await sendTelegramAlert(
+                this.config.telegramBotToken,
+                this.config.telegramChatId,
+                alert
+              );
+            }
           }
         }
       }
@@ -227,16 +258,23 @@ if (require.main === module) {
   const rpcUrl = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
   const policyContractId = process.env.POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
   const webhookUrl = process.env.WEBHOOK_URL;
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
   console.log("=== ScopeGuard Event Watcher ===");
   console.log("RPC:", rpcUrl);
   console.log("Contract:", policyContractId);
   if (webhookUrl) console.log("Webhook configured:", webhookUrl);
+  if (telegramBotToken && telegramChatId) {
+    console.log("Telegram alerts configured for chat ID:", telegramChatId);
+  }
 
   const watcher = new ScopeGuardWatcher({
     rpcUrl,
     policyContractId,
     webhookUrl,
+    telegramBotToken,
+    telegramChatId,
     pollIntervalMs: 2500,
   });
 

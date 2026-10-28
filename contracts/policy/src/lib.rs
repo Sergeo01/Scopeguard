@@ -753,6 +753,10 @@ impl Contract {
             .and_then(|r| r.staged_policy.clone())
     }
 
+    pub fn get_version(&self) -> String {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
@@ -1722,5 +1726,11 @@ mod tests {
 
         // Vault balance should be refunded to 100
         assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(100));
+    }
+
+    #[test]
+    fn test_get_version() {
+        let (contract, _) = setup_contract(100);
+        assert_eq!(contract.get_version(), "0.1.0");
     }
 }

@@ -131,7 +131,7 @@ const ONCHAIN_RULES = [
   { num: 3, name: "Velocity Anti-Spam Brake", code: "OVER_VELOCITY_CAP", checkDesc: "Actions in 10-minute window must be within burst cap." },
   { num: 4, name: "Target Contract Allowlist", code: "TARGET_NOT_ALLOWED", checkDesc: "Target contract must be explicitly approved by policy." },
   { num: 5, name: "Method Name Allowlist", code: "METHOD_NOT_ALLOWED", checkDesc: "Method name must be allowlisted on target contract." },
-  { num: 6, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", checkDesc: "Spend in rolling 24h window must stay under cap." },
+  { num: 6, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", checkDesc: "Spend in 24h budget window must stay under cap." },
   { num: 7, name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", checkDesc: "External receiver must be in approved allowlist." },
 ];
 

@@ -8,12 +8,38 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Added - 2026-10-28 (Withdrawal Rollback Safety, Settlement Ordering Hardening, Telegram Alerts, and Version Telemetry)
+
+- **Withdrawal Trapped Funds Elimination (`contracts/policy/src/lib.rs`)**
+  - Attached `on_withdraw_resolved` private callback handler via `.then()` to owner `withdraw` operations.
+  - If downstream `ft_transfer` to the owner fails, the callback catches the promise failure and automatically restores `rec.vault_balance`.
+  - Added unit test `test_withdraw_failure_refunds_vault_balance` asserting vault balance refund to 100 on failure.
+
+- **Settlement Validation Re-Ordering (`contracts/policy/src/lib.rs`)**
+  - Re-ordered `settle_pending` to validate all seven policy checks before removing the pending intent from the agent queue.
+  - Settle refusals return `{ status: "REJECTED", reason, pending_id }` without calling `self.reject()`, preventing unfair circuit breaker strikes against the agent for owner settlement checks.
+
+- **Strict Non-Zero Policy Bounds Validation (`contracts/policy/src/lib.rs`)**
+  - Enforced `> 0` assertions on `max_actions_per_10min`, `auto_pause_rejects`, `auto_pause_window_minutes`, `high_value_delay_seconds`, and `policy_change_delay_seconds`.
+
+- **Contract Version Telemetry (`contracts/policy/src/lib.rs`)**
+  - Added `pub fn get_version(&self) -> String` returning the contract package version (`0.1.0`).
+  - Added unit test `test_get_version`. Total contract test suite now stands at **32 passed, 0 failed**.
+
+- **Native Telegram Bot Alerts (`watcher/src/index.ts`)**
+  - Added native `sendTelegramAlert` function using Node fetch to `https://api.telegram.org/bot<token>/sendMessage`.
+  - Added `telegramBotToken` and `telegramChatId` config options to `WatcherConfig`.
+
+- **API Attack Protection (`web/app/api/attack/route.ts` & `web/app/api/state/route.ts`)**
+  - Added sliding-window rate limiting on the live attack API (maximum 12 requests per minute with 1.5s spacing).
+  - Added server-side 5-second in-memory state caching to eliminate RPC timeouts during judge traffic.
+
 ### Added - 2026-10-27 (Asynchronous Promise Rollback Callback, SDK Decoupling, and Handoff State Precision)
 
 - **Asynchronous Cross-Contract Rollback Callback (`contracts/policy/src/lib.rs`)**
   - **Eliminated Trapped Funds Risk**: Added `on_action_resolved` private callback handler attached via `.then()` to all value-bearing cross-contract execution promises.
   - **Automatic Vault Balance Refund**: If the external NEP-141 token transfer or contract call fails onchain, `is_promise_success()` evaluates to false. The callback automatically refunds the agent's `vault_balance` (`rec.vault_balance += amount.0`) and rolls back the window spend (`rec.spent_in_window -= amount.0`), emitting an onchain `ACTION_FAILED` event.
-  - **Unit Test Coverage**: Added `test_transfer_failure_refunds_vault_balance` using `near_sdk::test_vm_config()` and `PromiseResult::Failed` mocking. Total contract test suite now stands at **30 passed, 0 failed**.
+  - **Unit Test Coverage**: Added `test_transfer_failure_refunds_vault_balance` using `near_sdk::test_vm_config()` and `PromiseResult::Failed` mocking.
   - **Live Testnet Deployment Upgrade**: Compiled release wasm (`443,373` bytes) and upgraded `guard2.sergeo-guard.testnet` (Tx: `4cv5gYj6uM4Zw4r48DuxwBSsQzAPC3xwyRbMS2RY4rzS`). Unpaused live agent `trader.sergeo-guard.testnet` (Tx: `8SHygnM3TyAuqBvRNBmehFH6ibcwEQm1judPkQa37iLs`).
 
 - **SDK Hardcoding Removal (`sdk/src/index.ts`)**

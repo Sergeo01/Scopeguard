@@ -33,7 +33,7 @@ cargo test
 
 ### Result
 
-`30 passed, 0 failed, 0 ignored` (finished in ~0.5s)
+`32 passed, 0 failed, 0 ignored` (finished in ~0.8s)
 
 Key verified properties:
 - `test_contract_call_cannot_target_custody_token`: Proves generic `ContractCall` cannot target the custody token to bypass typed transfers.
@@ -42,6 +42,9 @@ Key verified properties:
 - `test_staged_wildcard_policy_rejected`: Proves wildcard methods are rejected during policy updates.
 - `test_swap_does_not_falsely_debit_vault`: Proves vault balance only decrements on real token movement.
 - `test_only_owner_can_settle_timelock`: Proves agents cannot settle their own quarantined intents.
+- `test_transfer_failure_refunds_vault_balance`: Proves asynchronous rollback restores internal vault balance and spent budget if downstream transfer fails.
+- `test_withdraw_failure_refunds_vault_balance`: Proves internal vault balance is refunded if downstream owner withdrawal transfer fails.
+- `test_get_version`: Proves contract version query returns expected package version.
 
 ---
 
@@ -96,7 +99,7 @@ node scripts/testnet-demo-agent-e2e.js
 | 3 | `OVER_VELOCITY_CAP` | Actions in the 10-minute window exceed `max_actions_per_10min` |
 | 4 | `TARGET_NOT_ALLOWED` | Target contract is not in `policy.targets` |
 | 5 | `METHOD_NOT_ALLOWED` | Method name is not allowlisted for target, or token call tried to bypass `GuardAction::Transfer` |
-| 6 | `OVER_DAILY_CAP` | Amount exceeds daily cap in the rolling 24-hour window |
+| 6 | `OVER_DAILY_CAP` | Amount exceeds daily cap in the 24-hour spend window |
 | 7 | `RECIPIENT_NOT_ALLOWED` | Moving funds to an unlisted recipient address |
 
 ---

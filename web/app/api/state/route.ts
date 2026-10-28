@@ -6,11 +6,24 @@ import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 import { getRecentActivities } from "@/lib/ledger";
 
+let cachedState: any = null;
+let lastCacheTimestamp = 0;
+const CACHE_TTL_MS = 5000;
+
 export async function GET() {
+  const now = Date.now();
+  if (cachedState && now - lastCacheTimestamp < CACHE_TTL_MS) {
+    return NextResponse.json({
+      ...cachedState,
+      cached: true,
+      activities: getRecentActivities(),
+    });
+  }
+
   try {
     const near = await connect({
       networkId: process.env.NEAR_NETWORK || "testnet",
-      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
       keyStore: new keyStores.InMemoryKeyStore(),
     });
 
@@ -37,7 +50,7 @@ export async function GET() {
       args: { agent_account: agentId },
     });
 
-    return NextResponse.json({
+    const statePayload = {
       success: true,
       budget,
       pendingActions,
@@ -46,7 +59,12 @@ export async function GET() {
       agentId,
       ownerId,
       activities: getRecentActivities(),
-    });
+    };
+
+    cachedState = statePayload;
+    lastCacheTimestamp = now;
+
+    return NextResponse.json(statePayload);
   } catch (err: any) {
     return NextResponse.json({
       success: false,
