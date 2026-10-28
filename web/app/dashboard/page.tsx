@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
   const [agentPublicKey, setAgentPublicKey] = useState("ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm");
+  const [policy, setPolicy] = useState<any>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
   const [vaultBalance, setVaultBalance] = useState("100");
@@ -112,6 +113,12 @@ export default function DashboardPage() {
         if (data.guardId) setGuardId(data.guardId);
         if (data.ownerId) setOwnerId(data.ownerId);
         if (data.agentPublicKey) setAgentPublicKey(data.agentPublicKey);
+        if (data.policy) {
+          setPolicy(data.policy);
+          if (data.policy.max_actions_per_10min) {
+            setVelocityMax(Number(data.policy.max_actions_per_10min));
+          }
+        }
         if (data.budget) {
           setIsPaused(Boolean(data.budget.paused));
           setDailyCapTotal(Number(data.budget.cap) || 500);
@@ -371,8 +378,8 @@ export default function DashboardPage() {
         <CircuitBreakerBanner
           isPaused={isPaused}
           rejectCount={effectiveRejectCount}
-          maxRejects={3}
-          windowMinutes={10}
+          maxRejects={policy?.auto_pause_rejects || 3}
+          windowMinutes={policy?.auto_pause_window_minutes || 10}
           recentRejections={recentRejections}
           onUnpause={handleUnpause}
           isOwner={true}

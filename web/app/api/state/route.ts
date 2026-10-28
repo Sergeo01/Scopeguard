@@ -50,6 +50,17 @@ export async function GET() {
       args: { agent_account: agentId },
     });
 
+    let policy = null;
+    try {
+      policy = await account.viewFunction({
+        contractId: guardId,
+        methodName: "get_policy",
+        args: { agent_account: agentId },
+      });
+    } catch {
+      // Policy view query fallback
+    }
+
     let agentPublicKey = process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
     try {
       const agentAccount = await near.account(agentId);
@@ -64,6 +75,7 @@ export async function GET() {
     const statePayload = {
       success: true,
       budget,
+      policy,
       pendingActions,
       stagedPolicy,
       guardId,
