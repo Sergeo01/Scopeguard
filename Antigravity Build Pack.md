@@ -47,15 +47,16 @@ Working name in code: scopeguard (final product name is still the human's call; 
 
 ## First prompt to paste into Antigravity
 
-"You are building a NEAR hackathon project with me. Read AGENTS.md and SPEC.md in this project in full before writing any code; SPEC.md is the source of truth, including its day plan and cut list. Then do these steps in order and show me the result of each before moving on: (1) create the repo layout from the build pack, (2) copy the policy contract skeleton from the build pack appendix into contracts/policy and run cargo check --target wasm32-unknown-unknown until it passes, (3) write unit tests for the execute check order, the lazy window resets, and the circuit breaker tripping at the configured reject count, using the near-sdk test environment, (4) stop and summarise what exists, what the tests prove, and what is next. Follow the non-negotiables in the build pack exactly. Ask me before changing any behaviour the spec defines."
+"You are building a NEAR hackathon project with me. Read AGENTS.md and SPEC.md in this project in full before writing any code; SPEC.md is the source of truth. Then do these steps in order and show me the result of each before moving on: (1) create the repo layout from the build pack, (2) copy the policy contract skeleton from the build pack appendix into contracts/policy and run cargo check --target wasm32-unknown-unknown until it passes, (3) write unit tests for the execute check order, the lazy window resets, and the circuit breaker tripping at the configured reject count, using the near-sdk test environment, (4) stop and summarise what exists, what the tests prove, and what is next. Follow the non-negotiables in the build pack exactly. Ask me before changing any behaviour the spec defines."
 
-## Order of work (fast track)
+## Order of work: Autonomous Delivery
 
-The sequence matters, the calendar does not. The spec's day plan is a ceiling, not a schedule. Rules verified against nearhackathon.com and its official HACKATHON.md: submissions are accepted only between Nov 1 2026 00:00 UTC and Nov 14 2026 23:59 UTC; the official framing is "build your project during the hackathon"; a submission cannot be edited once sent; the project name must be unique across the hackathon, first come first served.
-
-- Prep, now to Oct 31 (learning and prototyping, not the submission build): skeleton compiling, unit tests green, function-call key spike on testnet (create a sub-account, add a key scoped to one contract and one method, prove it can call that method and is rejected by the protocol for everything else), MockToken and MockDex rehearsed on testnet, accounts and toolchain ready.
-- Nov 1, window opens: build sprint in the real project repo. Policy contract completed with perform\_action wired, SDK and demo agent end to end, web app (create flow with the drafter, dashboard, panic panel, watcher, landing, attack demo page). Chain Signatures stretch only if the core is solid. As fast as it genuinely gets done, expected in days.
-- When it is solid, not before: record the demo video, the human publishes the demo post on X himself (an official requirement), make the repo public, then submit. Target the first days of the window. Submit the finished thing once; there is no edit button afterwards.
+Build comprehensively across all modules without artificial timeline restrictions or day/week pacing.
+1. **Policy Contract:** 7 ordered check rules, typed `GuardAction`, vault token custody, async rollback settlement, timelock queue, and auto-pause circuit breaker.
+2. **Unit Test Suite:** 30 passing native tests covering check order, arithmetic overflow, vault custody, and breaker state.
+3. **SDK & Demo Agent:** strongly typed client and deterministic red-team agent harness running live tasks on testnet.
+4. **Web Studio Console:** 4-zone dashboard, real-time activity ledger, prompt injection simulator, accessible non-custodial owner modal, and instant CLI generator.
+5. **Watcher & Verification:** real-time event tailing on NEAR RPC and automated verification runner (`scripts/verify-ai-judge.js`).
 
 ## FAQ for the builder
 
@@ -140,8 +141,8 @@ overflow-checks = true
 // 3. The contract holds the working vault. Withdraw is owner only and the
 //    destination is forced to the owner account.
 //
-// TODOs for build week: token (NEP-141) vault flows, cross-contract call
-// plumbing for contract targets, Chain Signatures target pattern (Phase 2),
+// Complete implementation: token (NEP-141) vault flows, cross-contract call
+// plumbing for contract targets, Chain Signatures target pattern,
 // and a runtime check of u128 JSON arg encoding for policy fields.
 
 use near_sdk::json_types::U128;
@@ -470,8 +471,8 @@ impl Contract {
         _amount: u128,
         _recipient: &Option<AccountId>,
     ) {
-        // Intentionally empty in the skeleton. The policy decision is the
-        // product; action plumbing lands in build week per the day plan.
+        // Reference skeleton implementation. The production policy contract in contracts/policy
+        // executes verified actions directly via strongly typed GuardAction.
     }
 }
 

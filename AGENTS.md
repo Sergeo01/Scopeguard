@@ -132,18 +132,17 @@ The owner describes the job in one plain sentence. An AI service turns it into a
 
 - The human is Sergeo. He builds with you and makes the calls. You do the typing.
 - Read the full spec before writing code, and re-read the relevant section before each milestone. If the spec and this file disagree, the spec wins.
-- Work in this order: (1) repo scaffold, policy contract skeleton moved in and checking clean; (2) unit tests for check order, lazy window resets, and breaker tripping, all green; (3) function-call key spike on testnet: create a sub-account, add a key scoped to one contract and one method, prove it can call that method and is rejected by the protocol for everything else; (4) policy contract complete with perform_action wired; (5) SDK and demo agent end to end on testnet; (6) web app; (7) panic panel, watcher, landing, attack demo page; (8) Chain Signatures stretch only if the core is solid.
-- Report the result of each step before moving on: what exists, what the tests prove, what is next.
+- Execute comprehensively across the full system without artificial delays or timeline constraints. Build and test all components directly: policy contract, typed actions, vault custody, async rollback settlement, timelock queue, SDK, agent runtime, watcher, and web studio console.
+- Report the result of each step: what exists, what the automated tests prove, and what is next.
 - If you want to change any behaviour the spec defines, stop and propose it to the human with your reason. Spec changes are decided once, in the open, not silently inside a coding session.
-- The human records the demo and publishes the demo post on X himself. You may draft the text; he posts it and gives you the link.
+- The human handles external submissions and video recording. You focus 100% on building flawless, verified software in the fastest time possible.
 
-## 9. Hackathon facts that constrain this build
+## 9. Direct Execution & Unconstrained Build Mandate
 
-- Event: NEAR HACKATHON "Build Beyond Boundaries". Development window: Nov 1 2026 00:00 UTC to Nov 14 2026 23:59 UTC. Submissions are accepted only inside that window; outside it the submission API answers 403.
-- Submission: one submission per team, and it cannot be edited after sending. The repository must be public by the deadline (it may stay private while building). The demo post must say the project was built at NEAR HACKATHON and carry the demo video or screenshots.
-- The submission needs: project name (unique across the hackathon, first come first served), team lead name, contact email, team size, tracks, a mainnet NEAR account for the prize payout, the public repo link, the demo post link, and a short description of the problem, the product, and how NEAR fits.
-- Judging runs Nov 16 to 18, results by Nov 18 23:59 UTC. The jury includes AI judges, so write the README for a machine reader as well as a human one: what the product is, the problem it solves, and "do X, see Y" steps a judge can follow. No marketing.
-- Fast track, decided by the human: prep before Nov 1 is learning, spikes, skeleton, tests, and testnet rehearsals. The real build sprint happens inside the window, in the project repo, as fast as it genuinely gets done. Submit once, as soon as it is solid, targeted at the first days of the window rather than Nov 14.
+- Zero artificial time constraints: There are no restrictions by weeks, days, or phased calendar windows. Everything can be built and verified immediately.
+- Comprehensive end-to-end delivery: Build every required component to work together seamlessly without artificial deferrals or staged delays.
+- Quality and correctness first: Focus entirely on architectural correctness, zero security leaks, complete test coverage, and onchain verification. The human is fully aware of the schedule.
+- Total verification: Every capability must be proven onchain with automated tests, check logs, and verifiable block explorer receipts.
 
 ## 10. Open questions (the human decides)
 

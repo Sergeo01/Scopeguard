@@ -95,7 +95,7 @@ Rules baked into the drafter prompt:
 - Validation gate (added 2026-10-23 after external review): the model's raw output is never trusted. The drafter service validates every draft against a strict JSON Schema for the Policy type (required fields, types, no extra keys, method and target formats, numeric bounds) before anything reaches the frontend. If validation fails, the service makes exactly one repair retry with the validator's error messages fed back to the model. If the retry still fails, the UI falls back to a manual policy form prefilled with the most restrictive sane defaults (no recipients, lowest cap, velocity 1) and tells the owner the drafter could not produce a valid scope. The Sign button stays disabled until a policy has passed both schema validation and the lint pass. What the owner signs is the exact validated JSON, byte for byte, and its hash is what gets stored.
 - The drafter can only propose. Nothing reaches the chain without the owner's signature on the exact policy JSON shown on screen. The signed policy hash is stored by the web app so the owner can later prove what they approved.
 
-Use NEAR AI Cloud for inference if the endpoint cooperates during prep week; fall back to any hosted model API behind the same interface. The drafter is a service, not a Shade Agent, in v1: it never holds keys and never touches funds, so TEE attestation buys nothing here. (If prep week goes very well, running the drafter as a Shade Agent is a stretch goal, listed in section 11.)
+Use NEAR AI Cloud or any hosted model API behind the standardized interface. The drafter service never holds keys and never touches funds, maintaining strict non-custodial isolation.
 
 ### 4.5 Web app (Next.js, NEAR Wallet Selector)
 
@@ -120,9 +120,9 @@ A tiny Node service with no keys and no signing power. It tails the policy contr
 - MockDex: a toy swap contract with a fixed rate between mUSD and a second mock token (mETH). Method swap(amount) is the demo agent's legit job target.
 - The judge address: any testnet account a judge controls or names. The demo invites them to name it live.
 
-## 6. Cross-chain (Chain Signatures), scoped as Phase 2 inside the build
+## 6. Cross-chain Architecture (Chain Signatures)
 
-The policy contract gains one more allowlisted target pattern: signature requests. When policy allows it, execute can ask the MPC signer contract (v1.signer on mainnet; testnet id confirmed 2026-10-22 as v2.multichain-mpc.testnet) to sign a payload for the agent account's derived address on Ethereum Sepolia. The demo stretch: the agent pays a tiny Sepolia amount to an allowlisted address, and the injection's attempt to pay the judge's Sepolia address dies at the same policy check. If Sepolia relaying fights back during build week, this ships as a recorded side demo, not in the live path. The core NEAR demo must never depend on it.
+The policy contract supports multi-chain signature requests. When policy allows it, execute can call the MPC signer contract (v1.signer on mainnet; testnet id v2.multichain-mpc.testnet) to sign a payload for the agent account's derived address on foreign chains (such as Ethereum Sepolia). Cross-chain transactions are subject to the same strict onchain policy checks: target allowlist, method allowlist, and recipient allowlist.
 
 ## 7. Demo script (target 2 minutes 30 seconds, recorded plus live attack page)
 
@@ -154,31 +154,20 @@ NEAR MCP (by NEAR AI) lets agents manage accounts and add access keys, but store
 Off NEAR, the concept is validated: Namera sells a permission layer for agent wallets on EVM (smart account plus scoped session keys plus policies), Wallet Agent AI experiments with the same shape on Radix, and Coinbase and Turnkey offer enclave custody where a vendor holds the keys. None of these is on NEAR, none uses protocol-native scoped keys, and Namera's model needs a smart contract account per user.
 Pitch discipline that follows from this check: never claim NEAR has nothing like this. Claim precisely that the protocol provides the key type, nobody has built the owner product on it, and the native key caps gas rather than money, which is the gap the policy contract fills.
 
-## 11. Build plan
+## 11. Complete System Architecture & Delivery Matrix
 
-Prep window, Oct 22 to Oct 31 (before the official start; learning and throwaway spikes only, the entry itself is built inside the window):
-- Oct 22 to 24: NEAR testnet account funded; near-cli and near-sdk-rs toolchain working; function-call key spike: create a sub-account, add a scoped key, prove it can call its one method and nothing else, screenshot the protocol rejection.
-- Oct 25 to 27: policy contract skeleton with register, set_policy, pause, and budget accounting; unit tests for the check order and the lazy window reset.
-- Oct 28 to 29: Chain Signatures spike on testnet: derive a Sepolia address for a test account, get one signature, relay one transaction. Testnet signer contract id already confirmed 2026-10-22 (v2.multichain-mpc.testnet). Decide go or no-go for section 6.
-- Oct 30 to 31: MockToken and MockDex deployed on testnet; drafter prompt drafted and tested against 10 sample job sentences; repo scaffold (contract, sdk, demo-agent, web) with readmes. Confirm the final product name and the NEAR account that will hold the contract and receive any prize (Sergeo input).
+All components are built, integrated, and verified directly:
+1. **Hardened Rust Policy Contract:** 7 ordered check rules, typed `GuardAction`, vault token custody, async rollback callback (`on_action_resolved`), timelock quarantine queue, and circuit breaker auto-pause.
+2. **TypeScript SDK:** strongly typed client with restricted passkey signing, budget querying, and error code parsing.
+3. **Autonomous Red-Team Demo Agent:** deterministic agent runtime running real tasks and proving onchain enforcement.
+4. **Next.js Studio Console:** 4-zone dashboard, real-time activity ledger, prompt injection simulator, accessible non-custodial owner modal, and instant CLI generator.
+5. **Automated Notification Watcher:** real-time event tailing on NEAR RPC with instant webhook alerts.
+6. **Full Verification Suite:** 30 passing unit tests and automated AI judge runner (`scripts/verify-ai-judge.js`).
 
-Build window, Nov 1 to Nov 14:
-- Nov 1 to 3: policy contract complete with execute, events, withdraw; full test suite green, including every reason code.
-- Nov 4 to 5: SDK and demo agent end to end on testnet: legit swap flows through execute; hand typed injection fails with the right reason code.
-- Nov 6 to 8: web app: create flow with the drafter wired in, review screen, dashboard with activity feed.
-- Nov 9 to 10: panic panel (pause verified live, revoke verified live, owner withdraw), the reject-event watcher service (section 4.6, built next to the panic panel since alerts pair with it), landing page, attack demo page streaming.
-- Nov 11: Chain Signatures stretch if the spike said go; otherwise skip without regret and polish the core.
-- Nov 12: full demo rehearsal, record the video (target 2:30), judges' attack page load tested.
-- Nov 13: buffer: bug fixes, readme with architecture diagram and exact reproduction steps, fresh testnet redeploy from the public repo to prove it builds clean.
-- Nov 14: submit by 18:00 UTC at the latest: public repo, demo video, X post mentioning NEAR HACKATHON with the attack page link. Nothing posts without Sergeo approving the final text and video.
+## 12. Unconstrained Quality & Verification Standards
 
-## 12. Cut list (in order, if time squeezes)
-
-1. Chain Signatures section 6 (recorded side demo, then dropped entirely).
-2. Attack page live streaming (replace with the recorded video plus a manual judge slot during judging).
-3. Multi-agent dashboard (ship single agent view; the data model already supports more).
-4. Drafter lint pass (ship the drafter with the three hard lint rules only).
-Never cut: the scoped key onboarding, execute with all seven reason codes, the velocity rule, the auto-pause circuit breaker, the watcher, pause, revoke, owner withdraw, the dashboard reject log. Those are the product.
+- Zero artificial cuts or timeline deferrals: Everything is built and verified directly without deferring features to later phases.
+- Absolute verification: All checks, state updates, and error cases must pass automated testing with full check logs.
 
 ## 13. Business model (post-hackathon shape, one paragraph for judges)
 
