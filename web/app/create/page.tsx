@@ -22,14 +22,10 @@ import {
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
+import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
 
-interface TargetPlatform {
-  id: string;
-  contract: string;
-  methods: string;
-  label?: string;
-}
+interface TargetPlatform extends ConfiguredPlatform {}
 
 export default function CreateAgentPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
@@ -43,6 +39,7 @@ export default function CreateAgentPage() {
       contract: "sergeo-guard-dex.testnet",
       methods: "swap",
       label: "ScopeGuard Testnet DEX",
+      isPreset: true,
     },
   ]);
 
@@ -87,27 +84,27 @@ export default function CreateAgentPage() {
     setTimelockThreshold(Math.max(1, Math.floor(amount / 2)));
   };
 
-  const addPlatform = () => {
-    const newId = `p${Date.now()}`;
-    setPlatforms([
-      ...platforms,
+  const addCustomPlatform = (newPlatform: { contract: string; methods: string; label?: string }) => {
+    setPlatforms((prev) => [
+      ...prev,
       {
-        id: newId,
-        contract: "ref-finance.near",
-        methods: "swap",
-        label: "Secondary DEX / DeFi",
+        id: `custom-${Date.now()}`,
+        contract: newPlatform.contract,
+        methods: newPlatform.methods,
+        label: newPlatform.label,
+        isPreset: false,
       },
     ]);
   };
 
   const removePlatform = (id: string) => {
     if (platforms.length <= 1) return;
-    setPlatforms(platforms.filter((p) => p.id !== id));
+    setPlatforms((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const updatePlatform = (id: string, field: "contract" | "methods" | "label", val: string) => {
-    setPlatforms(
-      platforms.map((p) => (p.id === id ? { ...p, [field]: val } : p))
+  const updatePlatformMethods = (id: string, methods: string) => {
+    setPlatforms((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, methods } : p))
     );
   };
 
@@ -115,16 +112,17 @@ export default function CreateAgentPage() {
     const exists = platforms.some((p) => p.contract === preset.contract);
     if (exists) {
       if (platforms.length > 1) {
-        setPlatforms(platforms.filter((p) => p.contract !== preset.contract));
+        setPlatforms((prev) => prev.filter((p) => p.contract !== preset.contract));
       }
     } else {
-      setPlatforms([
-        ...platforms,
+      setPlatforms((prev) => [
+        ...prev,
         {
-          id: `p-${Date.now()}`,
+          id: `preset-${Date.now()}`,
           contract: preset.contract,
           methods: preset.methods,
           label: preset.name,
+          isPreset: true,
         },
       ]);
     }
@@ -525,72 +523,13 @@ export default function CreateAgentPage() {
               />
             </div>
 
-            {/* Custom Multi-Platform Allowed Targets */}
-            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-xs font-semibold text-slate-900 dark:text-white block">
-                    Active Allowed Platforms ({platforms.length})
-                  </label>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Add or modify any contract and authorized method names.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={addPlatform}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/20 transition"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Custom Platform</span>
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {platforms.map((p, idx) => (
-                  <div key={p.id} className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">
-                        Platform #{idx + 1}: {p.label || p.contract}
-                      </span>
-                      {platforms.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePlatform(p.id)}
-                          className="text-rose-600 dark:text-rose-400 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Remove</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Target Contract ID</label>
-                        <input
-                          type="text"
-                          value={p.contract}
-                          onChange={(e) => updatePlatform(p.id, "contract", e.target.value)}
-                          placeholder="e.g. ref-finance.near"
-                          className="w-full px-2.5 py-1.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Allowed Methods</label>
-                        <input
-                          type="text"
-                          value={p.methods}
-                          onChange={(e) => updatePlatform(p.id, "methods", e.target.value)}
-                          placeholder="e.g. swap, deposit"
-                          className="w-full px-2.5 py-1.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Custom Multi-Platform Manager */}
+            <CustomPlatformManager
+              platforms={platforms}
+              onAddCustomPlatform={addCustomPlatform}
+              onRemovePlatform={removePlatform}
+              onUpdatePlatformMethods={updatePlatformMethods}
+            />
 
             {/* Custom Circuit Breaker & Velocity Safeguards */}
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">

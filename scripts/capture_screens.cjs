@@ -13,7 +13,7 @@ const routes = [
 
 for (const r of routes) {
   const dest = path.join(artDir, r.file);
-  const cmd = `${chrome} --headless=new --hide-scrollbars --window-size=1440,1100 --screenshot="${dest}" ${r.url}`;
+  const cmd = `${chrome} --headless=new --hide-scrollbars --window-size=1440,1400 --screenshot="${dest}" ${r.url}`;
   console.log(`Capturing ${r.url} -> ${r.file}...`);
   execSync(cmd, { stdio: 'inherit' });
 }

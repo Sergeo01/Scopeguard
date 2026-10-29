@@ -476,8 +476,8 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* Scenario Selector Chips */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      {/* Scenario Selector Chips (Full Visibility, No Truncation) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {ATTACK_SCENARIOS.map((s) => {
           const isSelected = selectedScenarioId === s.id;
           return (
@@ -485,21 +485,26 @@ export default function HomePage() {
               key={s.id}
               type="button"
               onClick={() => selectScenario(s)}
-              className={`p-3.5 rounded-2xl border text-left transition-all ${
+              className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between gap-3 cursor-pointer ${
                 isSelected
-                  ? "bg-blue-50/40 dark:bg-blue-950/20 border-blue-600 dark:border-blue-500 shadow-xs"
-                  : "bg-white/70 dark:bg-obsidian-900/50 border-slate-200/80 dark:border-slate-800/80 hover:bg-white dark:hover:bg-obsidian-900"
+                  ? "bg-blue-50/50 dark:bg-blue-950/30 border-blue-600 dark:border-blue-500 shadow-xs ring-1 ring-blue-600/30"
+                  : "bg-white dark:bg-obsidian-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
               }`}
             >
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${s.badgeColor}`}>
+                    {s.badge}
+                  </span>
+                  {isSelected && (
+                    <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                  )}
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
                   {s.label}
-                </span>
-                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${s.badgeColor}`}>
-                  {s.badge}
-                </span>
+                </h4>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 {s.title}
               </p>
             </button>

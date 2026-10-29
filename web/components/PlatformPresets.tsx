@@ -83,7 +83,7 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
             >
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-900 dark:text-white truncate">
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {preset.name}
                   </span>
                   <span
