@@ -19,6 +19,7 @@ import {
   Activity,
   Layers,
   Sliders,
+  BookOpen,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { useWallet } from "@/context/WalletContext";
@@ -39,9 +40,14 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export const AppSidebar: React.FC<{ isOpen?: boolean; onClose?: () => void }> = ({
+export const AppSidebar: React.FC<{
+  isOpen?: boolean;
+  onClose?: () => void;
+  onOpenDocs?: () => void;
+}> = ({
   isOpen = false,
   onClose,
+  onOpenDocs,
 }) => {
   const pathname = usePathname();
   const { accountId, isConnected, disconnectWallet } = useWallet();
@@ -216,6 +222,22 @@ export const AppSidebar: React.FC<{ isOpen?: boolean; onClose?: () => void }> = 
 
       {/* Bottom Pinned User Card & Theme Switcher */}
       <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
+        {/* Docs Guide Option (Sidebar Bottom Left) */}
+        <button
+          type="button"
+          onClick={onOpenDocs}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/60 dark:border-blue-800/40 text-xs font-semibold transition cursor-pointer shadow-xs group"
+          title="Open ScopeGuard documentation, rule codes, and integration guides"
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+            <span>Docs & Guide</span>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-200/70 dark:bg-blue-900/70 text-blue-800 dark:text-blue-200">
+            v1.0
+          </span>
+        </button>
+
         <div className="flex items-center justify-between">
           <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
             THEME & NETWORK

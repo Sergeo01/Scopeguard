@@ -12,13 +12,18 @@ import {
   Palette,
   Coins,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 import { useLogo } from "@/context/LogoContext";
 import { WalletButton } from "@/components/WalletButton";
 
-export const TopStatusBar: React.FC<{ onOpenMobileMenu?: () => void }> = ({
+export const TopStatusBar: React.FC<{
+  onOpenMobileMenu?: () => void;
+  onOpenDocs?: () => void;
+}> = ({
   onOpenMobileMenu,
+  onOpenDocs,
 }) => {
   const { accountId } = useWallet();
   const { setShowSelector } = useLogo();
@@ -90,12 +95,22 @@ export const TopStatusBar: React.FC<{ onOpenMobileMenu?: () => void }> = ({
         </div>
       </div>
 
-      {/* Right Actions: Logo Selector & Wallet Trigger */}
-      <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+      {/* Right Actions: Docs, Logo Selector & Wallet Trigger */}
+      <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+        <button
+          type="button"
+          onClick={onOpenDocs}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 transition shadow-xs cursor-pointer"
+          title="Open documentation & integration guide"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          <span className="hidden sm:inline">Docs Guide</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setShowSelector(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition shadow-xs"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition shadow-xs cursor-pointer"
         >
           <Palette className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span className="hidden sm:inline">Logo Concepts</span>

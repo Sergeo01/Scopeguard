@@ -286,122 +286,174 @@ export default function DashboardPage() {
         isOwner={true}
       />
 
-      {/* Hero Financial Card (Dark Glassmorphism Specification) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] p-6 sm:p-8 text-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] border border-slate-800">
-        {/* Internal Radial Glow */}
-        <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-blue-600/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
+      {/* Hero Bento Well Container (Double-Bezel Framing Specification) */}
+      <div className="bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 sm:p-7 border border-white dark:border-slate-800/80 space-y-6">
+          {/* Top Header Row with Floating Score Box */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800/80">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  PROTECTED AGENT VAULT
+                </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Onchain Custody
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  ${vaultBalance}.00
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                  mUSD Working Pot
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+                Money custodied exclusively in the Guard contract. The absolute maximum loss boundary if the agent is fully compromised.
+              </p>
+            </div>
 
-        {/* Top Row: Lifetime Vault Pot + 4 Glass Sub-Cards */}
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-white/10">
-          <div className="space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
-              PROTECTED VAULT POT
-            </span>
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white tabular-nums">
-                ${vaultBalance}.00
-              </span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                mUSD Tokens
+            {/* Pattern 4: Floating "Score" Card (Elevated Inset Widget) */}
+            <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] shrink-0 min-w-[220px] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  SECURITY SCORE
+                </span>
+                <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
+                  100%
+                </span>
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Grade A
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                7 onchain bounds active
               </span>
             </div>
-            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-              Custodied in the Guard contract. The absolute maximum loss ceiling if the agent is fully compromised.
-            </p>
           </div>
 
-          {/* 4-Column Grid of Translucent Glass Sub-Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Sub-Card 1: 24H Daily Cap */}
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  DAILY CAP
-                </span>
-                <span className="w-5 h-5 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px]">
-                  <CreditCard className="w-3 h-3" />
+          {/* Pattern 2: Pastel-Tinted Inner Metric Tiles (2x2 / 4-column Bento Grid) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Tile A: Violet/Lavender (Daily Budget Cap) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-purple-50/50 via-purple-50/80 to-purple-100/60 dark:from-purple-950/20 dark:via-purple-950/30 dark:to-purple-900/40 border-purple-200/50 dark:border-purple-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-purple-100/80 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center">
+                  <CreditCard className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  DAILY BUDGET CAP
                 </span>
               </div>
-              <span className="font-mono text-base font-bold text-white block">
-                ${dailyCapTotal}
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  ${dailyCapTotal}
+                </span>
+                <span className="bg-purple-100/80 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Manual
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Configured 24h ceiling
               </span>
-              <span className="text-[10px] text-slate-400 block">24h Budget</span>
             </div>
 
-            {/* Sub-Card 2: Spent Today */}
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  SPENT
-                </span>
-                <span className="w-5 h-5 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px]">
-                  <Activity className="w-3 h-3" />
+            {/* Tile B: Mint/Sage (Spent Today) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-emerald-50/40 via-emerald-50/70 to-emerald-100/50 dark:from-emerald-950/20 dark:via-emerald-950/30 dark:to-emerald-900/40 border-emerald-200/50 dark:border-emerald-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  SPENT TODAY
                 </span>
               </div>
-              <span className="font-mono text-base font-bold text-white block">
-                ${dailyCapSpent}
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  ${dailyCapSpent}
+                </span>
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↘ 5% of Cap
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                1 active testnet trade
               </span>
-              <span className="text-[10px] text-slate-400 block">Rolling spend</span>
             </div>
 
-            {/* Sub-Card 3: Remaining */}
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  REMAINING
-                </span>
-                <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px]">
-                  <Check className="w-3 h-3" />
+            {/* Tile C: Sky/Ice Blue (Remaining Safe Allowance) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-sky-50/40 via-sky-50/70 to-sky-100/50 dark:from-sky-950/20 dark:via-sky-950/30 dark:to-sky-900/40 border-sky-200/50 dark:border-sky-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-sky-100/80 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300 flex items-center justify-center">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  REMAINING ALLOWANCE
                 </span>
               </div>
-              <span className="font-mono text-base font-bold text-emerald-400 block">
-                ${Math.max(0, dailyCapTotal - dailyCapSpent)}
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  ${Math.max(0, dailyCapTotal - dailyCapSpent)}
+                </span>
+                <span className="bg-sky-100/80 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Safe
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Unblocked spendable budget
               </span>
-              <span className="text-[10px] text-slate-400 block">Safe to spend</span>
             </div>
 
-            {/* Sub-Card 4: Speed Throttle */}
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  VELOCITY
-                </span>
-                <span className="w-5 h-5 rounded-md bg-teal-500/20 text-teal-400 flex items-center justify-center text-[10px]">
-                  <Gauge className="w-3 h-3" />
+            {/* Tile D: Warm Peach/Amber (Velocity Throttle) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-orange-50/40 via-orange-50/70 to-orange-100/50 dark:from-orange-950/20 dark:via-orange-950/30 dark:to-orange-900/40 border-orange-200/50 dark:border-orange-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-orange-100/80 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 flex items-center justify-center">
+                  <Gauge className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  SPEED THROTTLE
                 </span>
               </div>
-              <span className="font-mono text-base font-bold text-white block">
-                {velocityUsed}/{velocityMax}
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  {velocityUsed}/{velocityMax}
+                </span>
+                <span className="bg-orange-100/80 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↘ Normal
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Calls in current 10m window
               </span>
-              <span className="text-[10px] text-slate-400 block">Calls / 10m</span>
             </div>
           </div>
-        </div>
 
-        {/* Bottom Row: Monospace Address + Translucent Pill CTA */}
-        <div className="relative z-10 pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Assigned Agent Passkey:</span>
-            <span className="font-mono text-xs font-semibold text-slate-200 bg-white/10 px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5">
-              <span>{agentId}</span>
-              <button
-                type="button"
-                onClick={copyAgentId}
-                className="hover:text-emerald-400 transition"
-                title="Copy agent account ID"
-              >
-                {copiedAgent ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
-              </button>
-            </span>
-          </div>
+          {/* Bottom Action Strip */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Agent Passkey:</span>
+              <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                <span>{agentId}</span>
+                <button
+                  type="button"
+                  onClick={copyAgentId}
+                  className="hover:text-emerald-500 transition cursor-pointer"
+                  title="Copy agent account ID"
+                >
+                  {copiedAgent ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                </button>
+              </span>
+            </div>
 
-          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleQuickFund}
               disabled={isFunding}
-              className="bg-white/20 hover:bg-white/30 text-white rounded-full px-5 py-2 text-xs font-semibold backdrop-blur-sm transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+              className="bg-slate-950 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-full px-5 py-2 text-xs font-semibold transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer self-start sm:self-auto"
             >
               {isFunding ? (
                 <>
@@ -440,7 +492,7 @@ export default function DashboardPage() {
 
         <Link
           href="/"
-          className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5"
+          className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
         >
           <span>Simulate Attack on Testnet →</span>
         </Link>
@@ -496,232 +548,236 @@ export default function DashboardPage() {
 
       {/* Asymmetric Bottom Bento Grid (lg:col-span-7 and lg:col-span-5) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (Col 7): Crisp Pure White Container for Activity Ledger */}
-        <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-ambient space-y-4 transition-colors">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-                ONCHAIN AUDIT LEDGER
-              </span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                Activity Receipts & Enforcements
-              </h3>
-            </div>
-
-            {/* Smart Filter Pills */}
-            <div className="flex items-center gap-1 p-0.5 rounded-full bg-slate-100 dark:bg-obsidian-800 border border-slate-200 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setLedgerFilter("all")}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${
-                  ledgerFilter === "all"
-                    ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setLedgerFilter("approved")}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${
-                  ledgerFilter === "approved"
-                    ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                Allowed
-              </button>
-              <button
-                type="button"
-                onClick={() => setLedgerFilter("declined")}
-                className={`px-3 py-1 text-xs font-semibold rounded-full transition ${
-                  ledgerFilter === "declined"
-                    ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                Refused
-              </button>
-            </div>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Filter transactions by contract, hash, or refusal..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Event Items */}
-          <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-            {filteredActivities.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400">
-                No activity receipts matching filter.
+        {/* Left Column (Col 7): Bento Well Container for Activity Ledger */}
+        <div className="lg:col-span-7 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+          <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                  ONCHAIN AUDIT LEDGER
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                  Activity Receipts & Enforcements
+                </h3>
               </div>
-            ) : (
-              filteredActivities.map((act) => {
-                const isAllowed = act.type === "ALLOW" || act.type === "SETTLED";
-                const isPending = act.type === "PENDING";
-                return (
-                  <div
-                    key={act.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50/70 dark:bg-obsidian-950/60 border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/70 dark:hover:bg-obsidian-950 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
-                          isAllowed ? "bg-emerald-500" : isPending ? "bg-blue-500" : "bg-rose-500"
-                        }`}
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                              isAllowed
-                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
-                                : isPending
-                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
-                                : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20"
-                            }`}
-                          >
-                            {act.type}
-                          </span>
 
-                          {act.target && (
-                            <span className="font-mono text-xs text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[170px] sm:max-w-xs">
-                              {act.target}::{act.method || "call"}()
-                            </span>
-                          )}
+              {/* Smart Filter Pills */}
+              <div className="flex items-center gap-1 p-0.5 rounded-full bg-slate-100 dark:bg-obsidian-800 border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("all")}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full transition cursor-pointer ${
+                    ledgerFilter === "all"
+                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("approved")}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full transition cursor-pointer ${
+                    ledgerFilter === "approved"
+                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Allowed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("declined")}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full transition cursor-pointer ${
+                    ledgerFilter === "declined"
+                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Refused
+                </button>
+              </div>
+            </div>
 
-                          {act.amount && (
-                            <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                              ${act.amount}
+            {/* Search Box */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Filter transactions by contract, hash, or refusal..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Event Items */}
+            <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+              {filteredActivities.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  No activity receipts matching filter.
+                </div>
+              ) : (
+                filteredActivities.map((act) => {
+                  const isAllowed = act.type === "ALLOW" || act.type === "SETTLED";
+                  const isPending = act.type === "PENDING";
+                  return (
+                    <div
+                      key={act.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50/70 dark:bg-obsidian-950/60 border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/70 dark:hover:bg-obsidian-950 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            isAllowed ? "bg-emerald-500" : isPending ? "bg-blue-500" : "bg-rose-500"
+                          }`}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                isAllowed
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                                  : isPending
+                                  ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
+                                  : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20"
+                              }`}
+                            >
+                              {act.type}
                             </span>
+
+                            {act.target && (
+                              <span className="font-mono text-xs text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[170px] sm:max-w-xs">
+                                {act.target}::{act.method || "call"}()
+                              </span>
+                            )}
+
+                            {act.amount && (
+                              <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                                ${act.amount}
+                              </span>
+                            )}
+                          </div>
+
+                          {act.reason && (
+                            <p className="text-[11px] text-rose-600 dark:text-rose-400 font-mono mt-0.5">
+                              Refused: {act.reason}
+                            </p>
                           )}
                         </div>
+                      </div>
 
-                        {act.reason && (
-                          <p className="text-[11px] text-rose-600 dark:text-rose-400 font-mono mt-0.5">
-                            Refused: {act.reason}
-                          </p>
+                      <div className="flex items-center gap-3 self-end sm:self-center text-xs text-slate-400">
+                        <span className="font-mono text-[10px]">
+                          {new Date(act.timestamp).toLocaleTimeString()}
+                        </span>
+                        {act.txHash && (
+                          <a
+                            href={`https://testnet.nearblocks.io/txns/${act.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-mono text-[10px]"
+                          >
+                            <span>Tx</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3 self-end sm:self-center text-xs text-slate-400">
-                      <span className="font-mono text-[10px]">
-                        {new Date(act.timestamp).toLocaleTimeString()}
-                      </span>
-                      {act.txHash && (
-                        <a
-                          href={`https://testnet.nearblocks.io/txns/${act.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-mono text-[10px]"
-                        >
-                          <span>Tx</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right Column (Col 5): Deep Charcoal Card (#121316) Specification */}
-        <div className="lg:col-span-5 bg-[#121316] text-white rounded-2xl p-6 shadow-ambient space-y-6">
-          <div className="space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
-              YOUR POLICY STATUS
-            </span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                <span>Active Protection</span>
-              </h3>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Verified</span>
+        {/* Right Column (Col 5): Bento Well for Policy Status & Panic Controls */}
+        <div className="lg:col-span-5 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+          <div className="bg-[#121316] text-white rounded-[22px] p-6 space-y-6">
+            <div className="space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                YOUR POLICY STATUS
               </span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Every attempted transaction is intercepted by ScopeGuard. Even if the agent is prompt-injected or stolen, loss is bounded to approved limits.
-            </p>
-          </div>
-
-          {/* 4-Column Metric Row from Template Specification */}
-          <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div className="p-3 bg-white/[0.04] rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                BRAKE
-              </span>
-              <span className="font-mono text-sm font-bold text-white">3 strikes</span>
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <span>Active Protection</span>
+                </h3>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Verified</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Every attempted transaction is intercepted by ScopeGuard. Even if the agent is prompt-injected or stolen, loss is bounded to approved limits.
+              </p>
             </div>
 
-            <div className="p-3 bg-white/[0.04] rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                WINDOW
-              </span>
-              <span className="font-mono text-sm font-bold text-white">10 min</span>
+            {/* 4-Column Metric Row with Pastel Tint Accents */}
+            <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/20 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300 block">
+                  BRAKE
+                </span>
+                <span className="font-mono text-sm font-bold text-white">3 strikes</span>
+              </div>
+
+              <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300 block">
+                  WINDOW
+                </span>
+                <span className="font-mono text-sm font-bold text-white">10 min</span>
+              </div>
+
+              <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300 block">
+                  TARGETS
+                </span>
+                <span className="font-mono text-sm font-bold text-emerald-400">1 DEX</span>
+              </div>
+
+              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-300 block">
+                  EXTERNAL
+                </span>
+                <span className="font-mono text-sm font-bold text-amber-400">Blocked</span>
+              </div>
             </div>
 
-            <div className="p-3 bg-white/[0.04] rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                TARGETS
+            {/* Owner Emergency Controls */}
+            <div className="pt-4 border-t border-white/10 space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+                OWNER PANIC CONTROLS
               </span>
-              <span className="font-mono text-sm font-bold text-emerald-400">1 DEX</span>
-            </div>
+              <div className="grid grid-cols-2 gap-2">
+                {isPaused ? (
+                  <button
+                    type="button"
+                    onClick={handleUnpause}
+                    className="py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <PlayCircle className="w-3.5 h-3.5" />
+                    <span>Unpause Key</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handlePause}
+                    className="py-2.5 px-3 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <PauseCircle className="w-3.5 h-3.5" />
+                    <span>Pause Key</span>
+                  </button>
+                )}
 
-            <div className="p-3 bg-white/[0.04] rounded-xl border border-white/5 space-y-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                EXTERNAL
-              </span>
-              <span className="font-mono text-sm font-bold text-rose-400">Blocked</span>
-            </div>
-          </div>
-
-          {/* Owner Emergency Controls */}
-          <div className="pt-4 border-t border-white/10 space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
-              OWNER PANIC CONTROLS
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {isPaused ? (
                 <button
                   type="button"
-                  onClick={handleUnpause}
-                  className="py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  onClick={handleWithdrawVault}
+                  className="py-2.5 px-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <PlayCircle className="w-3.5 h-3.5" />
-                  <span>Unpause Key</span>
+                  <DownloadCloud className="w-3.5 h-3.5" />
+                  <span>Evacuate Vault</span>
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handlePause}
-                  className="py-2.5 px-3 rounded-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
-                >
-                  <PauseCircle className="w-3.5 h-3.5" />
-                  <span>Pause Key</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleWithdrawVault}
-                className="py-2.5 px-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
-              >
-                <DownloadCloud className="w-3.5 h-3.5" />
-                <span>Evacuate Vault</span>
-              </button>
+              </div>
             </div>
           </div>
         </div>

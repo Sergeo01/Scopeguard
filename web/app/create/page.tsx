@@ -222,133 +222,205 @@ export default function CreateAgentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Financial Card (Dark Glassmorphic Specification) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] p-6 sm:p-8 text-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] border border-slate-800">
-        {/* Internal Radial Glow */}
-        <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-blue-600/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-
-        {/* Top Row: Title + 4 Glass Sub-Cards */}
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-white/10">
-          <div className="space-y-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
-              POLICY & PASSKEY STUDIO
-            </span>
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                Issue Agent Passkey
-              </h1>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                FunctionCall Scope
+      {/* Hero Bento Well Container (Double-Bezel Framing Specification) */}
+      <div className="bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 sm:p-7 border border-white dark:border-slate-800/80 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800/80">
+            <div className="space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                POLICY & PASSKEY STUDIO
               </span>
-            </div>
-            <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-              Create a restricted NEAR FunctionCall access key scoped strictly to Guard2. The agent machine never holds a master key, bounding its spend to rules you sign.
-            </p>
-          </div>
-
-          {/* 4-Column Grid of Translucent Glass Sub-Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                RECEIVER
-              </span>
-              <span className="font-mono text-xs font-bold text-white block truncate" title="guard2.sergeo-guard.testnet">
-                guard2...
-              </span>
-              <span className="text-[10px] text-slate-400 block">Fixed Target</span>
-            </div>
-
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                METHOD
-              </span>
-              <span className="font-mono text-xs font-bold text-white block">
-                execute
-              </span>
-              <span className="text-[10px] text-slate-400 block">Single entrypoint</span>
-            </div>
-
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                DAILY CAP
-              </span>
-              <span className="font-mono text-xs font-bold text-emerald-400 block">
-                ${dailyCap} mUSD
-              </span>
-              <span className="text-[10px] text-slate-400 block">Customizable</span>
-            </div>
-
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                CONTROL
-              </span>
-              <span className="font-mono text-xs font-bold text-white block">
-                1-Tap Revoke
-              </span>
-              <span className="text-[10px] text-slate-400 block">Protocol level</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: AI Scope Drafter input */}
-        <div className="relative z-10 pt-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
-                AI Scope Drafter (Optional)
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400">
-              Type plain English: least privilege policy drafted instantly
-            </span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <input
-              type="text"
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAiDraft();
-                }
-              }}
-              placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
-              className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              onClick={handleAiDraft}
-              disabled={isDrafting || !aiPrompt.trim()}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
-            >
-              {isDrafting ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Drafting Policy...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Draft with AI</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {draftResult?.plainEnglish && (
-            <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl space-y-1">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider block">
-                AI Proposed Scope:
-              </span>
-              <p className="text-xs text-slate-200 leading-relaxed font-sans">
-                {draftResult.plainEnglish}
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  Issue Agent Passkey
+                </h1>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                  FunctionCall Scope
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
+                Create a restricted NEAR FunctionCall access key scoped strictly to Guard2. The agent machine never holds a master key, bounding its spend to rules you sign.
               </p>
             </div>
-          )}
+
+            {/* Pattern 4: Floating "Score" Card (Elevated Inset Widget) */}
+            <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] shrink-0 min-w-[220px] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  PROTOCOL INTEGRITY
+                </span>
+                <span className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xl font-bold text-slate-900 dark:text-white">
+                  Scoped Key
+                </span>
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Validated
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                Exclusive Guard receiver
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Pastel Tiles */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Tile A: Violet/Lavender (Target Receiver) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-purple-50/50 via-purple-50/80 to-purple-100/60 dark:from-purple-950/20 dark:via-purple-950/30 dark:to-purple-900/40 border-purple-200/50 dark:border-purple-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-purple-100/80 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center">
+                  <Lock className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  EXCLUSIVE TARGET
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title="guard2.sergeo-guard.testnet">
+                  guard2...
+                </span>
+                <span className="bg-purple-100/80 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Fixed
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Protocol locked receiver
+              </span>
+            </div>
+
+            {/* Tile B: Mint/Sage (Single Entrypoint) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-emerald-50/40 via-emerald-50/70 to-emerald-100/50 dark:from-emerald-950/20 dark:via-emerald-950/30 dark:to-emerald-900/40 border-emerald-200/50 dark:border-emerald-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+                  <Code2 className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  ALLOWED METHOD
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">
+                  execute
+                </span>
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Single
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Only callable function
+              </span>
+            </div>
+
+            {/* Tile C: Sky/Ice Blue (Daily Cap) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-sky-50/40 via-sky-50/70 to-sky-100/50 dark:from-sky-950/20 dark:via-sky-950/30 dark:to-sky-900/40 border-sky-200/50 dark:border-sky-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-sky-100/80 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300 flex items-center justify-center">
+                  <DollarSign className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  DAILY SPEND CAP
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  ${dailyCap} mUSD
+                </span>
+                <span className="bg-sky-100/80 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↗ Custom
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Manual $1 to any budget
+              </span>
+            </div>
+
+            {/* Tile D: Warm Peach/Amber (1-Tap Revoke) */}
+            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-orange-50/40 via-orange-50/70 to-orange-100/50 dark:from-orange-950/20 dark:via-orange-950/30 dark:to-orange-900/40 border-orange-200/50 dark:border-orange-800/40">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="w-6 h-6 rounded-md bg-orange-100/80 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 flex items-center justify-center">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                  REVOCATION
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 pt-1">
+                <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  1-Tap
+                </span>
+                <span className="bg-orange-100/80 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                  ↘ Instant
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Protocol level key deletion
+              </span>
+            </div>
+          </div>
+
+          {/* AI Scope Drafter Section */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  AI Scope Drafter (Optional)
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                Type plain English: minimal policy generated with schema validation
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <input
+                type="text"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAiDraft();
+                  }
+                }}
+                placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
+                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleAiDraft}
+                disabled={isDrafting || !aiPrompt.trim()}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
+              >
+                {isDrafting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Drafting Policy...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Draft with AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {draftResult?.plainEnglish && (
+              <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl space-y-1">
+                <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider block">
+                  AI Proposed Rule Card:
+                </span>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                  {draftResult.plainEnglish}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -367,37 +439,38 @@ export default function CreateAgentPage() {
           onReset={() => setIssuedSuccess(false)}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Form Side (Col 7) */}
-          <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-sm transition-colors">
-            {/* Agent Sub-Account */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-900 dark:text-white block">
-                Agent Sub-Account
-              </label>
-              <input
-                type="text"
-                value={agentName}
-                onChange={(e) => setAgentName(e.target.value)}
-                placeholder="e.g. trader.sergeo-guard.testnet"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              {isWalletConnected && connectedWalletId && (
-                <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
-                  <button
-                    type="button"
-                    onClick={() => setAgentName(`trader.${connectedWalletId}`)}
-                    className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline"
-                  >
-                    Use trader.{connectedWalletId}
-                  </button>
-                </div>
-              )}
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                The NEAR account holding the scoped passkey. Isolated from your master wallet.
-              </span>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Form Side (Col 7): Bento Well Container */}
+          <div className="lg:col-span-7 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 space-y-6">
+              {/* Agent Sub-Account */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-900 dark:text-white block">
+                  Agent Sub-Account
+                </label>
+                <input
+                  type="text"
+                  value={agentName}
+                  onChange={(e) => setAgentName(e.target.value)}
+                  placeholder="e.g. trader.sergeo-guard.testnet"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {isWalletConnected && connectedWalletId && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
+                    <button
+                      type="button"
+                      onClick={() => setAgentName(`trader.${connectedWalletId}`)}
+                      className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                    >
+                      Use trader.{connectedWalletId}
+                    </button>
+                  </div>
+                )}
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                  The NEAR account holding the scoped passkey. Isolated from your master wallet.
+                </span>
+              </div>
 
             {/* Daily Spending Cap: Free-form manual input */}
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -633,37 +706,38 @@ export default function CreateAgentPage() {
               )}
             </button>
           </div>
+        </div>
 
-          {/* Blueprint & Physical Card (Col 5) */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-5 shadow-sm transition-colors">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Digital Key Specification</h2>
-                <div className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-obsidian-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setActiveView("visual")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
-                      activeView === "visual"
-                        ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    Card
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveView("json")}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
-                      activeView === "json"
-                        ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
-                  >
-                    JSON
-                  </button>
-                </div>
+        {/* Blueprint & Physical Card (Col 5): Bento Well Container */}
+        <div className="lg:col-span-5 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
+          <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Digital Key Specification</h2>
+              <div className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-obsidian-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setActiveView("visual")}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                    activeView === "visual"
+                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Card
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("json")}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                    activeView === "json"
+                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  JSON
+                </button>
               </div>
+            </div>
 
               {activeView === "visual" ? (
                 <div className="space-y-4">
