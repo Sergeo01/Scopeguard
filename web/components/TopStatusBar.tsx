@@ -76,8 +76,8 @@ export const TopStatusBar: React.FC<{
           </span>
 
           {/* Pill 2: Protocol Guard Active with Live Heartbeat Dot */}
-          <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-blue-600 text-white flex items-center gap-1.5 shadow-[0_0_15px_-3px_rgba(37,99,235,0.4)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+          <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-blue-600 text-white flex items-center gap-1.5 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
             <Sparkles className="w-3 h-3 fill-white" />
             <span>Protocol Guard Active</span>
           </span>
@@ -105,11 +105,11 @@ export const TopStatusBar: React.FC<{
         <button
           type="button"
           onClick={onOpenDocs}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 transition shadow-xs cursor-pointer"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 transition shadow-xs cursor-pointer"
           title="Open documentation and integration guide"
         >
           <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span className="hidden sm:inline">Docs Guide</span>
+          <span>Docs Guide</span>
         </button>
 
         <WalletButton />

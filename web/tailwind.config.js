@@ -32,10 +32,7 @@ module.exports = {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-        ambient: "0 2px 10px -4px rgba(0, 0, 0, 0.05)",
-        glow: "0 0 25px -5px rgba(16, 185, 129, 0.25)",
-        "glow-blue": "0 0 25px -5px rgba(37, 99, 235, 0.25)",
-        "glow-rose": "0 0 25px -5px rgba(244, 63, 94, 0.25)",
+        ambient: "0 2px 8px -2px rgba(0, 0, 0, 0.05)",
       },
       backdropBlur: {
         xs: "2px",

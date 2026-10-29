@@ -95,22 +95,22 @@ export const WalletButton: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/70 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 font-medium transition shadow-xs cursor-pointer"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span className="font-mono font-semibold max-w-[85px] sm:max-w-[150px] truncate">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span className="font-mono font-semibold max-w-[95px] sm:max-w-[150px] truncate">
             {accountId}
           </span>
-          <span className="hidden sm:inline text-emerald-600 dark:text-emerald-500 text-[11px] font-mono">
+          <span className="hidden sm:inline text-slate-500 dark:text-slate-400 text-[11px] font-mono">
             ({nearBalance} NEAR)
           </span>
-          <ChevronDown className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
         </button>
       ) : (
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-semibold transition shadow-xs cursor-pointer"
         >
           <Wallet className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">Connect Testnet Wallet</span>

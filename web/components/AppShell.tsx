@@ -27,7 +27,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         />
 
         {/* Scrollable Viewport Content */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 w-full">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-8 py-6 w-full">
           {children}
         </main>
       </div>

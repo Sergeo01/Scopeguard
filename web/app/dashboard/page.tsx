@@ -304,9 +304,8 @@ export default function DashboardPage() {
         isOwner={true}
       />
 
-      {/* Hero Bento Well Container (Double-Bezel Framing Specification) */}
-      <div className="bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
-        <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 sm:p-7 border border-white dark:border-slate-800/80 space-y-6">
+      {/* Hero Financial Vault Card (Clean Single-Layer Container) */}
+      <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
           {/* Top Header Row with Floating Score Box */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800/80">
             <div className="space-y-2">
@@ -331,8 +330,8 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Pattern 4: Floating "Score" Card (Elevated Inset Widget) */}
-            <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-[0_8px_24px_-6px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.04)] shrink-0 min-w-[220px] space-y-2">
+            {/* Clean Security Score Widget */}
+            <div className="bg-slate-50 dark:bg-obsidian-950/70 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 w-full sm:w-auto sm:min-w-[200px] space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   SECURITY SCORE
@@ -355,12 +354,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Pattern 2: Pastel-Tinted Inner Metric Tiles (2x2 / 4-column Bento Grid) */}
+          {/* Clean Neutral 4-Column Metric Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Tile A: Violet/Lavender (Daily Budget Cap) */}
-            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-purple-50/50 via-purple-50/80 to-purple-100/60 dark:from-purple-950/20 dark:via-purple-950/30 dark:to-purple-900/40 border-purple-200/50 dark:border-purple-800/40">
+            {/* Tile A: Daily Budget Cap */}
+            <div className="rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-obsidian-950/60 flex flex-col justify-between">
               <div className="flex items-center gap-2 pb-2">
-                <div className="w-6 h-6 rounded-md bg-purple-100/80 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                   <CreditCard className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
@@ -371,7 +370,7 @@ export default function DashboardPage() {
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   ${dailyCapTotal}
                 </span>
-                <span className="bg-purple-100/80 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↗ Manual
                 </span>
               </div>
@@ -380,10 +379,10 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Tile B: Mint/Sage (Spent Today) */}
-            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-emerald-50/40 via-emerald-50/70 to-emerald-100/50 dark:from-emerald-950/20 dark:via-emerald-950/30 dark:to-emerald-900/40 border-emerald-200/50 dark:border-emerald-800/40">
+            {/* Tile B: Spent Today */}
+            <div className="rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-obsidian-950/60 flex flex-col justify-between">
               <div className="flex items-center gap-2 pb-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                   <Activity className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
@@ -394,7 +393,7 @@ export default function DashboardPage() {
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   ${dailyCapSpent}
                 </span>
-                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↘ 5% of Cap
                 </span>
               </div>
@@ -403,10 +402,10 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Tile C: Sky/Ice Blue (Remaining Safe Allowance) */}
-            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-sky-50/40 via-sky-50/70 to-sky-100/50 dark:from-sky-950/20 dark:via-sky-950/30 dark:to-sky-900/40 border-sky-200/50 dark:border-sky-800/40">
+            {/* Tile C: Remaining Safe Allowance */}
+            <div className="rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-obsidian-950/60 flex flex-col justify-between">
               <div className="flex items-center gap-2 pb-2">
-                <div className="w-6 h-6 rounded-md bg-sky-100/80 dark:bg-sky-900/50 text-sky-600 dark:text-sky-300 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <Check className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
@@ -417,7 +416,7 @@ export default function DashboardPage() {
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   ${Math.max(0, dailyCapTotal - dailyCapSpent)}
                 </span>
-                <span className="bg-sky-100/80 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↗ Safe
                 </span>
               </div>
@@ -426,10 +425,10 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Tile D: Warm Peach/Amber (Velocity Throttle) */}
-            <div className="rounded-2xl p-4 border transition-all flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-orange-50/40 via-orange-50/70 to-orange-100/50 dark:from-orange-950/20 dark:via-orange-950/30 dark:to-orange-900/40 border-orange-200/50 dark:border-orange-800/40">
+            {/* Tile D: Speed Throttle */}
+            <div className="rounded-xl p-4 border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-obsidian-950/60 flex flex-col justify-between">
               <div className="flex items-center gap-2 pb-2">
-                <div className="w-6 h-6 rounded-md bg-orange-100/80 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                   <Gauge className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">
@@ -440,7 +439,7 @@ export default function DashboardPage() {
                 <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   {velocityUsed}/{velocityMax}
                 </span>
-                <span className="bg-orange-100/80 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↘ Normal
                 </span>
               </div>
@@ -452,10 +451,10 @@ export default function DashboardPage() {
 
           {/* Bottom Action Strip */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Agent Passkey:</span>
-              <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                <span>{agentId}</span>
+              <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-2 max-w-full">
+                <span className="truncate">{agentId}</span>
                 <button
                   type="button"
                   onClick={copyAgentId}
@@ -471,7 +470,7 @@ export default function DashboardPage() {
               type="button"
               onClick={handleQuickFund}
               disabled={isFunding}
-              className="bg-slate-950 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-full px-5 py-2 text-xs font-semibold transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+              className="bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-full px-5 py-2 text-xs font-semibold transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer self-start sm:self-auto"
             >
               {isFunding ? (
                 <>
@@ -487,7 +486,6 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      </div>
 
       {/* Activation Callout Strip (Soft Mint with Pitch-Black Pill CTA) */}
       <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-ambient">
@@ -564,11 +562,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Asymmetric Bottom Bento Grid (lg:col-span-7 and lg:col-span-5) */}
+      {/* Asymmetric Bottom Grid (lg:col-span-7 and lg:col-span-5) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (Col 7): Bento Well Container for Activity Ledger */}
-        <div className="lg:col-span-7 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-sm rounded-[22px] p-6 space-y-4">
+        {/* Left Column (Col 7): Activity Ledger Card */}
+        <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
@@ -707,11 +704,9 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Right Column (Col 5): Bento Well for Policy Status & Panic Controls */}
-        <div className="lg:col-span-5 bg-slate-100/70 dark:bg-obsidian-900/60 p-1.5 rounded-[28px] border border-slate-200/60 dark:border-slate-800/60 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06),0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="bg-[#121316] text-white rounded-[22px] p-6 space-y-6">
+        {/* Right Column (Col 5): Policy Status & Panic Controls */}
+        <div className="lg:col-span-5 bg-[#121316] text-white rounded-2xl p-6 border border-slate-800 shadow-xs space-y-6">
             <div className="space-y-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
                 YOUR POLICY STATUS
@@ -799,7 +794,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Owner Command Modal */}
       {activeOwnerModal && (
