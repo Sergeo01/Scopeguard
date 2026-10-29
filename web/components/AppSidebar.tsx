@@ -134,16 +134,6 @@ export const AppSidebar: React.FC<{
               </p>
             </div>
           </Link>
-
-          {/* Logo Picker trigger */}
-          <button
-            type="button"
-            onClick={() => setShowSelector(true)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-obsidian-850 transition"
-            title="Choose custom logo variant (5 concepts)"
-          >
-            <Palette className="w-3.5 h-3.5" />
-          </button>
         </div>
 
         {/* Quick Search with ⌘K */}

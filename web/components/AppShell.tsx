@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopStatusBar } from "@/components/TopStatusBar";
-import { LogoPickerModal } from "@/components/LogoPickerModal";
 import { DocsModal } from "@/components/DocsModal";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -32,9 +31,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {children}
         </main>
       </div>
-
-      {/* Global Logo Picker Modal */}
-      <LogoPickerModal />
 
       {/* Interactive Docs & Guide Modal */}
       <DocsModal isOpen={showDocsModal} onClose={() => setShowDocsModal(false)} />
