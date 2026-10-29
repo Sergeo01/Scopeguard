@@ -95,26 +95,27 @@ export const WalletButton: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium transition shadow-xs cursor-pointer"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-mono font-semibold max-w-[110px] sm:max-w-[150px] truncate">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span className="font-mono font-semibold max-w-[85px] sm:max-w-[150px] truncate">
             {accountId}
           </span>
           <span className="hidden sm:inline text-emerald-600 dark:text-emerald-500 text-[11px] font-mono">
             ({nearBalance} NEAR)
           </span>
-          <ChevronDown className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
         </button>
       ) : (
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-xs cursor-pointer"
         >
-          <Wallet className="w-3.5 h-3.5" />
-          <span>Connect Testnet Wallet</span>
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          <Wallet className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden sm:inline">Connect Testnet Wallet</span>
+          <span className="sm:hidden">Connect</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform shrink-0 ${isOpen ? "rotate-180" : ""}`} />
         </button>
       )}
 
@@ -128,7 +129,7 @@ export const WalletButton: React.FC = () => {
           />
 
           {/* Anchored Dropdown Menu */}
-          <div className="absolute right-0 top-full mt-2 w-96 sm:w-[420px] z-50 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-xl p-5 shadow-[0_12px_36px_-6px_rgba(15,23,42,0.18),0_4px_12px_rgba(15,23,42,0.08)] space-y-4">
+          <div className="absolute right-0 top-full mt-2 w-[calc(100vw-32px)] max-w-sm sm:w-[420px] z-50 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-xl p-5 shadow-[0_12px_36px_-6px_rgba(15,23,42,0.18),0_4px_12px_rgba(15,23,42,0.08)] space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">

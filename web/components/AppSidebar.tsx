@@ -119,17 +119,18 @@ export const AppSidebar: React.FC<{
         {/* Brand */}
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group" onClick={onClose}>
-            <ScopeGuardLogo className="w-8 h-8 transition-transform group-hover:scale-105" size={32} />
+            <ScopeGuardLogo className="w-8 h-8 transition-transform group-hover:scale-105 shrink-0" size={32} />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                  ScopeGuard
+                <span className="text-base font-extrabold tracking-tight leading-none">
+                  <span className="text-slate-900 dark:text-white">Scope</span>
+                  <span className="text-blue-600 dark:text-blue-500">Guard</span>
                 </span>
                 <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                   NEAR
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium">
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                 Scoped Agent Passkeys
               </p>
             </div>
