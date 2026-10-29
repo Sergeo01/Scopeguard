@@ -167,7 +167,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Emergency Pause Key",
       description: "Freezes all agent transactions on NEAR Testnet immediately. The Guard contract will refuse all calls until unpaused by the owner.",
-      command: `near contract call-function as-transaction ${guardId} pause json-args '{"agent_account":"${agentId}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
+      command: `near call ${guardId} pause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: false,
     });
   };
@@ -176,16 +176,16 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Unpause Agent Key",
       description: "Resumes normal agent execution and clears consecutive reject counters.",
-      command: `near contract call-function as-transaction ${guardId} unpause json-args '{"agent_account":"${agentId}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
+      command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: false,
     });
   };
 
   const handleRevokeKey = async () => {
     setActiveOwnerModal({
-      title: "Permanently Revoke Passkey",
-      description: "Deletes the restricted function-call passkey directly on NEAR consensus. The credential on the agent machine becomes completely dead.",
-      command: `near account delete-key ${agentId} ${agentPublicKey} sign-as ${ownerId} network-config testnet`,
+      title: "Permanently Revoke Agent Policy",
+      description: "Permanently strips all execution targets and recipients from the agent onchain. The agent's passkey becomes completely dead and all future execution calls will be declined.",
+      command: `near call ${guardId} revoke_agent '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -194,7 +194,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Emergency Vault Evacuation",
       description: `Transfers all custodied ${vaultBalance} mUSD tokens from the Guard vault directly back to the owner account.`,
-      command: `near contract call-function as-transaction ${guardId} withdraw json-args '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
+      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -203,7 +203,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: `Veto Pending Intent #${id}`,
       description: "Cancels quarantined high-value action before the timelock delay expires.",
-      command: `near contract call-function as-transaction ${guardId} cancel_pending json-args '{"agent_account":"${agentId}","id":${id}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
+      command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${id}}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -237,7 +237,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Cancel Staged Policy Change",
       description: "Discards the staged policy update onchain before the timelock window activates it. Only the owner account can sign this cancellation.",
-      command: `near contract call-function as-transaction ${guardId} cancel_policy_change json-args '{"agent_account":"${agentId}"}' prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerId} network-config testnet`,
+      command: `near call ${guardId} cancel_policy_change '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };

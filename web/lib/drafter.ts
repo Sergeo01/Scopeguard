@@ -1,12 +1,12 @@
 export interface DrafterPolicy {
   token: string;
   targets: Record<string, string[]>;
-  daily_cap: string;
+  daily_cap: number;
   recipients: string[];
   max_actions_per_10min: number;
   auto_pause_rejects: number;
   auto_pause_window_minutes: number;
-  high_value_threshold: string;
+  high_value_threshold: number;
   high_value_delay_seconds: number;
   policy_change_delay_seconds: number;
 }
@@ -24,15 +24,15 @@ export interface DraftResult {
   isManualFallback: boolean;
 }
 
-export function getSafeDefaultPolicy(dailyCap = "100"): DrafterPolicy {
+export function getSafeDefaultPolicy(dailyCap: number | string = 100): DrafterPolicy {
   const capNum = Number(dailyCap) || 100;
-  const threshold = String(Math.floor(capNum / 2));
+  const threshold = Math.floor(capNum / 2);
   return {
     token: "sergeo-guard-token.testnet",
     targets: {
       "sergeo-guard-dex.testnet": ["swap"],
     },
-    daily_cap: String(capNum),
+    daily_cap: capNum,
     recipients: [],
     max_actions_per_10min: 5,
     auto_pause_rejects: 5,
@@ -145,12 +145,12 @@ Draft a minimal-privilege JSON policy matching this schema:
 {
   "token": "sergeo-guard-token.testnet",
   "targets": { "<contract_id>": ["<method>"] },
-  "daily_cap": "<string_integer>",
+  "daily_cap": <integer>,
   "recipients": [],
   "max_actions_per_10min": <integer 1-100>,
   "auto_pause_rejects": <integer 1-50>,
   "auto_pause_window_minutes": <integer 1-1440>,
-  "high_value_threshold": "<string_integer>",
+  "high_value_threshold": <integer>,
   "high_value_delay_seconds": <integer>,
   "policy_change_delay_seconds": <integer>
 }
@@ -243,12 +243,12 @@ Rules:
   }
 
   const capNum = Number(dailyCap) || 100;
-  const threshold = String(Math.floor(capNum / 2));
+  const threshold = Math.floor(capNum / 2);
 
   const draft: DrafterPolicy = {
     token: "sergeo-guard-token.testnet",
     targets,
-    daily_cap: dailyCap,
+    daily_cap: capNum,
     recipients,
     max_actions_per_10min: maxActions,
     auto_pause_rejects: autoPauseRejects,

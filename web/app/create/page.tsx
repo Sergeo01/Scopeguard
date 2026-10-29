@@ -145,12 +145,12 @@ export default function CreateAgentPage() {
   const compiledPolicyJson = {
     token: "sergeo-guard-token.testnet",
     targets: compiledTargets,
-    daily_cap: String(dailyCap),
+    daily_cap: Number(dailyCap),
     recipients: allowExternalTransfers && externalRecipient ? [externalRecipient] : [],
     max_actions_per_10min: speedLimit,
     auto_pause_rejects: autoPauseAfter,
     auto_pause_window_minutes: autoPauseWindowMinutes,
-    high_value_threshold: String(timelockThreshold),
+    high_value_threshold: Number(timelockThreshold),
     high_value_delay_seconds: 60,
     policy_change_delay_seconds: 3600,
   };

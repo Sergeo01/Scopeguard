@@ -30,6 +30,54 @@ const TEN_MIN_NS: u64 = 10 * 60 * 1_000_000_000;
 const MAX_REJECT_TIMES_KEPT: usize = 64;
 const MAX_PENDING_ACTIONS: usize = 8;
 
+/// Accepts both `500` and `"500"` for u128 policy fields.
+///
+/// The web handoff console and the AI drafter have historically emitted numeric
+/// strings because JSON loses precision above 2^53. The contract stores a plain
+/// u128 and the canonical onchain view emits a JSON number, so both shapes are
+/// accepted here to keep every client artifact registerable.
+fn de_u128_flexible<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: near_sdk::serde::Deserializer<'de>,
+{
+    use near_sdk::serde::de::{self, Visitor};
+
+    struct FlexibleU128;
+
+    impl<'de> Visitor<'de> for FlexibleU128 {
+        type Value = u128;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a non-negative integer or a numeric string")
+        }
+
+        fn visit_u64<E: de::Error>(self, value: u64) -> Result<u128, E> {
+            Ok(value as u128)
+        }
+
+        fn visit_u128<E: de::Error>(self, value: u128) -> Result<u128, E> {
+            Ok(value)
+        }
+
+        fn visit_i64<E: de::Error>(self, value: i64) -> Result<u128, E> {
+            if value < 0 {
+                Err(E::custom("expected a non-negative integer"))
+            } else {
+                Ok(value as u128)
+            }
+        }
+
+        fn visit_str<E: de::Error>(self, value: &str) -> Result<u128, E> {
+            value
+                .trim()
+                .parse::<u128>()
+                .map_err(|_| E::custom("invalid number"))
+        }
+    }
+
+    deserializer.deserialize_any(FlexibleU128)
+}
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Policy {
@@ -38,6 +86,7 @@ pub struct Policy {
     /// contract id -> method names the agent may call on it
     pub targets: HashMap<AccountId, Vec<String>>,
     /// max total value movable per 24h window, in vault token units
+    #[serde(deserialize_with = "de_u128_flexible")]
     pub daily_cap: u128,
     /// accounts allowed to receive transfers; empty means transfers forbidden
     pub recipients: Vec<AccountId>,
@@ -48,6 +97,7 @@ pub struct Policy {
     /// circuit breaker window, in minutes
     pub auto_pause_window_minutes: u64,
     /// action amount at or above this threshold is queued in timelock instead of immediate execution
+    #[serde(deserialize_with = "de_u128_flexible")]
     pub high_value_threshold: u128,
     /// delay in seconds for high-value actions to sit in pending queue
     pub high_value_delay_seconds: u64,
@@ -184,6 +234,8 @@ pub struct BudgetView {
     pub actions_in_window: u32,
     pub paused: bool,
     pub vault_balance: U128,
+    /// true once the owner has permanently revoked this agent's allowlist
+    pub revoked: bool,
 }
 
 #[near(contract_state)]
@@ -420,6 +472,55 @@ impl Contract {
         emit(&format!(
             "{{\"event\":\"CANCELLED\",\"agent\":\"{}\",\"id\":{}}}",
             agent_account, id
+        ));
+    }
+
+    /// Owner only, immediate and permanent. Revokes every permission the agent
+    /// has: allowlisted targets, recipients, staged policy and pending intents.
+    ///
+    /// The agent record is kept so the audit trail and any vault balance remain
+    /// queryable and withdrawable, but `targets` and `recipients` are emptied.
+    /// Because the allowlist is empty, every future `execute` is rejected even
+    /// if the agent is unpaused later. This is the only way to retire an agent
+    /// whose FunctionCall key was lost or leaked: the agent account owns its
+    /// key, so the owner cannot delete it from consensus.
+    pub fn revoke_agent(&mut self, agent_account: AccountId) {
+        let mut rec = self.load_owned(&agent_account);
+        rec.paused = true;
+        rec.staged_policy = None;
+        rec.pending_actions.clear();
+        rec.policy.targets.clear();
+        rec.policy.recipients.clear();
+        self.agents.insert(agent_account.clone(), rec);
+        emit(&format!(
+            "{{\"event\":\"REVOKE\",\"agent\":\"{}\"}}",
+            agent_account
+        ));
+    }
+
+    /// Owner only. Clears the rolling daily/velocity windows and reject strikes.
+    ///
+    /// This is an operational and demo affordance: the windows reset lazily
+    /// after 24h / 10min, which makes a repeated live walkthrough return
+    /// OVER_VELOCITY_CAP instead of the scenario being demonstrated. It never
+    /// changes the policy, the allowlist or the pause state, so it grants no
+    /// new permission - the owner can already lift any cap via `set_policy`.
+    pub fn reset_windows(&mut self, agent_account: AccountId) {
+        let mut rec = self.load_owned(&agent_account);
+        assert!(
+            !rec.policy.targets.is_empty(),
+            "agent is revoked: nothing to reset"
+        );
+        let now = env::block_timestamp();
+        rec.day_window_start = now;
+        rec.spent_in_window = 0;
+        rec.velocity_window_start = now;
+        rec.actions_in_window = 0;
+        rec.reject_times.clear();
+        self.agents.insert(agent_account.clone(), rec);
+        emit(&format!(
+            "{{\"event\":\"WINDOWS_RESET\",\"agent\":\"{}\"}}",
+            agent_account
         ));
     }
 
@@ -719,6 +820,7 @@ impl Contract {
             actions_in_window: r.actions_in_window,
             paused: r.paused,
             vault_balance: U128(r.vault_balance),
+            revoked: r.policy.targets.is_empty() && r.policy.recipients.is_empty(),
         })
     }
 
@@ -1745,5 +1847,42 @@ mod tests {
     fn test_get_version() {
         let (contract, _) = setup_contract(100);
         assert_eq!(contract.get_version(), "0.1.0");
+    }
+
+    #[test]
+    fn test_policy_deserialization_from_number_and_string() {
+        // Test numeric format
+        let json_num = r#"{
+            "token": "token.near",
+            "targets": { "dex.near": ["swap"] },
+            "daily_cap": 500,
+            "recipients": [],
+            "max_actions_per_10min": 5,
+            "auto_pause_rejects": 3,
+            "auto_pause_window_minutes": 10,
+            "high_value_threshold": 250,
+            "high_value_delay_seconds": 60,
+            "policy_change_delay_seconds": 600
+        }"#;
+        let policy_num: Policy = near_sdk::serde_json::from_str(json_num).unwrap();
+        assert_eq!(policy_num.daily_cap, 500);
+        assert_eq!(policy_num.high_value_threshold, 250);
+
+        // Test string format
+        let json_str = r#"{
+            "token": "token.near",
+            "targets": { "dex.near": ["swap"] },
+            "daily_cap": "500",
+            "recipients": [],
+            "max_actions_per_10min": 5,
+            "auto_pause_rejects": 3,
+            "auto_pause_window_minutes": 10,
+            "high_value_threshold": "250",
+            "high_value_delay_seconds": 60,
+            "policy_change_delay_seconds": 600
+        }"#;
+        let policy_str: Policy = near_sdk::serde_json::from_str(json_str).unwrap();
+        assert_eq!(policy_str.daily_cap, 500);
+        assert_eq!(policy_str.high_value_threshold, 250);
     }
 }

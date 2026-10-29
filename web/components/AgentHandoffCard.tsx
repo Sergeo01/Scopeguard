@@ -46,18 +46,33 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const actualPasskey = passkey || "ed25519:xqNiY8bEVWbtYvTewgedBmfa54fLpqDLdZfSi66s9xLfiJJ1K9eL39mCWbfZLVXpeREPQz6YXzVAoBkmg2PJKA1";
-  const actualPublicKey = publicKey || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+  const actualPasskey = passkey || "";
+  const actualPublicKey = publicKey || "";
   const guardContract = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
-  const cliCommand = `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`;
+  const cliCommand = actualPasskey
+    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`
+    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${guardContract}`;
+
+  const defaultPolicy = {
+    token: "sergeo-guard-token.testnet",
+    targets: { "sergeo-guard-dex.testnet": ["swap"] },
+    daily_cap: dailyCap,
+    recipients: [],
+    max_actions_per_10min: 5,
+    auto_pause_rejects: autoPauseAfter,
+    auto_pause_window_minutes: autoPauseWindowMinutes,
+    high_value_threshold: Math.floor(dailyCap / 2),
+    high_value_delay_seconds: 60,
+    policy_change_delay_seconds: 600,
+  };
 
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
-near contract call-function as-transaction ${guardContract} register_agent json-args '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || { token: "sergeo-guard-token.testnet", targets: { "sergeo-guard-dex.testnet": ["swap"] }, daily_cap: String(dailyCap), recipients: [], max_actions_per_10min: 5, auto_pause_rejects: autoPauseAfter, auto_pause_window_minutes: autoPauseWindowMinutes, high_value_threshold: String(Math.floor(dailyCap / 2)), high_value_delay_seconds: 60, policy_change_delay_seconds: 600 })}}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' sign-as ${ownerName} network-config testnet
+near call ${guardContract} register_agent '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || defaultPolicy)}}' --accountId ${ownerName} --gas 100000000000000
 
 # 2. Add scoped function-call passkey to agent account (restricted to Guard execute only)
-near account add-key ${agentName} ${actualPublicKey} grant-function-call-access --receiver-account-id ${guardContract} --allowance '1 NEAR' --method-names '["execute"]' sign-as ${ownerName} network-config testnet`;
+near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${guardContract} --methodNames execute --allowance 1 --accountId ${ownerName}`;
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}
@@ -307,25 +322,27 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
 
               <div className="relative group">
                 <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {actualPasskey}
+                  {actualPasskey || "[No passkey in memory. Generate one in Step 1 or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
                 </pre>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(actualPasskey, "key")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
-                >
-                  {copiedKey === "key" ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Key</span>
-                    </>
-                  )}
-                </button>
+                {actualPasskey && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(actualPasskey, "key")}
+                    className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  >
+                    {copiedKey === "key" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Copy Key</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
               <div className="text-xs text-slate-500 font-mono">
@@ -451,7 +468,7 @@ near account add-key ${agentName} ${actualPublicKey} grant-function-call-access 
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 flex items-start gap-2 font-mono">
                 <span>
-                  Key Public Key: <strong className="text-slate-900">{actualPublicKey}</strong>
+                  Key Public Key: <strong className="text-slate-900">{actualPublicKey || "<AGENT_PUBLIC_KEY>"}</strong>
                 </span>
               </div>
             </div>

@@ -676,12 +676,16 @@ export default function HomePage() {
               className={`p-4 rounded-xl border text-xs leading-relaxed ${
                 activeVerdict.status === "PENDING"
                   ? "bg-blue-50 border-blue-200 text-blue-900"
+                  : activeVerdict.status === "ALLOWED"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-950"
                   : "bg-rose-50/50 border-rose-200 text-slate-800"
               }`}
             >
               <div className="flex items-start gap-2.5">
                 {activeVerdict.status === "PENDING" ? (
                   <Clock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                ) : activeVerdict.status === "ALLOWED" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <AlertOctagon className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 )}
@@ -689,6 +693,8 @@ export default function HomePage() {
                   <div className="font-semibold text-slate-900">
                     {activeVerdict.status === "PENDING"
                       ? "High-Value Transaction Quarantined in Timelock"
+                      : activeVerdict.status === "ALLOWED"
+                      ? "Execution Permitted: Complied with Policy"
                       : `Enforcement Refusal: ${activeVerdict.reasonCode}`}
                   </div>
                   <p className="text-slate-600">{activeVerdict.explanation}</p>

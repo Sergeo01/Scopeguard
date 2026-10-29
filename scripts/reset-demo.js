@@ -93,6 +93,7 @@ async function main() {
     console.log("\n==================================================================");
     console.log(" Read-Only Inspection Complete (--dry-run / observer mode)");
     console.log("==================================================================");
+    console.log(" Note: In execution mode, reset-demo unpauses the agent, clears pending timelocks, and calls reset_windows to restore 100% daily budget and velocity counters.");
     if (!hasOwnerKey) {
       console.log(" Note: To submit onchain state resets, configure owner key in ~/.near-credentials.");
     }
@@ -123,6 +124,20 @@ async function main() {
       gas: BigInt("30000000000000"),
     });
     console.log(`  --> Cancelled intent #${item.id}! Tx: ${cancelRes.transaction.hash}`);
+  }
+
+  // 6. Reset rolling spend and velocity windows to full capacity for clean replay
+  console.log("\n[Step 4] Resetting rolling spend and velocity windows...");
+  try {
+    const resetRes = await account.functionCall({
+      contractId: GUARD_ID,
+      methodName: "reset_windows",
+      args: { agent_account: TRADER_ID },
+      gas: BigInt("30000000000000"),
+    });
+    console.log(`  --> Reset windows successfully! Tx: ${resetRes.transaction.hash}`);
+  } catch (err) {
+    console.warn(`  --> Notice: reset_windows returned: ${err.message}`);
   }
 
   // 4. Final verification

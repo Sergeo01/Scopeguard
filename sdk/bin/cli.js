@@ -26,17 +26,22 @@ function parseFlags(argv) {
 
 if (command === "connect") {
   const flags = parseFlags(args.slice(1));
-  const account = flags.account || "trader.sergeo-guard.testnet";
-  const key = flags.key || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || "ed25519:xqNiY8bEVWbtYvTewgedBmfa54fLpqDLdZfSi66s9xLfiJJ1K9eL39mCWbfZLVXpeREPQz6YXzVAoBkmg2PJKA1";
-  const guard = flags.guard || "guard2.sergeo-guard.testnet";
+  const account = flags.account || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+  const key = flags.key || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY;
+  if (!key) {
+    console.error("Error: Scoped passkey is required. Provide --key <ed25519:...> or set SCOPEGUARD_AGENT_PRIVATE_KEY.");
+    process.exit(1);
+  }
+  const guard = flags.guard || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
   const outPath = flags.out || "./agent.json";
 
-  let publicKey = "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+  let publicKey = "";
   try {
     const { KeyPair } = require("near-api-js");
     publicKey = KeyPair.fromString(key).getPublicKey().toString();
-  } catch {
-    // Keep deterministic public key fallback
+  } catch (err) {
+    console.error("Error: Invalid passkey ED25519 format.");
+    process.exit(1);
   }
 
   const credential = {
