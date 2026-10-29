@@ -221,91 +221,135 @@ export default function CreateAgentPage() {
   };
 
   return (
-    <div className="w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 space-y-8">
-      {/* Editorial Headline */}
-      <div className="space-y-2 border-b border-slate-200 dark:border-slate-800 pb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            Policy & Passkey Studio
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-            100% Customizable Onchain Bounds
-          </span>
-        </div>
-        <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Issue an Agent Spending Key
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
-          Create a restricted FunctionCall access key scoped strictly to the Guard contract. Customize your daily spending
-          budget, approve destination contracts, and configure instant notifications.
-        </p>
-      </div>
+    <div className="space-y-6">
+      {/* Hero Financial Card (Dark Glassmorphic Specification) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] p-6 sm:p-8 text-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] border border-slate-800">
+        {/* Internal Radial Glow */}
+        <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-blue-600/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
 
-      {/* AI Scope Drafter Hero Card */}
-      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                AI Scope Drafter
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Describe the agent's job in plain English. The AI service drafts the minimal required policy card.
-              </p>
-            </div>
-          </div>
-          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hidden sm:inline-block">
-            Schema Validated
-          </span>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <input
-            type="text"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleAiDraft();
-              }
-            }}
-            placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
-            className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            type="button"
-            onClick={handleAiDraft}
-            disabled={isDrafting || !aiPrompt.trim()}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs shrink-0 cursor-pointer"
-          >
-            {isDrafting ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Drafting Policy...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400 dark:text-white" />
-                <span>Draft Policy with AI</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {draftResult?.plainEnglish && (
-          <div className="p-4 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block">
-              AI Proposed Rule Card
+        {/* Top Row: Title + 4 Glass Sub-Cards */}
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-white/10">
+          <div className="space-y-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+              POLICY & PASSKEY STUDIO
             </span>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-              {draftResult.plainEnglish}
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                Issue Agent Passkey
+              </h1>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                FunctionCall Scope
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+              Create a restricted NEAR FunctionCall access key scoped strictly to Guard2. The agent machine never holds a master key, bounding its spend to rules you sign.
             </p>
           </div>
-        )}
+
+          {/* 4-Column Grid of Translucent Glass Sub-Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                RECEIVER
+              </span>
+              <span className="font-mono text-xs font-bold text-white block truncate" title="guard2.sergeo-guard.testnet">
+                guard2...
+              </span>
+              <span className="text-[10px] text-slate-400 block">Fixed Target</span>
+            </div>
+
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                METHOD
+              </span>
+              <span className="font-mono text-xs font-bold text-white block">
+                execute
+              </span>
+              <span className="text-[10px] text-slate-400 block">Single entrypoint</span>
+            </div>
+
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                DAILY CAP
+              </span>
+              <span className="font-mono text-xs font-bold text-emerald-400 block">
+                ${dailyCap} mUSD
+              </span>
+              <span className="text-[10px] text-slate-400 block">Customizable</span>
+            </div>
+
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-xl p-3.5 space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                CONTROL
+              </span>
+              <span className="font-mono text-xs font-bold text-white block">
+                1-Tap Revoke
+              </span>
+              <span className="text-[10px] text-slate-400 block">Protocol level</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row: AI Scope Drafter input */}
+        <div className="relative z-10 pt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                AI Scope Drafter (Optional)
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400">
+              Type plain English: least privilege policy drafted instantly
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAiDraft();
+                }
+              }}
+              placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
+              className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={handleAiDraft}
+              disabled={isDrafting || !aiPrompt.trim()}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
+            >
+              {isDrafting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Drafting Policy...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Draft with AI</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {draftResult?.plainEnglish && (
+            <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl space-y-1">
+              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider block">
+                AI Proposed Scope:
+              </span>
+              <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                {draftResult.plainEnglish}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {issuedSuccess ? (

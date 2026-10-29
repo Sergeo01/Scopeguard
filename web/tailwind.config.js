@@ -15,6 +15,12 @@ module.exports = {
           card: "#1E293B",
           border: "#334155",
         },
+        charcoal: {
+          950: "#0d0e11",
+          900: "#121316",
+          850: "#18191e",
+          800: "#202228",
+        },
         obsidian: {
           950: "#060911",
           900: "#0b1120",
@@ -26,7 +32,9 @@ module.exports = {
       },
       boxShadow: {
         xs: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        ambient: "0 2px 10px -4px rgba(0, 0, 0, 0.05)",
         glow: "0 0 25px -5px rgba(16, 185, 129, 0.25)",
+        "glow-blue": "0 0 25px -5px rgba(37, 99, 235, 0.25)",
         "glow-rose": "0 0 25px -5px rgba(244, 63, 94, 0.25)",
       },
       backdropBlur: {
