@@ -49,21 +49,21 @@ export const StagedPolicyBanner: React.FC<StagedPolicyBannerProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-300 bg-slate-50 p-5 text-slate-800 shadow-sm">
+    <div className="rounded-2xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-obsidian-900 p-5 text-slate-800 dark:text-slate-200 shadow-sm transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <Clock className="w-4 h-4 text-slate-600" />
-            <h4 className="text-sm font-bold text-slate-900">
+            <Clock className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
               Staged Policy Modification in Timelock
             </h4>
           </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
             A policy update has been proposed. New daily cap:{" "}
-            <span className="text-slate-900 font-mono font-bold">{stagedPolicy.policy.daily_cap} mUSD</span>.
+            <span className="text-slate-900 dark:text-white font-mono font-bold">{stagedPolicy.policy.daily_cap} mUSD</span>.
             The update is held in timelock to give the owner veto power before activation.
           </p>
-          <div className="text-xs font-mono text-slate-700 font-semibold pt-1">
+          <div className="text-xs font-mono text-slate-700 dark:text-slate-300 font-semibold pt-1">
             {remainingSec > 0 ? `Effective in ${mins}m ${secs}s` : "Timelock expired (activates on next transaction)"}
           </div>
         </div>
@@ -72,7 +72,7 @@ export const StagedPolicyBanner: React.FC<StagedPolicyBannerProps> = ({
           <button
             onClick={handleCancel}
             disabled={cancelling}
-            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition disabled:opacity-50 shadow-sm"
+            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition disabled:opacity-50 shadow-sm"
           >
             <Ban className="w-4 h-4" />
             <span>{cancelling ? "Vetoing Update..." : "Veto Policy Update"}</span>

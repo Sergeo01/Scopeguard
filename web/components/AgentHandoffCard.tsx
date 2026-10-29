@@ -101,14 +101,13 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
   };
 
   const handleDownloadJson = () => {
-    // ponytail: Zero-dependency client-side file download via browser Blob
     const blob = new Blob([JSON.stringify(credentialJson, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `scopeguard-${agentName}.json`;
+    a.download = "agent.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -116,58 +115,59 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Success Confirmation Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 text-center space-y-4 shadow-xs">
-        <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 shadow-xs">
+      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-sm transition-colors">
+        <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-500 shadow-xs">
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <div className="space-y-1">
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block mb-1">
-            Passkey Generated Locally (Pending Onchain Registration)
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-block mb-1">
+            Passkey Generated Locally (Ready for Handoff)
           </span>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Passkey Ready for Onchain Activation
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Passkey Ready for Agent Handoff
           </h2>
-          <p className="text-sm text-slate-600 max-w-lg mx-auto">
-            A cryptographic ED25519 passkey has been generated for <span className="font-mono font-semibold text-slate-900">{agentName}</span>. Next step: connect it to your agent and register the policy onchain.
+          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+            A cryptographic ED25519 passkey has been generated for{" "}
+            <span className="font-mono font-semibold text-slate-900 dark:text-white">{agentName}</span>.
           </p>
         </div>
 
         {/* Policy Summary Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-left">
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+          <div className="p-3 bg-slate-50 dark:bg-obsidian-850 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">
               Daily Limit
             </span>
-            <span className="text-sm font-mono font-bold text-emerald-700">
+            <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">
               ${dailyCap} mUSD
             </span>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+          <div className="p-3 bg-slate-50 dark:bg-obsidian-850 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">
               Platforms
             </span>
-            <span className="text-sm font-mono font-semibold text-slate-800">
+            <span className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200">
               {platformsCount} Approved
             </span>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+          <div className="p-3 bg-slate-50 dark:bg-obsidian-850 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">
               Auto-Brake
             </span>
-            <span className="text-sm font-mono font-semibold text-rose-700">
+            <span className="text-sm font-mono font-semibold text-rose-600 dark:text-rose-400">
               {autoPauseAfter} rejects / {autoPauseWindowMinutes}m
             </span>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+          <div className="p-3 bg-slate-50 dark:bg-obsidian-850 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 block tracking-wider">
               Telegram
             </span>
-            <span className="text-sm font-mono font-semibold text-blue-700 truncate block">
+            <span className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400 truncate block">
               {telegramChatId || "Disabled"}
             </span>
           </div>
@@ -175,35 +175,35 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
       </div>
 
       {/* Instant Agent Handoff Console */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-        <div className="p-6 border-b border-slate-200 space-y-1">
+      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm transition-colors">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 space-y-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Connect Key to Your Agent
             </h3>
-            <span className="text-xs text-slate-500 font-mono">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
               Pick the format your agent supports
             </span>
           </div>
-          <p className="text-xs text-slate-600">
-            No technical files required unless you want them. Use a one-line command, copy the private key string, or paste the natural language prompt.
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Use a one-line command, copy the private key string, or paste the natural language prompt into your AI agent.
           </p>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-200 bg-slate-50 overflow-x-auto text-xs font-semibold text-slate-600">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-obsidian-950 overflow-x-auto text-xs font-semibold text-slate-600 dark:text-slate-400">
           <button
             type="button"
             onClick={() => setActiveTab("cli")}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
               activeTab === "cli"
-                ? "border-emerald-600 text-slate-900 bg-white"
-                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
+                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <Terminal className="w-4 h-4 text-emerald-600" />
+            <Terminal className="w-4 h-4 text-emerald-500" />
             <span>One-Line Command</span>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">
               Easiest
             </span>
           </button>
@@ -213,11 +213,11 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             onClick={() => setActiveTab("key")}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
               activeTab === "key"
-                ? "border-emerald-600 text-slate-900 bg-white"
-                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
+                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <Key className="w-4 h-4 text-slate-500" />
+            <Key className="w-4 h-4 text-slate-400" />
             <span>Private Key String</span>
           </button>
 
@@ -226,11 +226,11 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             onClick={() => setActiveTab("prompt")}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
               activeTab === "prompt"
-                ? "border-emerald-600 text-slate-900 bg-white"
-                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
+                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <MessageSquareCode className="w-4 h-4 text-purple-600" />
+            <MessageSquareCode className="w-4 h-4 text-purple-500" />
             <span>AI Chat Prompt</span>
           </button>
 
@@ -239,11 +239,11 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             onClick={() => setActiveTab("json")}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
               activeTab === "json"
-                ? "border-emerald-600 text-slate-900 bg-white"
-                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
+                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <Download className="w-4 h-4 text-slate-500" />
+            <Download className="w-4 h-4 text-slate-400" />
             <span>Download agent.json</span>
           </button>
 
@@ -252,15 +252,12 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             onClick={() => setActiveTab("near")}
             className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
               activeTab === "near"
-                ? "border-emerald-600 text-slate-900 bg-white"
-                : "border-transparent hover:text-slate-900 hover:bg-slate-100/60"
+                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
+                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <Shield className="w-4 h-4 text-emerald-600" />
+            <Shield className="w-4 h-4 text-emerald-500" />
             <span>NEAR CLI Commands</span>
-            <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
-              Non-Custodial
-            </span>
           </button>
         </div>
 
@@ -269,27 +266,27 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           {activeTab === "cli" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Run in Agent Terminal or Dockerfile
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  Run in Agent Terminal
                 </h4>
-                <p className="text-xs text-slate-600">
-                  Your agent will connect to NEAR Testnet and automatically configure the passkey with zero manual typing.
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Your agent will configure the passkey with zero manual typing.
                 </p>
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
                   {cliCommand}
                 </pre>
                 <button
                   type="button"
                   onClick={() => handleCopy(cliCommand, "cli")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                 >
                   {copiedKey === "cli" ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied!</span>
+                      <span>Copied</span>
                     </>
                   ) : (
                     <>
@@ -299,41 +296,34 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                   )}
                 </button>
               </div>
-
-              <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-start gap-2">
-                <Shield className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Safe & Scoped:</strong> This command only gives the agent a restricted passkey. Even if the agent machine is compromised, the attacker cannot withdraw funds or exceed your daily cap.
-                </span>
-              </div>
             </div>
           )}
 
           {activeTab === "key" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Direct Private Key for Bots & Marketplaces
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  Direct Private Key String
                 </h4>
-                <p className="text-xs text-slate-600">
-                  Paste this string into trading bot marketplaces, Telegram bot prompts, or Virtuals Protocol agents that require a private key.
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Paste this string into trading bot marketplaces or API agents that require a private key.
                 </p>
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {actualPasskey || "[No passkey in memory. Generate one in Step 1 or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
+                <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                  {actualPasskey || "[No passkey in memory. Generate one or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
                 </pre>
                 {actualPasskey && (
                   <button
                     type="button"
                     onClick={() => handleCopy(actualPasskey, "key")}
-                    className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                    className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                   >
                     {copiedKey === "key" ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Copied!</span>
+                        <span>Copied</span>
                       </>
                     ) : (
                       <>
@@ -344,37 +334,33 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                   </button>
                 )}
               </div>
-
-              <div className="text-xs text-slate-500 font-mono">
-                Account ID: <strong className="text-slate-900">{agentName}</strong> · Contract: <strong className="text-slate-900">{guardContract}</strong>
-              </div>
             </div>
           )}
 
           {activeTab === "prompt" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900">
-                  Ready-to-Paste Conversational Agent Instructions
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  Conversational Agent Instructions
                 </h4>
-                <p className="text-xs text-slate-600">
-                  Copy and paste this instruction directly into your LLM agent chat (Antigravity, Claude, ChatGPT, or OpenClaw).
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Paste this prompt into your LLM agent chat (Antigravity, Cursor, Codex, Claude, ChatGPT).
                 </p>
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">
+                <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">
                   {agentPromptText}
                 </pre>
                 <button
                   type="button"
                   onClick={() => handleCopy(agentPromptText, "prompt")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                 >
                   {copiedKey === "prompt" ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied Prompt!</span>
+                      <span>Copied Prompt</span>
                     </>
                   ) : (
                     <>
@@ -390,15 +376,15 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           {activeTab === "json" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                   Traditional JSON File for Developer Workflows
                 </h4>
-                <p className="text-xs text-slate-600">
-                  Save as <code className="font-mono text-slate-800 bg-slate-100 px-1 py-0.5 rounded">agent.json</code> in your local project directory.
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Save as <code className="font-mono text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-800 px-1 py-0.5 rounded">agent.json</code> in your local project directory.
                 </p>
               </div>
 
-              <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+              <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
                 {JSON.stringify(credentialJson, null, 2)}
               </pre>
 
@@ -406,7 +392,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                 <button
                   type="button"
                   onClick={handleDownloadJson}
-                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 transition shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 transition shadow-xs"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download agent.json</span>
@@ -414,16 +400,16 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                 <button
                   type="button"
                   onClick={() => handleCopy(JSON.stringify(credentialJson, null, 2), "json")}
-                  className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold flex items-center gap-2 transition shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-white dark:bg-obsidian-800 hover:bg-slate-50 dark:hover:bg-obsidian-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold flex items-center gap-2 transition shadow-xs"
                 >
                   {copiedKey === "json" ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Copied JSON!</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Copied JSON</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-500" />
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
                       <span>Copy JSON</span>
                     </>
                   )}
@@ -435,27 +421,27 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           {activeTab === "near" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                   Exact Signed-Ready NEAR CLI Commands
                 </h4>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Run these two commands from your owner terminal to register the policy and grant the scoped function-call access key directly on NEAR.
                 </p>
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
+                <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
                   {nearSetupCommands}
                 </pre>
                 <button
                   type="button"
                   onClick={() => handleCopy(nearSetupCommands, "near")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                 >
                   {copiedKey === "near" ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied Commands!</span>
+                      <span>Copied Commands</span>
                     </>
                   ) : (
                     <>
@@ -465,22 +451,16 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                   )}
                 </button>
               </div>
-
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 flex items-start gap-2 font-mono">
-                <span>
-                  Key Public Key: <strong className="text-slate-900">{actualPublicKey || "<AGENT_PUBLIC_KEY>"}</strong>
-                </span>
-              </div>
             </div>
           )}
         </div>
 
         {/* Footer Navigation */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={onReset}
-            className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition"
+            className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Configure Another Key</span>
@@ -489,15 +469,15 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="px-4 py-2 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 text-xs font-semibold transition shadow-xs"
+              className="px-4 py-2 rounded-xl bg-white dark:bg-obsidian-850 hover:bg-slate-100 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition shadow-xs"
             >
               Test Attack Simulator
             </Link>
             <Link
               href="/dashboard"
-              className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+              className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
             >
-              <span>Open Agent Treasury</span>
+              <span>Open Security Console</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

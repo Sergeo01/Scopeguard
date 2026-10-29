@@ -64,7 +64,6 @@ export default function CreateAgentPage() {
   const [generatedPublicKey, setGeneratedPublicKey] = useState<string>("");
 
   useEffect(() => {
-    // ponytail: Inspect URL query param to allow direct inspection/testing of the handoff state
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("issued") === "true") {
@@ -122,7 +121,7 @@ export default function CreateAgentPage() {
       setPlatforms([
         ...platforms,
         {
-          id: `preset-${Date.now()}`,
+          id: `p-${Date.now()}`,
           contract: preset.contract,
           methods: preset.methods,
           label: preset.name,
@@ -134,21 +133,23 @@ export default function CreateAgentPage() {
   const compiledTargets: Record<string, string[]> = {};
   platforms.forEach((p) => {
     if (p.contract.trim()) {
-      const methodsArr = p.methods
+      const methods = p.methods
         .split(",")
         .map((m) => m.trim())
-        .filter(Boolean);
-      // ponytail: Strict compliance with spec section 4 (no wildcards permitted)
-      const sanitizedMethods = methodsArr.filter((m) => m !== "*");
-      compiledTargets[p.contract.trim()] = sanitizedMethods.length ? sanitizedMethods : ["swap"];
+        .filter((m) => m.length > 0);
+      compiledTargets[p.contract.trim()] = methods.length > 0 ? methods : ["swap"];
     }
   });
+
+  const compiledRecipients = allowExternalTransfers && externalRecipient.trim()
+    ? [externalRecipient.trim()]
+    : [];
 
   const compiledPolicyJson = {
     token: "sergeo-guard-token.testnet",
     targets: compiledTargets,
     daily_cap: Number(dailyCap),
-    recipients: allowExternalTransfers && externalRecipient ? [externalRecipient] : [],
+    recipients: compiledRecipients,
     max_actions_per_10min: speedLimit,
     auto_pause_rejects: autoPauseAfter,
     auto_pause_window_minutes: autoPauseWindowMinutes,
@@ -220,41 +221,44 @@ export default function CreateAgentPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 space-y-8">
       {/* Editorial Headline */}
-      <div className="space-y-2 border-b border-slate-200 pb-6">
+      <div className="space-y-2 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-            Fully Customizable Policy
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Policy & Passkey Studio
           </span>
-          <span className="text-xs text-slate-500 font-mono">No hardcoded limits · 100% Manual Controls</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+            100% Customizable Onchain Bounds
+          </span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Issue an Agent Spending Key
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 max-w-3xl leading-relaxed">
-          Create a restricted function-call access key scoped to the Guard contract. Every setting is customizable: set your own dollar caps, allow multiple platforms, and configure instant Telegram alerts.
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          Create a restricted FunctionCall access key scoped strictly to the Guard contract. Customize your daily spending
+          budget, approve destination contracts, and configure instant notifications.
         </p>
       </div>
 
       {/* AI Scope Drafter Hero Card */}
-      <div className="bg-gradient-to-r from-emerald-50/70 via-slate-50 to-purple-50/40 border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <Sparkles className="w-4 h-4 text-emerald-100" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 AI Scope Drafter
               </h2>
-              <p className="text-xs text-slate-500">
-                Describe the agent's job in plain English. The AI service drafts the minimal required rule card.
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Describe the agent's job in plain English. The AI service drafts the minimal required policy card.
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-100/70 text-emerald-800 border border-emerald-200 hidden sm:inline-block">
-            Strict Schema Validated
+          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hidden sm:inline-block">
+            Schema Validated
           </span>
         </div>
 
@@ -270,13 +274,13 @@ export default function CreateAgentPage() {
               }
             }}
             placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
-            className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <button
             type="button"
             onClick={handleAiDraft}
             disabled={isDrafting || !aiPrompt.trim()}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shrink-0"
+            className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition shadow-xs shrink-0 cursor-pointer"
           >
             {isDrafting ? (
               <>
@@ -285,7 +289,7 @@ export default function CreateAgentPage() {
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 dark:text-white" />
                 <span>Draft Policy with AI</span>
               </>
             )}
@@ -293,11 +297,11 @@ export default function CreateAgentPage() {
         </div>
 
         {draftResult?.plainEnglish && (
-          <div className="p-3.5 bg-white border border-emerald-200 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider block">
-              AI Proposed Rule Card (Signed Review)
+          <div className="p-4 bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-1">
+            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block">
+              AI Proposed Rule Card
             </span>
-            <p className="text-xs text-slate-700 leading-relaxed font-sans">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
               {draftResult.plainEnglish}
             </p>
           </div>
@@ -321,46 +325,48 @@ export default function CreateAgentPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Form Side (Col 7) */}
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
+          <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-sm transition-colors">
             {/* Agent Sub-Account */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-900 block">Agent Sub-Account</label>
+              <label className="text-xs font-semibold text-slate-900 dark:text-white block">
+                Agent Sub-Account
+              </label>
               <input
                 type="text"
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
                 placeholder="e.g. trader.sergeo-guard.testnet"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none focus:bg-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               {isWalletConnected && connectedWalletId && (
                 <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] text-slate-500">Connected account prefix:</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
                   <button
                     type="button"
                     onClick={() => setAgentName(`trader.${connectedWalletId}`)}
-                    className="text-[10px] font-mono text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded transition"
+                    className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline"
                   >
                     Use trader.{connectedWalletId}
                   </button>
                 </div>
               )}
-              <span className="text-[11px] text-slate-500 block">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                 The NEAR account holding the scoped passkey. Isolated from your master wallet.
               </span>
             </div>
 
             {/* Daily Spending Cap: Free-form manual input */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-semibold text-slate-900 block">
+                  <label className="text-xs font-semibold text-slate-900 dark:text-white block">
                     Daily Spending Cap (mUSD / day)
                   </label>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Type any figure manually. Can be $1 or any custom budget.
                   </span>
                 </div>
-                <span className="font-mono font-bold text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
+                <span className="font-mono font-bold text-sm text-slate-900 dark:text-white bg-slate-100 dark:bg-obsidian-800 px-2.5 py-1 rounded-lg">
                   ${dailyCap} mUSD
                 </span>
               </div>
@@ -374,7 +380,7 @@ export default function CreateAgentPage() {
                     step="1"
                     value={dailyCapInput}
                     onChange={(e) => handleDailyCapChange(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="100"
                   />
                 </div>
@@ -384,10 +390,10 @@ export default function CreateAgentPage() {
                       key={preset}
                       type="button"
                       onClick={() => setPresetChip(preset)}
-                      className={`px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition ${
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium border transition ${
                         dailyCap === preset
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-slate-50 dark:bg-obsidian-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-obsidian-800"
                       }`}
                     >
                       ${preset}
@@ -398,7 +404,7 @@ export default function CreateAgentPage() {
             </div>
 
             {/* Quick-Add Pre-Vetted Platforms */}
-            <div className="pt-3 border-t border-slate-100">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
               <PlatformPresets
                 activeContracts={platforms.map((p) => p.contract)}
                 onTogglePreset={togglePresetPlatform}
@@ -406,20 +412,20 @@ export default function CreateAgentPage() {
             </div>
 
             {/* Custom Multi-Platform Allowed Targets */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-semibold text-slate-900 block">
+                  <label className="text-xs font-semibold text-slate-900 dark:text-white block">
                     Active Allowed Platforms ({platforms.length})
                   </label>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Add or modify any contract and authorized method names.
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={addPlatform}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200 transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/20 transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Custom Platform</span>
@@ -428,16 +434,16 @@ export default function CreateAgentPage() {
 
               <div className="space-y-2.5">
                 {platforms.map((p, idx) => (
-                  <div key={p.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                  <div key={p.id} className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800 text-[11px]">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">
                         Platform #{idx + 1}: {p.label || p.contract}
                       </span>
                       {platforms.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removePlatform(p.id)}
-                          className="text-rose-600 hover:text-rose-800 text-[11px] font-medium inline-flex items-center gap-1"
+                          className="text-rose-600 dark:text-rose-400 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Remove</span>
@@ -447,23 +453,23 @@ export default function CreateAgentPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[10px] text-slate-500 block mb-0.5">Target Contract ID</label>
+                        <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Target Contract ID</label>
                         <input
                           type="text"
                           value={p.contract}
                           onChange={(e) => updatePlatform(p.id, "contract", e.target.value)}
                           placeholder="e.g. ref-finance.near"
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono text-xs text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-500 block mb-0.5">Allowed Methods (comma-separated)</label>
+                        <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Allowed Methods</label>
                         <input
                           type="text"
                           value={p.methods}
                           onChange={(e) => updatePlatform(p.id, "methods", e.target.value)}
                           placeholder="e.g. swap, deposit"
-                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded font-mono text-xs text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </div>
@@ -473,89 +479,64 @@ export default function CreateAgentPage() {
             </div>
 
             {/* Custom Circuit Breaker & Velocity Safeguards */}
-            <div className="space-y-3 pt-3 border-t border-slate-100 text-xs">
+            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div>
-                <label className="font-semibold text-slate-900 block">Custom Circuit Breaker & Rate Limits</label>
-                <span className="text-[11px] text-slate-500">
+                <label className="font-semibold text-slate-900 dark:text-white block">Custom Circuit Breaker & Rate Limits</label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   Configure how many failed calls freeze the key, and how fast the agent can act.
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
-                  <span className="text-[11px] text-slate-600 block">Auto-Brake Rejects</span>
+                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Auto-Brake Strikes</span>
                   <input
                     type="number"
                     min="1"
                     max="20"
                     value={autoPauseAfter}
                     onChange={(e) => setAutoPauseAfter(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white border border-slate-300 rounded font-mono font-bold text-rose-800 text-xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-rose-600 dark:text-rose-400 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
-                  <span className="text-[10px] text-slate-400 block">Strikes before freeze</span>
+                  <span className="text-[10px] text-slate-400 block">Rejections to freeze</span>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
-                  <span className="text-[11px] text-slate-600 block">Check Window (Min)</span>
+                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Check Window (Min)</span>
                   <input
                     type="number"
                     min="1"
                     max="120"
                     value={autoPauseWindowMinutes}
                     onChange={(e) => setAutoPauseWindowMinutes(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white border border-slate-300 rounded font-mono font-bold text-slate-800 text-xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
-                  <span className="text-[10px] text-slate-400 block">Rolling time window</span>
+                  <span className="text-[10px] text-slate-400 block">Rolling minutes</span>
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
-                  <span className="text-[11px] text-slate-600 block">Speed Throttle</span>
+                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Speed Throttle</span>
                   <input
                     type="number"
                     min="1"
                     max="100"
                     value={speedLimit}
                     onChange={(e) => setSpeedLimit(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white border border-slate-300 rounded font-mono font-bold text-slate-800 text-xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <span className="text-[10px] text-slate-400 block">Max calls / window</span>
                 </div>
               </div>
             </div>
 
-            {/* Telegram Real-Time Notification Integration */}
-            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-3 pt-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-bold text-slate-900">Telegram Instant Alerts</span>
-                </div>
-                <span className="text-[10px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                  100% Free · Zero Fees
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Receive instant phone notifications whenever your agent makes a trade, triggers a policy rejection, or trips the emergency brake.
-              </p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
-                  placeholder="e.g. @my_telegram_handle or Chat ID"
-                  className="w-full px-3 py-1.5 bg-white border border-blue-200 rounded-lg font-mono text-xs text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
-                />
-              </div>
-            </div>
-
             {/* Direct External Cash Transfers Toggle */}
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+            <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-900 block">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-white block">
                     Allow Direct Transfers to Outside Wallets?
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Default is OFF. Blocks sending funds to third-party personal accounts.
                   </span>
                 </div>
@@ -563,7 +544,7 @@ export default function CreateAgentPage() {
                   type="button"
                   onClick={() => setAllowExternalTransfers(!allowExternalTransfers)}
                   className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                    allowExternalTransfers ? "bg-slate-900" : "bg-slate-300"
+                    allowExternalTransfers ? "bg-emerald-600" : "bg-slate-300 dark:bg-obsidian-800"
                   }`}
                 >
                   <div
@@ -575,14 +556,14 @@ export default function CreateAgentPage() {
               </div>
 
               {allowExternalTransfers && (
-                <div className="space-y-1 pt-2 border-t border-slate-200 text-xs">
-                  <label className="text-slate-700">Designated Allowed Recipient</label>
+                <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+                  <label className="text-slate-700 dark:text-slate-300">Designated Allowed Recipient</label>
                   <input
                     type="text"
                     value={externalRecipient}
                     onChange={(e) => setExternalRecipient(e.target.value)}
                     placeholder="e.g. sergeo-guard.testnet"
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                    className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               )}
@@ -593,7 +574,7 @@ export default function CreateAgentPage() {
               type="button"
               disabled={isDeploying}
               onClick={handleIssueCard}
-              className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isDeploying ? (
                 <>
@@ -607,22 +588,21 @@ export default function CreateAgentPage() {
                 </>
               )}
             </button>
-            <p className="text-[11px] text-slate-500 text-center">
-              Preview mode: generates ready-to-sign policy JSON and agent passkey format for NEAR consensus.
-            </p>
           </div>
 
           {/* Blueprint & Physical Card (Col 5) */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5 shadow-sm">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 className="text-sm font-bold text-slate-900">Digital Key Specification</h2>
-                <div className="flex items-center gap-1 text-xs bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+            <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-5 shadow-sm transition-colors">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Digital Key Specification</h2>
+                <div className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-obsidian-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => setActiveView("visual")}
-                    className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition ${
-                      activeView === "visual" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600"
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+                      activeView === "visual"
+                        ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     Card
@@ -630,8 +610,10 @@ export default function CreateAgentPage() {
                   <button
                     type="button"
                     onClick={() => setActiveView("json")}
-                    className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition ${
-                      activeView === "json" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600"
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+                      activeView === "json"
+                        ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     JSON
@@ -641,8 +623,8 @@ export default function CreateAgentPage() {
 
               {activeView === "visual" ? (
                 <div className="space-y-4">
-                  {/* Physical Card Widget */}
-                  <div className="p-5 rounded-xl bg-slate-900 text-white space-y-4 shadow-md border border-slate-800">
+                  {/* Physical Passkey Widget */}
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-obsidian-900 to-obsidian-950 text-white space-y-4 shadow-xl border border-slate-800">
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-emerald-400" />
@@ -650,7 +632,7 @@ export default function CreateAgentPage() {
                           SCOPEGUARD PASSKEY
                         </span>
                       </div>
-                      <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                      <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">
                         NEAR TESTNET
                       </span>
                     </div>
@@ -681,30 +663,30 @@ export default function CreateAgentPage() {
                   </div>
 
                   {/* Policy Guarantees */}
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs text-slate-700">
-                    <span className="font-bold text-slate-900 block mb-1">
+                  <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                    <span className="font-bold text-slate-900 dark:text-white block mb-1">
                       Enforceable Guarantees
                     </span>
                     <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>
                         Calls restricted to {platforms.length} allowlisted contract(s)
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>
                         Daily spending strictly bounded to ${dailyCap} mUSD
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>
                         Auto-freeze after {autoPauseAfter} rejects in {autoPauseWindowMinutes}m
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>
                         {allowExternalTransfers
                           ? `Transfers allowed only to ${externalRecipient || "designated wallet"}`
@@ -714,7 +696,7 @@ export default function CreateAgentPage() {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                <div className="p-4 rounded-2xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
                   <pre>{JSON.stringify(compiledPolicyJson, null, 2)}</pre>
                 </div>
               )}

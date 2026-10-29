@@ -59,10 +59,10 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-slate-800 block">
+        <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
           Quick-Add Pre-Vetted Platforms
         </label>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-[11px] text-slate-500 dark:text-slate-400">
           Click any preset to add or remove
         </span>
       </div>
@@ -75,30 +75,30 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
               key={preset.id}
               type="button"
               onClick={() => onTogglePreset(preset)}
-              className={`p-2.5 rounded-lg border text-left transition flex items-start justify-between gap-2 text-xs ${
+              className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 text-xs ${
                 isSelected
-                  ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                  : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                  ? "bg-emerald-500/10 border-emerald-500/40 text-slate-900 dark:text-white ring-1 ring-emerald-500/20"
+                  : "bg-white dark:bg-obsidian-950 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300"
               }`}
             >
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-900 truncate">
+                  <span className="font-semibold text-slate-900 dark:text-white truncate">
                     {preset.name}
                   </span>
                   <span
                     className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                       preset.category === "DEX"
-                        ? "bg-blue-100 text-blue-800"
+                        ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
                         : preset.category === "Lending"
-                        ? "bg-purple-100 text-purple-800"
-                        : "bg-amber-100 text-amber-800"
+                        ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300"
+                        : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
                     }`}
                   >
                     {preset.category}
                   </span>
                 </div>
-                <div className="font-mono text-[10px] text-slate-500 truncate">
+                <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate">
                   {preset.contract}
                 </div>
               </div>
@@ -107,7 +107,7 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
                 className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
                   isSelected
                     ? "bg-emerald-600 border-emerald-600 text-white"
-                    : "border-slate-300 bg-slate-50 text-slate-400"
+                    : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-obsidian-900 text-slate-400"
                 }`}
               >
                 {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}

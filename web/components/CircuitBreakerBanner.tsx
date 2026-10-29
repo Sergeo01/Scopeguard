@@ -39,10 +39,10 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
     <div
       className={`rounded-2xl border p-5 transition-all shadow-sm ${
         isTripped
-          ? "border-rose-300 bg-rose-50 text-rose-950"
+          ? "border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200"
           : isPaused
-          ? "border-amber-300 bg-amber-50 text-amber-950"
-          : "border-slate-200 bg-white text-slate-700"
+          ? "border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200"
+          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300"
       }`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -57,7 +57,7 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
                   : "bg-emerald-600"
               }`}
             />
-            <h4 className="text-sm font-bold text-slate-900">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
               {isTripped
                 ? "Emergency Circuit Breaker Tripped"
                 : isPaused
@@ -65,7 +65,7 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
                 : `Suspicious Reject Counter: ${rejectCount} / ${maxRejects}`}
             </h4>
           </div>
-          <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
             {isTripped
               ? `The Guard intercepted ${rejectCount} policy violations within ${windowMinutes} minutes. The automated circuit breaker halted all agent actions onchain to prevent fund loss.`
               : isPaused
@@ -77,7 +77,7 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
         {isPaused && isOwner && (
           <button
             onClick={onUnpause}
-            className="inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition shadow-sm"
+            className="inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white transition shadow-sm"
           >
             <Play className="w-4 h-4 fill-current" />
             <span>Unpause & Resume Operations</span>
