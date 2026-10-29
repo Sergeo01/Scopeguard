@@ -28,6 +28,7 @@ import {
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
+import { useWallet } from "@/context/WalletContext";
 
 interface ActivityItem {
   id: string;
@@ -52,10 +53,17 @@ interface PendingActionItem {
 }
 
 export default function DashboardPage() {
+  const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("trader.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
+
+  useEffect(() => {
+    if (isWalletConnected && connectedWalletId) {
+      setOwnerId(connectedWalletId);
+    }
+  }, [isWalletConnected, connectedWalletId]);
   const [agentPublicKey, setAgentPublicKey] = useState("ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm");
   const [policy, setPolicy] = useState<any>(null);
   const [isPaused, setIsPaused] = useState(false);

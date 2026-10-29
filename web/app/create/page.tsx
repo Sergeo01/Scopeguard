@@ -22,6 +22,7 @@ import {
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
+import { useWallet } from "@/context/WalletContext";
 
 interface TargetPlatform {
   id: string;
@@ -31,6 +32,7 @@ interface TargetPlatform {
 }
 
 export default function CreateAgentPage() {
+  const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
   const [agentName, setAgentName] = useState("trader.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(100);
   const [dailyCapInput, setDailyCapInput] = useState<string>("100");
@@ -310,7 +312,7 @@ export default function CreateAgentPage() {
           autoPauseAfter={autoPauseAfter}
           autoPauseWindowMinutes={autoPauseWindowMinutes}
           telegramChatId={telegramChatId}
-          ownerAccount={process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet"}
+          ownerAccount={connectedWalletId || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet"}
           passkey={generatedPasskey}
           publicKey={generatedPublicKey}
           policyJson={compiledPolicyJson}
@@ -330,6 +332,18 @@ export default function CreateAgentPage() {
                 placeholder="e.g. trader.sergeo-guard.testnet"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none focus:bg-white"
               />
+              {isWalletConnected && connectedWalletId && (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-[10px] text-slate-500">Connected account prefix:</span>
+                  <button
+                    type="button"
+                    onClick={() => setAgentName(`trader.${connectedWalletId}`)}
+                    className="text-[10px] font-mono text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded transition"
+                  >
+                    Use trader.{connectedWalletId}
+                  </button>
+                </div>
+              )}
               <span className="text-[11px] text-slate-500 block">
                 The NEAR account holding the scoped passkey. Isolated from your master wallet.
               </span>

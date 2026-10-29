@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sparkles, LayoutDashboard, PlusCircle, ExternalLink, Copy, Check, Lock } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
+import { WalletButton } from "@/components/WalletButton";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -67,16 +68,16 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Right Info: Guard Contract on Testnet */}
+        {/* Right Info: Guard Contract on Testnet & Wallet */}
         <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={copyContract}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-xs text-slate-700 transition shadow-sm"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-xs text-slate-700 transition shadow-sm"
             title="Copy Smart Contract address"
           >
             <Lock className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline text-slate-500">Guard:</span>
+            <span className="hidden md:inline text-slate-500">Guard:</span>
             <span className="font-mono text-slate-800 text-xs font-semibold">guard2.sergeo-guard.testnet</span>
             {copied ? (
               <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -94,6 +95,8 @@ export const Navbar: React.FC = () => {
           >
             <ExternalLink className="w-4 h-4" />
           </a>
+
+          <WalletButton />
         </div>
       </div>
     </header>
