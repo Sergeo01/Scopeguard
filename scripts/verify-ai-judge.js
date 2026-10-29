@@ -23,7 +23,7 @@ try {
   const passMatch = cargoOut.match(/(\d+) passed/);
   const passedCount = passMatch ? passMatch[1] : "0";
   console.log(`   --> Verified: ${passedCount} native Rust tests PASSED with exit code 0.\n`);
-  assert.ok(Number(passedCount) >= 33, "Expected at least 33 Rust unit tests to pass");
+  assert.ok(Number(passedCount) >= 35, "Expected at least 35 Rust unit tests to pass");
 } catch (err) {
   console.error("Cargo test failed:", err.message);
   process.exit(1);

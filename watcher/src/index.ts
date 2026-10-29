@@ -208,32 +208,43 @@ export class ScopeGuardWatcher {
         return [];
       }
 
+      if (currentHeight <= this.lastBlockHeight) {
+        return []; // Head did not advance, do not regress cursor
+      }
+
       const foundEvents: ScopeGuardEvent[] = [];
       const start = this.lastBlockHeight + 1;
-      const end = Math.min(currentHeight, start + 5); // process max 5 blocks per tick
+      const end = Math.min(currentHeight, start + 3); // process max 3 blocks per tick to reduce RPC load
+      let lastProcessed = this.lastBlockHeight;
 
       for (let h = start; h <= end; h++) {
-        const events = await this.checkBlock(h);
-        for (const ev of events) {
-          foundEvents.push(ev);
-          const alert = formatAlertMessage(ev);
-          if (alert) {
-            console.log("\n" + alert);
-            if (this.config.webhookUrl) {
-              await sendWebhookAlert(this.config.webhookUrl, alert);
-            }
-            if (this.config.telegramBotToken && this.config.telegramChatId) {
-              await sendTelegramAlert(
-                this.config.telegramBotToken,
-                this.config.telegramChatId,
-                alert
-              );
+        try {
+          const events = await this.checkBlock(h);
+          for (const ev of events) {
+            foundEvents.push(ev);
+            const alert = formatAlertMessage(ev);
+            if (alert) {
+              console.log("\n" + alert);
+              if (this.config.webhookUrl) {
+                await sendWebhookAlert(this.config.webhookUrl, alert);
+              }
+              if (this.config.telegramBotToken && this.config.telegramChatId) {
+                await sendTelegramAlert(
+                  this.config.telegramBotToken,
+                  this.config.telegramChatId,
+                  alert
+                );
+              }
             }
           }
+          lastProcessed = h;
+        } catch (err: any) {
+          console.warn(`[Watcher] Error checking block ${h}, pausing to retry:`, err.message);
+          break; // Halt batch to retry from lastProcessed on next tick
         }
       }
 
-      this.lastBlockHeight = end;
+      this.lastBlockHeight = lastProcessed;
       return foundEvents;
     } catch (err: any) {
       console.error("[Watcher] Poll error:", err.message);

@@ -706,19 +706,15 @@ impl Contract {
             rec.actions_in_window = 0;
         }
 
+        // Persist lazy window resets and staged policy transitions.
+        self.agents.insert(agent.clone(), rec.clone());
+
         // Re-run checks against current policy and windows.
         // Owner-triggered settle checks do not penalize the agent with reject strikes.
         if rec.paused {
             return Outcome {
                 status: "REJECTED".to_string(),
                 reason: Some(REASON_PAUSED.to_string()),
-                pending_id: Some(id),
-            };
-        }
-        if rec.actions_in_window >= rec.policy.max_actions_per_10min {
-            return Outcome {
-                status: "REJECTED".to_string(),
-                reason: Some(REASON_OVER_VELOCITY.to_string()),
                 pending_id: Some(id),
             };
         }
@@ -779,9 +775,9 @@ impl Contract {
         // All checks passed. Now remove the pending action from the queue.
         rec.pending_actions.retain(|a| a.id != id);
 
-        // All checks passed. Record spend and velocity, persist, emit SETTLED, perform action.
+        // All checks passed. Record spend, persist, emit SETTLED, perform action.
+        // ponytail: Do not increment actions_in_window again; it was already counted when queued.
         rec.spent_in_window = new_spent;
-        rec.actions_in_window += 1;
         self.agents.insert(agent.clone(), rec);
         emit(&format!(
             "{{\"event\":\"SETTLED\",\"agent\":\"{}\",\"id\":{},\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
@@ -1603,6 +1599,56 @@ mod tests {
 
         let budget = contract.get_budget(agent()).unwrap();
         assert_eq!(budget.spent.0, 300);
+    }
+
+    #[test]
+    fn test_owner_can_settle_even_when_velocity_limit_reached() {
+        let now_sec = 1_000;
+        let now_ns = now_sec * 1_000_000_000;
+
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id(owner())
+            .block_timestamp(now_ns);
+        testing_env!(builder.build());
+
+        let mut contract = Contract::new();
+        let mut policy = timelocked_policy(250);
+        policy.high_value_delay_seconds = 10; // short 10s delay within same 10min window
+        contract.register_agent(agent(), policy);
+
+        // 1. Agent queues high-value action (enters timelock, velocity = 1)
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let o = contract.execute(swap_action(300));
+        let id = o.pending_id.unwrap();
+
+        // 2. Agent consumes remaining 2 actions in 10-minute window (velocity reaches cap of 3)
+        for _ in 0..2 {
+            let res = contract.execute(swap_action(10));
+            assert_eq!(res.status, "ALLOWED");
+        }
+
+        // 3. Agent attempts 4th action -> blocked by velocity cap (3 / 3 reached)
+        let blocked = contract.execute(swap_action(10));
+        assert_eq!(blocked.status, "REJECTED");
+        assert_eq!(blocked.reason.as_deref(), Some(REASON_OVER_VELOCITY));
+
+        // 4. Advance 15 seconds (still in same 10-minute window, but past 10s timelock)
+        builder
+            .predecessor_account_id(owner())
+            .block_timestamp(now_ns + 15 * 1_000_000_000);
+        testing_env!(builder.build());
+
+        // 5. Owner settles pending action -> must succeed, owner is not locked out by agent burst
+        let settled = contract.settle_pending(agent(), id);
+        assert_eq!(settled.status, "SETTLED");
+
+        // 6. Verify velocity count was not double incremented (still 3)
+        let budget = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget.actions_in_window, 3);
+        assert_eq!(budget.spent.0, 320);
     }
 
     #[test]

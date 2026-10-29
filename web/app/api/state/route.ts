@@ -66,7 +66,14 @@ export async function GET() {
       const agentAccount = await near.account(agentId);
       const accessKeys = await agentAccount.getAccessKeys();
       if (accessKeys && accessKeys.length > 0) {
-        agentPublicKey = accessKeys[0].public_key;
+        const scopedKey = accessKeys.find((k: any) => {
+          const perm = k.access_key?.permission;
+          return (
+            typeof perm === "object" &&
+            perm?.FunctionCall?.receiver_id === guardId
+          );
+        });
+        agentPublicKey = scopedKey ? scopedKey.public_key : accessKeys[0].public_key;
       }
     } catch {
       // Fallback to configured key

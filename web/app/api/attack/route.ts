@@ -131,6 +131,16 @@ export async function POST(req: Request) {
       });
 
       if (budget && budget.paused) {
+        recordActivity({
+          id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          type: "REJECT",
+          timestamp: Date.now(),
+          agent: cred.agentAccountId,
+          target,
+          method,
+          amount: amount && amount !== "0" ? amount : undefined,
+          reason: "PAUSED (Preflight check rejected without gas expenditure)",
+        });
         return NextResponse.json({
           success: true,
           outcome: {

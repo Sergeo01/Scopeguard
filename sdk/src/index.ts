@@ -127,17 +127,12 @@ export class ScopeGuardAgentClient {
         action = {
           Swap: {
             dex: p.target,
-            token_in: p.token || "sergeo-guard-token.testnet",
+            token_in: p.token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet",
             amount_in: p.amount || "0",
             min_out: p.min_out || "0",
           },
         };
-      } else if (
-        p.method === "ft_transfer" ||
-        p.method === "ft_transfer_call" ||
-        p.target === "sergeo-guard-token.testnet" ||
-        p.token
-      ) {
+      } else if (p.method === "ft_transfer" || p.method === "ft_transfer_call") {
         action = {
           Transfer: {
             token: p.token || p.target,
