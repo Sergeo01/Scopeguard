@@ -22,6 +22,64 @@ export interface DraftResult {
   plainEnglish: string;
   warnings: LintWarning[];
   isManualFallback: boolean;
+  /** true only when the returned policy object passed structural validation */
+  schemaValidated: boolean;
+  validationErrors: string[];
+}
+
+const isInt = (v: unknown, min: number, max: number): boolean =>
+  typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+
+/**
+ * Structural validation of a drafted policy against the onchain `Policy`
+ * shape. This is not a lint pass (see `lintPolicy`); it answers a narrower
+ * question: could this JSON be deserialized by the contract at all?
+ */
+export function validatePolicyShape(p: any): string[] {
+  const errors: string[] = [];
+  if (!p || typeof p !== "object") return ["policy is not an object"];
+
+  if (typeof p.token !== "string" || !p.token.includes(".")) {
+    errors.push("token must be a contract account id");
+  }
+
+  if (!p.targets || typeof p.targets !== "object" || Array.isArray(p.targets)) {
+    errors.push("targets must be an object of contract -> method list");
+  } else {
+    const entries = Object.entries(p.targets as Record<string, unknown>);
+    if (entries.length === 0) errors.push("targets must name at least one contract");
+    for (const [contract, methods] of entries) {
+      if (!contract.includes(".")) errors.push(`targets.${contract} is not an account id`);
+      if (!Array.isArray(methods) || methods.length === 0) {
+        errors.push(`targets.${contract} must list at least one method`);
+      } else if (methods.some((m) => typeof m !== "string" || !m.length)) {
+        errors.push(`targets.${contract} contains a non-string method`);
+      }
+    }
+  }
+
+  if (!isInt(p.daily_cap, 1, Number.MAX_SAFE_INTEGER)) {
+    errors.push("daily_cap must be a positive integer");
+  }
+  if (!Array.isArray(p.recipients) || p.recipients.some((r: unknown) => typeof r !== "string")) {
+    errors.push("recipients must be an array of account ids");
+  }
+  if (!isInt(p.max_actions_per_10min, 1, 100)) errors.push("max_actions_per_10min must be 1-100");
+  if (!isInt(p.auto_pause_rejects, 1, 50)) errors.push("auto_pause_rejects must be 1-50");
+  if (!isInt(p.auto_pause_window_minutes, 1, 1440)) {
+    errors.push("auto_pause_window_minutes must be 1-1440");
+  }
+  if (!isInt(p.high_value_threshold, 0, Number.MAX_SAFE_INTEGER)) {
+    errors.push("high_value_threshold must be a non-negative integer");
+  }
+  if (!isInt(p.high_value_delay_seconds, 0, Number.MAX_SAFE_INTEGER)) {
+    errors.push("high_value_delay_seconds must be a non-negative integer");
+  }
+  if (!isInt(p.policy_change_delay_seconds, 0, Number.MAX_SAFE_INTEGER)) {
+    errors.push("policy_change_delay_seconds must be a non-negative integer");
+  }
+
+  return errors;
 }
 
 export function getSafeDefaultPolicy(dailyCap: number | string = 100): DrafterPolicy {
@@ -180,14 +238,19 @@ Rules:
         const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (rawContent) {
           const parsed = JSON.parse(rawContent);
-          if (parsed && parsed.daily_cap) {
+          const errors = validatePolicyShape(parsed);
+          if (errors.length === 0) {
             return {
               policy: parsed,
               plainEnglish: generatePlainEnglish(parsed),
               warnings: lintPolicy(parsed),
               isManualFallback: false,
+              schemaValidated: true,
+              validationErrors: [],
             };
           }
+          // Model output did not match the schema: fall through to the
+          // deterministic parser rather than shipping an unvalidated policy.
         }
       }
     } catch {
@@ -265,11 +328,14 @@ Rules:
   });
 
   const warnings = lintPolicy(draft);
+  const validationErrors = validatePolicyShape(draft);
 
   return {
     policy: draft,
     plainEnglish,
     warnings,
     isManualFallback: true,
+    schemaValidated: validationErrors.length === 0,
+    validationErrors,
   };
 }

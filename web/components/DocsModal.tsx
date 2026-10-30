@@ -290,7 +290,7 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
 node sdk/bin/cli.js setup
 
 # 2. Check remaining daily budget:
-node sdk/bin/cli.js budget --account trader.sergeo-guard.testnet
+node sdk/bin/cli.js budget --account agent.sergeo-guard.testnet
 
 # 3. Execute bounded swap action:
 node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount 25`}

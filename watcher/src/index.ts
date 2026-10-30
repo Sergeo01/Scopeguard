@@ -270,7 +270,7 @@ export class ScopeGuardWatcher {
 
 // Runnable standalone entry point
 if (require.main === module) {
-  const rpcUrl = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+  const rpcUrl = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
   const policyContractId = process.env.POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
   const webhookUrl = process.env.WEBHOOK_URL;
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;

@@ -37,7 +37,7 @@ The product promise: **"Give your agent a key that can only do its job."**
 Judges and evaluators can verify the entire project locally and on testnet in under 30 seconds:
 
 ```bash
-# 1. Run all 33 native Rust smart contract unit tests
+# 1. Run all 42 native Rust smart contract unit tests
 cargo test --manifest-path contracts/Cargo.toml
 
 # 2. Run automated judge verification script (rules, codes, timelocks, and consensus behavior)
@@ -54,23 +54,28 @@ npm run build --prefix web
 
 ## 4. The Five Core Pieces
 
-1. **The Agent Sub-Account:** The agent operates under its own named sub-account (for example, `trader.alice.testnet`), completely isolated from the owner's main funds.
+1. **The Agent Sub-Account:** The agent operates under its own named sub-account (for example, `agent.alice.testnet`), completely isolated from the owner's main funds.
 2. **The Spending Pot (Vault):** The owner funds a limited working balance in the Guard contract. That balance is the hard outer limit of what the agent can touch.
 3. **The Scoped Passkey:** A NEAR function-call access key restricted at the protocol level to `receiver = Policy Contract`, `methods = ["execute"]`, with a capped NEAR gas allowance. It cannot transfer NEAR directly, call other contracts, add keys, or delete the account.
-4. **The Policy Guard Contract:** A Rust contract on NEAR implementing seven ordered checks. If checks pass, it executes the action. If any check fails, it writes to an onchain reject log, returns the machine-readable reason code without panicking, and trips an auto-pause circuit breaker if rejections spike.
+4. **The Policy Guard Contract:** A Rust contract on NEAR implementing ten ordered checks. If checks pass, it executes the action. If any check fails, it writes to an onchain reject log, returns the machine-readable reason code without panicking, and trips an auto-pause circuit breaker if rejections spike.
 5. **The Owner Rule Card:** The owner's policy specifying allowed target contracts, allowed methods, a fixed 24-hour spend cap window (protected by a 10-minute velocity throttle against boundary bursts), a recipient allowlist, a velocity limit (actions per 10 minutes), and auto-pause settings.
 
 ---
 
-## 5. The Seven Guard Checks (Strict Order)
+## 5. The Ten Guard Checks (Strict Order)
 
 1. `NOT_AGENT`: Caller must match the registered agent account.
 2. `PAUSED`: Agent must not be paused by owner or circuit breaker.
 3. `OVER_VELOCITY_CAP`: Actions in the current 10-minute window must be within the burst limit.
-4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist.
+4. `TARGET_NOT_ALLOWED`: Target contract must be on the allowlist. A typed `Transfer` must name the policy token, and a generic `ContractCall` may never target it.
 5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target, and token calls must use typed `GuardAction::Transfer`.
 6. `OVER_DAILY_CAP`: spend in the current 24-hour budget window plus requested amount must fit the daily cap.
 7. `RECIPIENT_NOT_ALLOWED`: External recipient must be explicitly allowlisted.
+8. `PENDING` (not a rejection): an action at or above `high_value_threshold` is queued for owner settle or veto.
+9. `INSUFFICIENT_VAULT_BALANCE`: a `Transfer` may not exceed the agent's own recorded vault balance.
+10. `PENDING_QUEUE_FULL`: the quarantine queue is bounded, so a flood of high-value actions cannot grow state without limit.
+
+`revoke_agent` is a separate owner control, not a check: it empties the target and recipient allowlists, pauses the agent, clears staged policy and pending intents, and cannot be undone. Because the allowlist is empty, every later `execute` is rejected even if the agent is unpaused. This is the supported way to retire an agent whose FunctionCall key was lost or leaked, because the agent account owns its own key, so the owner cannot delete it from consensus.
 
 ---
 
@@ -82,7 +87,7 @@ npm run build --prefix web
 - `sdk`: TypeScript SDK (`loadCredential`, `act`, `budget`).
 - `demo-agent`: Deliberately naive Node.js agent with LLM in the loop.
 - `drafter`: AI scope drafter service with JSON Schema validation and lint checks.
-- `web`: Next.js developer studio workbench with live attack simulator, agent treasury console, and interactive owner emergency controls.
+- `web`: Next.js developer studio workbench with a live attack simulator, a fleet console that reads chain state, and owner emergency controls that print the `near call` you sign yourself.
 - `watcher`: Stateless notification service tailing reject events for Telegram and Discord alerts.
 
 ---
@@ -95,31 +100,30 @@ ScopeGuard is live and fully verified on the NEAR Testnet.
 - **Policy Guard Contract:** [`guard2.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet)
 - **Token Vault (mUSD):** [`sergeo-guard-token.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-token.testnet)
 - **Mock DEX Contract:** [`sergeo-guard-dex.testnet`](https://testnet.nearblocks.io/address/sergeo-guard-dex.testnet)
-- **Agent Sub-Account:** [`trader.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/trader.sergeo-guard.testnet)
+- **Agent Sub-Account:** [`agent.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/agent.sergeo-guard.testnet)
 - **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
 
 ### Verified Onchain Execution Proofs
-1. **Contract Deployment:**
-   - Policy Contract: [Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG](https://testnet.nearblocks.io/txns/Bu3g5C3S3xvhH7H1XktVrdD37ZPMuZ1xYUEo8ukE8fiG)
-   - Contract Init (`new`): [Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF](https://testnet.nearblocks.io/txns/Fo5FSTsnjieAx6CDKYyKeV1rZDwfCXMBHY42HvtGTZZF)
-2. **Agent Registration:**
-   - Bound to sub-account: [9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL](https://testnet.nearblocks.io/txns/9j7E9oAkntMHcRvUyvekkosoAqkcjY4j3xJdTYknMDuL)
-3. **Scoped Passkey Added:**
-   - Function-call key restricted to Guard.execute: [57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc](https://testnet.nearblocks.io/txns/57geTR5EE9ksrHG8xH1MeaFtUHmWQZUZSa9RQw45tsKc)
-4. **Clean Passkey Cryptographic Isolation (0 FullAccess Keys):**
-   - FullAccess key deleted from agent sub-account: [5tKBMR7b7GEFpt1Mh8LkCceygmDBfbvRxAbaAKgHJ8Lv](https://testnet.nearblocks.io/txns/5tKBMR7b7GEFpt1Mh8LkCceygmDBfbvRxAbaAKgHJ8Lv)
-   - Stale old key deleted: [6UnuFDAzghb9JCb2igbtFVhDC2cNQiRS7z5eUkyGWKPh](https://testnet.nearblocks.io/txns/6UnuFDAzghb9JCb2igbtFVhDC2cNQiRS7z5eUkyGWKPh)
-   - Duplicate key deleted: [DULYWiS4Eb98tob7b6doJowXiftj5TVNt9iMXg3RVHCK](https://testnet.nearblocks.io/txns/DULYWiS4Eb98tob7b6doJowXiftj5TVNt9iMXg3RVHCK)
-5. **Real NEP-141 Vault Deposit (100 mUSD):**
-   - Transferred via `ft_transfer_call`: [58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha](https://testnet.nearblocks.io/txns/58QZh1CgMFBT3tCC5gR5sSKthC3SBYpn6o23j7c9U8Ha)
-6. **Passkey Onchain Rejection (`TARGET_NOT_ALLOWED`):**
-   - Unauthorized contract call refused onchain without panic: [7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv](https://testnet.nearblocks.io/txns/7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv)
-7. **Owner Veto Cancellation (CANCELLED):**
-   - Owner veto of pending intent #3: [A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj](https://testnet.nearblocks.io/txns/A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj)
-   - Owner veto of pending intent #2: [AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp](https://testnet.nearblocks.io/txns/AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp)
-   - Owner veto of pending intent #1: [2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8](https://testnet.nearblocks.io/txns/2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8)
-8. **Owner Unpause on Guard2:**
-   - Active state restored by owner: [7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt](https://testnet.nearblocks.io/txns/7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt)
+
+Every hash below was re-checked against a transaction index that still serves history (`rpc.testnet.fastnear.com/tx`). If you find a hash on this page that does not resolve, it is a bug, please open an issue.
+
+1. **Contract deployment (v0.2.0, state preserved):**
+   - [`B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev`](https://testnet.nearblocks.io/txns/B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev), signed by `guard2.sergeo-guard.testnet`, redeployed over live state.
+2. **Agent retirement via `revoke_agent` (allowlist erased, agent paused):**
+   - [`CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9`](https://testnet.nearblocks.io/txns/CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9)
+3. **Allowed work under policy:**
+   - Swap 10 mUSD executed: [`6MYF5g7TwtSaPEygAnUybRLBLygWBbE45q7Du9fNp8G`](https://testnet.nearblocks.io/txns/6MYF5g7TwtSaPEygAnUybRLBLygWBbE45q7Du9fNp8G)
+4. **High-value quarantine:**
+   - Swap 300 mUSD queued as intent #1: [`2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5`](https://testnet.nearblocks.io/txns/2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5)
+   - Owner vetoed intent #1: [`ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq`](https://testnet.nearblocks.io/txns/ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq)
+5. **Rejections returned as data, not panics:**
+   - Recipient outside the allowlist → `RECIPIENT_NOT_ALLOWED`: [`6kEHj53hcqSXbbr2n5j7sLSVrcWwuGjTH6ongEBbsoNL`](https://testnet.nearblocks.io/txns/6kEHj53hcqSXbbr2n5j7sLSVrcWwuGjTH6ongEBbsoNL)
+   - Rogue target contract → `TARGET_NOT_ALLOWED`: [`EDwEhWuBTLZTwzfwKu8sJRg2a927CcJLsCqY4tAxvZDZ`](https://testnet.nearblocks.io/txns/EDwEhWuBTLZTwzfwKu8sJRg2a927CcJLsCqY4tAxvZDZ)
+   - Prompt-injection transfer to `attacker.testnet` → `RECIPIENT_NOT_ALLOWED`: [`tsNvfGwZ4gkQyLSqXGDGbyV3ZPH2XHDFAYYE8g1ztQ2`](https://testnet.nearblocks.io/txns/tsNvfGwZ4gkQyLSqXGDGbyV3ZPH2XHDFAYYE8g1ztQ2)
+6. **Key rotation actually kills a leaked key:**
+   - A swap signed with the retired agent key (`trader.sergeo-guard.testnet`) is refused with `PAUSED`: [`ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5`](https://testnet.nearblocks.io/txns/ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5). The current agent is `agent.sergeo-guard.testnet`, which holds exactly one scoped FunctionCall key.
+
+The older proof links that used to live in this section did not resolve on chain and have been removed rather than re-pointed.
 
 ---
 
@@ -149,7 +153,18 @@ We believe in radical transparency:
 2. **Single-Token Vault in v1:** In v1, each Guard policy specifies a single registered NEP-141 token pot (`policy.token`). The Guard strictly verifies the token contract on deposit and ensures transfers move that token. Generic `ContractCall` actions are prohibited from targeting `policy.token` directly, ensuring all value moves strictly through typed `Transfer`. Multi-token asset treasuries are scheduled for v2.
 3. **Mock DEX Accounting Scope:** The demo DEX contract demonstrates fixed-rate swap gating and daily cap counting. In v1, swaps do not fake-debit tokens unless real assets move via `ft_transfer_call`. Full DEX AMM liquidity pool integration is planned for v2.
 4. **Asynchronous Settlement and Automatic Rollback:** In ScopeGuard, token transfers debit the internal vault balance and daily spend cap before dispatching downstream cross-contract calls. If a transfer fails downstream (for example an unregistered receiver), private callbacks (`on_action_resolved` and `on_withdraw_resolved`) catch the downstream promise failure and automatically restore the internal vault balance and roll back the spend budget.
-5. **Non-Custodial Owner Controls:** The ScopeGuard web server never custodies owner master private keys. Emergency powers (pause, unpause, withdraw, revoke) are executed via NEAR CLI or user wallets directly onchain.
+5. **Non-Custodial Owner Controls:** The ScopeGuard web server does not read owner keys from disk and does not sign with them by default. Emergency powers (pause, unpause, withdraw, revoke, reset) are executed via NEAR CLI or a user wallet directly onchain, and the admin console only prints the command. Two routes (`/api/register`, `/api/fund`) can sign with an owner key for a hosted demo; they are disabled unless the operator sets `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` and supplies `OWNER_PRIVATE_KEY` in the environment, and they reject cross-origin requests. The local demo's agent key lives in a gitignored credential file because the demo runs the agent for you; it is a scoped FunctionCall key, not an owner key.
+
+### Server-side signing (opt-in)
+
+```bash
+# Default: signing routes return a copy-paste CLI command and broadcast nothing.
+# Hosted demo only:
+SCOPEGUARD_ALLOW_SERVER_SIGNING=true
+OWNER_PRIVATE_KEY=ed25519:...        # env only; never a file the server reads
+```
+
+The `/api/attack` simulation route holds the demo agent's scoped key (env or `demo-agent/credentials/agent.json`). That key can only call `execute` on the guard, which is the property being demonstrated; it cannot move funds outside the policy.
 6. **No Panic Invariant:** All policy rejections return structured value codes without panicking. Panicking on reject would revert state writes, which would silently erase the intrusion audit log and undo circuit breaker strikes.
 7. **Pre-Demo Reset:** Because the onchain circuit breaker automatically freezes the agent after repeated attack declines during evaluation, evaluators can reset the agent and timelock queue anytime with one command: `node scripts/reset-demo.js`.
 

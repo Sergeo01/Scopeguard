@@ -1892,7 +1892,7 @@ mod tests {
     #[test]
     fn test_get_version() {
         let (contract, _) = setup_contract(100);
-        assert_eq!(contract.get_version(), "0.1.0");
+        assert_eq!(contract.get_version(), "0.2.0");
     }
 
     #[test]
@@ -1930,5 +1930,163 @@ mod tests {
         let policy_str: Policy = near_sdk::serde_json::from_str(json_str).unwrap();
         assert_eq!(policy_str.daily_cap, 500);
         assert_eq!(policy_str.high_value_threshold, 250);
+    }
+
+    // ---------------------------------------------------------------
+    // revoke_agent / reset_windows
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_revoke_agent_wipes_allowlists_and_pauses() {
+        let now = 1_000_000_000;
+        let (mut contract, builder) = setup_contract(now);
+
+        contract.revoke_agent(agent());
+
+        let policy = contract.get_policy(agent()).unwrap();
+        assert!(policy.targets.is_empty(), "targets must be emptied");
+        assert!(policy.recipients.is_empty(), "recipients must be emptied");
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert!(budget.paused, "revoked agent must be paused");
+        assert!(budget.revoked, "revoked flag must be set");
+
+        // The record survives so the owner can still withdraw the vault.
+        assert_eq!(budget.cap, U128(1000));
+        let _ = builder;
+    }
+
+    #[test]
+    fn test_revoked_agent_still_rejected_after_unpause() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        contract.revoke_agent(agent());
+
+        // Owner lifts the pause. The allowlist is empty, so nothing is restored.
+        testing_env!(builder.clone().build());
+        contract.unpause(agent());
+        assert!(!contract.get_budget(agent()).unwrap().paused);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        let outcome = contract.execute(swap_action(10));
+        assert_eq!(outcome.status, "REJECTED");
+        assert_eq!(outcome.reason.as_deref(), Some(REASON_TARGET));
+    }
+
+    #[test]
+    fn test_revoke_agent_clears_staged_policy_and_pending() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Stage a policy change.
+        let mut raised = sample_policy();
+        raised.daily_cap = 5000;
+        contract.set_policy(agent(), raised);
+        assert!(contract.get_staged_policy(agent()).is_some());
+
+        // Queue a high-value intent so pending_actions is non-empty.
+        let mut queued = sample_policy();
+        queued.high_value_threshold = 100;
+        contract.set_policy(agent(), queued.clone());
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        // Apply the staged policy immediately by moving past effective_at.
+        builder.block_timestamp(now + 601 * 1_000_000_000);
+        testing_env!(builder.clone().build());
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let pending = contract.execute(swap_action(150));
+        assert_eq!(pending.status, "PENDING");
+        assert_eq!(contract.get_pending_actions(agent()).len(), 1);
+
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        contract.revoke_agent(agent());
+
+        assert!(contract.get_staged_policy(agent()).is_none());
+        assert!(contract.get_pending_actions(agent()).is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "only owner may call this method")]
+    fn test_revoke_agent_is_owner_only() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        contract.revoke_agent(agent());
+    }
+
+    #[test]
+    fn test_reset_windows_clears_spend_velocity_and_strikes() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        // Burn the velocity allowance (max_actions_per_10min = 3).
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        for _ in 0..3 {
+            let out = contract.execute(swap_action(10));
+            assert_eq!(out.status, "ALLOWED");
+        }
+
+        // A fourth call trips the velocity cap and records a strike.
+        let capped = contract.execute(swap_action(10));
+        assert_eq!(capped.status, "REJECTED");
+        assert_eq!(capped.reason.as_deref(), Some(REASON_OVER_VELOCITY));
+
+        let before = contract.get_budget(agent()).unwrap();
+        assert_eq!(before.spent, U128(30));
+        assert_eq!(before.actions_in_window, 3);
+
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        contract.reset_windows(agent());
+
+        let after = contract.get_budget(agent()).unwrap();
+        assert_eq!(after.spent, U128(0));
+        assert_eq!(after.actions_in_window, 0);
+        assert_eq!(after.remaining, U128(1000));
+        // Pause state and policy are untouched by a window reset.
+        assert!(!after.paused);
+        assert_eq!(contract.get_policy(agent()).unwrap().daily_cap, 1000);
+
+        // The velocity lane is usable again.
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let allowed = contract.execute(swap_action(10));
+        assert_eq!(allowed.status, "ALLOWED");
+    }
+
+    #[test]
+    #[should_panic(expected = "only owner may call this method")]
+    fn test_reset_windows_is_owner_only() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        contract.reset_windows(agent());
+    }
+
+    #[test]
+    #[should_panic(expected = "agent is revoked: nothing to reset")]
+    fn test_reset_windows_rejects_revoked_agent() {
+        let now = 1_000_000_000;
+        let (mut contract, builder) = setup_contract(now);
+        contract.revoke_agent(agent());
+        let _ = builder;
+        contract.reset_windows(agent());
     }
 }

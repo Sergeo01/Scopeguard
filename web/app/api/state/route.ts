@@ -23,12 +23,12 @@ export async function GET() {
   try {
     const near = await connect({
       networkId: process.env.NEAR_NETWORK || "testnet",
-      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
       keyStore: new keyStores.InMemoryKeyStore(),
     });
 
     const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
-    const agentId = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "trader.sergeo-guard.testnet";
+    const agentId = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "agent.sergeo-guard.testnet";
     const ownerId = process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
     const account = await near.account(ownerId);
 
@@ -61,7 +61,11 @@ export async function GET() {
       // Policy view query fallback
     }
 
-    let agentPublicKey = process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm";
+    // Derived from chain first. The env override exists for tests, and there is
+    // deliberately no hardcoded key here: after a rotation a stale literal would
+    // display a key that no longer controls anything.
+    let agentPublicKey: string | null =
+      process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || null;
     try {
       const agentAccount = await near.account(agentId);
       const accessKeys = await agentAccount.getAccessKeys();
@@ -76,7 +80,7 @@ export async function GET() {
         agentPublicKey = scopedKey ? scopedKey.public_key : accessKeys[0].public_key;
       }
     } catch {
-      // Fallback to configured key
+      // Leave the configured key (or null) in place
     }
 
     const statePayload = {

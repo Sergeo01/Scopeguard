@@ -102,7 +102,13 @@ export class ScopeGuardAgentClient {
 
       const near = await connect({
         networkId,
-        nodeUrl: this.credential.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
+        // An explicit environment override wins over the nodeUrl recorded in a
+        // credential file. Stale credentials otherwise pin a dead or
+        // rate-limited RPC with no visible cause.
+        nodeUrl:
+          process.env.NEAR_TESTNET_RPC ||
+          this.credential.nodeUrl ||
+          "https://test.rpc.fastnear.com",
         keyStore,
       });
 
@@ -133,10 +139,19 @@ export class ScopeGuardAgentClient {
           },
         };
       } else if (p.method === "ft_transfer" || p.method === "ft_transfer_call") {
+        // A transfer without a recipient is not a transfer. Sending
+        // `to: ""` used to produce an invalid AccountId, which made the
+        // contract panic during deserialization instead of returning a
+        // reason code. Fail here, where the mistake is legible.
+        if (!p.recipient) {
+          throw new Error(
+            `${p.method} requires a recipient account id; refusing to build a transfer without one`
+          );
+        }
         action = {
           Transfer: {
             token: p.token || p.target,
-            to: p.recipient || "",
+            to: p.recipient,
             amount: p.amount || "0",
             memo: p.memo || null,
           },
@@ -217,7 +232,7 @@ export class ScopeGuardOwnerClient {
     this.policyContractId = config.policyContractId;
     this.privateKey = config.privateKey;
     this.networkId = config.networkId || "testnet";
-    this.nodeUrl = config.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+    this.nodeUrl = config.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
   }
 
   private async getAccount(): Promise<Account> {

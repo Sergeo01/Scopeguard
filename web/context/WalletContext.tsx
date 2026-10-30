@@ -16,7 +16,7 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 const DEFAULT_OWNER = process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
-const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://rpc.testnet.near.org";
+const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accountId, setAccountId] = useState<string>(DEFAULT_OWNER);

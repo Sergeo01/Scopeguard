@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
+import { isSameOrigin } from "@/lib/api-guard";
 
 let lastAttackTimestamp = 0;
 let isAttackInProgress = false;
@@ -13,6 +14,13 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_ATTACKS_PER_WINDOW = 12;
 
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { success: false, error: "Cross-origin simulation request rejected." },
+      { status: 403 }
+    );
+  }
+
   if (isAttackInProgress) {
     return NextResponse.json({
       success: false,
@@ -116,7 +124,7 @@ export async function POST(req: Request) {
 
     const near = await connect({
       networkId: cred.networkId || "testnet",
-      nodeUrl: process.env.NEAR_TESTNET_RPC || cred.nodeUrl || "https://rpc.testnet.near.org",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || cred.nodeUrl || "https://test.rpc.fastnear.com",
       keyStore,
     });
 
@@ -147,6 +155,18 @@ export async function POST(req: Request) {
             status: "REJECTED",
             reason: "PAUSED",
             pending_id: null,
+          },
+          verdict: {
+            status: "REJECTED",
+            reasonCode: "PAUSED",
+            ruleNumber: 2,
+            ruleName: "Execution State Check",
+            explanation: "Refused by onchain policy: Agent execution is paused by owner.",
+            txHash: undefined,
+            attemptedTarget: target,
+            attemptedMethod: method,
+            attemptedAmount: amount,
+            fundsSaved: amount,
           },
           note: "Agent is currently in PAUSED state. Enforcement check rejected without gas expenditure.",
         });
@@ -223,11 +243,39 @@ export async function POST(req: Request) {
       reason: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "Action executed under verified policy" : parsedOutcome.status === "PENDING" ? `Queued in timelock quarantine (Intent #${parsedOutcome.pending_id || 1})` : undefined),
     });
 
+    const RULE_NUMBER: Record<string, number> = {
+      NOT_AGENT: 1,
+      PAUSED: 2,
+      OVER_VELOCITY_CAP: 3,
+      TARGET_NOT_ALLOWED: 4,
+      METHOD_NOT_ALLOWED: 5,
+      OVER_DAILY_CAP: 6,
+      RECIPIENT_NOT_ALLOWED: 7,
+      INSUFFICIENT_VAULT_BALANCE: 9,
+      PENDING_QUEUE_FULL: 10,
+    };
+
     return NextResponse.json({
       success: true,
       txHash,
       explorerUrl: `https://testnet.nearblocks.io/txns/${txHash}`,
       outcome: parsedOutcome,
+      verdict: {
+        status: parsedOutcome.status,
+        reasonCode: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
+        ruleNumber: parsedOutcome.reason
+          ? RULE_NUMBER[parsedOutcome.reason] ?? 0
+          : parsedOutcome.status === "PENDING"
+          ? 8
+          : 0,
+        ruleName: parsedOutcome.reason ? parsedOutcome.reason.replace(/_/g, " ") : parsedOutcome.status === "PENDING" ? "High Value Timelock" : "Policy Check",
+        explanation: parsedOutcome.reason ? `Refused by onchain policy: ${parsedOutcome.reason}` : parsedOutcome.status === "PENDING" ? "High-value action held in 60-second owner veto quarantine." : "Action cleared all onchain policy bounds.",
+        txHash,
+        attemptedTarget: target,
+        attemptedMethod: method,
+        attemptedAmount: amount,
+        fundsSaved: amount,
+      },
     });
   } catch (err: any) {
     return NextResponse.json({

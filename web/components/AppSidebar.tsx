@@ -79,6 +79,13 @@ export const AppSidebar: React.FC<{
           badge: "New",
           badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
         },
+        {
+          href: "/admin",
+          label: "Platform Admin",
+          icon: Sliders,
+          badge: "Cockpit",
+          badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+        },
       ],
     },
     {

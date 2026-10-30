@@ -8,7 +8,7 @@ const NETWORK_ID = "testnet";
 
 const OWNER_ID = "sergeo-guard.testnet";
 const GUARD_ID = "guard2.sergeo-guard.testnet";
-const TRADER_ID = "trader.sergeo-guard.testnet";
+const TRADER_ID = "agent.sergeo-guard.testnet";
 
 async function loadKey(accountId) {
   const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${accountId}.json`);
@@ -49,7 +49,7 @@ async function main() {
   const deployRes = await guardAccount.deployContract(wasmBytes);
   console.log(`--> Deployed successfully! Tx: ${deployRes.transaction.hash}`);
 
-  // 2. Unpause trader.sergeo-guard.testnet from sergeo-guard.testnet (owner)
+  // 2. Unpause agent.sergeo-guard.testnet from sergeo-guard.testnet (owner)
   const ownerAccount = await near.account(OWNER_ID);
   console.log(`Unpausing ${TRADER_ID} on ${GUARD_ID} from owner ${OWNER_ID}...`);
   const unpauseRes = await ownerAccount.functionCall({

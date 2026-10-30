@@ -28,6 +28,10 @@ interface AgentHandoffCardProps {
   publicKey?: string;
   policyJson?: any;
   onReset: () => void;
+  txHash?: string;
+  explorerUrl?: string;
+  registrationStatus?: "idle" | "broadcasting" | "registered" | "manual";
+  registrationCommand?: string;
 }
 
 export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
@@ -42,6 +46,10 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   publicKey,
   policyJson,
   onReset,
+  txHash,
+  explorerUrl,
+  registrationStatus = "idle",
+  registrationCommand,
 }) => {
   const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -92,7 +100,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
     publicKey: actualPublicKey,
     privateKey: actualPasskey,
     networkId: "testnet",
-    nodeUrl: "https://rpc.testnet.near.org",
+    nodeUrl: "https://test.rpc.fastnear.com",
     created_at: new Date().toISOString(),
   };
 
@@ -125,7 +133,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
         </div>
         <div className="space-y-1">
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-block mb-1">
-            Passkey Generated Locally (Ready for Handoff)
+            {txHash ? "Registered Onchain (NEAR Testnet)" : "Passkey Generated Locally (Ready for Handoff)"}
           </span>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Passkey Ready for Agent Handoff
@@ -135,6 +143,76 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             <span className="font-mono font-semibold text-slate-900 dark:text-white">{agentName}</span>.
           </p>
         </div>
+
+        {/* Verified Onchain Transaction Banner */}
+        {txHash && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                  ONCHAIN POLICY REGISTRATION VERIFIED
+                </span>
+                <span className="font-mono text-xs text-slate-800 dark:text-slate-200 truncate block">
+                  Tx: {txHash}
+                </span>
+              </div>
+            </div>
+            <a
+              href={explorerUrl || `https://testnet.nearblocks.io/txns/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition shadow-xs shrink-0 cursor-pointer"
+            >
+              <span>NearBlocks</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
+
+        {registrationStatus === "broadcasting" && (
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Broadcasting registration transaction to NEAR Testnet...</span>
+          </div>
+        )}
+
+        {/* Manual registration: this server does not hold an owner key, so it
+            hands back the exact `near call` the owner signs themselves. */}
+        {registrationStatus === "manual" && !txHash && (
+          <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl text-left space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+              Not registered yet: one command to finish
+            </span>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              This server does not hold an owner key, so it did not sign anything. Run this
+              with the owner account to register the policy onchain:
+            </p>
+            {registrationCommand ? (
+              <div className="relative">
+                <pre className="p-3 pr-10 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto whitespace-pre-wrap break-all border border-slate-800">
+                  {registrationCommand}
+                </pre>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(registrationCommand, "manual-cmd")}
+                  className="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                  title="Copy command"
+                >
+                  {copiedKey === "manual-cmd" ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <p className="font-mono text-[11px] text-rose-600 dark:text-rose-400">
+                No command was returned. Check the browser console and the server logs.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Policy Summary Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 text-left">

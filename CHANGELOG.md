@@ -8,6 +8,46 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Changed - 2026-10-30 (Agent Rotation, Custody Honesty, and Verifiable Proofs)
+
+This pass removed four classes of claim that did not survive contact with the chain, and added the two owner controls the contract was missing.
+
+- **Agent key rotated, leaked key retired**
+  - New agent `agent.sergeo-guard.testnet` holds exactly one FunctionCall key (`ed25519:Homj5ybH4uVLQuBTV5idsxuCDhp8xRrhtTgwKFr3ksPE`) scoped to `guard2.sergeo-guard.testnet::execute`.
+  - `trader.sergeo-guard.testnet` (the previously published agent) and `test-agent.sergeo-guard.testnet` were both revoked. A swap signed with the retired key is rejected with `PAUSED` (`ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5`), so the rotation is real rather than cosmetic.
+  - Vault balance was moved to the new agent's vault; policy re-registered on `guard2.sergeo-guard.testnet`.
+
+- **`revoke_agent` and `reset_windows` added (contract 0.2.0)**
+  - `revoke_agent` empties `targets` and `recipients`, pauses the agent, clears staged policy and pending intents, and keeps the record and vault withdrawable. Revocation is durable: an empty allowlist rejects every later action even after `unpause`.
+  - `reset_windows` zeroes spend, velocity and the reject history without touching policy or pause state, so a demo can be reset without re-granting permissions.
+  - Test suite: **42 passed, 0 failed**. Seven new tests cover both methods, including "revoked agent still rejected after unpause" and the owner-only guards.
+  - Deployed over live state on `guard2.sergeo-guard.testnet` (`B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev`); `get_version` returns `0.2.0` and every existing record survived.
+
+- **Server-side owner signing is now opt-in and off by default**
+  - `/api/register` and `/api/fund` no longer read `~/.near-credentials`. They sign only when `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` and `OWNER_PRIVATE_KEY` are set, and otherwise return a copy-paste `near call` command with HTTP 200.
+  - Both routes, plus `/api/attack` and `/api/draft`, reject cross-origin browser requests (403). `/api/draft` is rate limited to 20 requests/minute and a 2000-character cap.
+  - The docs previously claimed the server never custodied owner keys while the code read the local credential store. The claim is now true because the capability is gone.
+
+- **Admin console shows only chain state**
+  - `/admin` was rewritten against a new read-only `/api/agents` route backed by `get_agents`, `get_budget`, `get_policy`, `get_staged_policy` and `get_pending_actions`.
+  - Removed: three invented agents, a fabricated `$28,450` "aggregate protection value", a fake "Owner Authenticated" badge, and an `approve_policy` action that does not exist onchain.
+  - Every owner control now emits a `near call` command the owner signs, and a revoked agent renders as `REVOKED`.
+
+- **Ledger seeds replaced with real transactions**
+  - All eleven previous "verified live" hashes returned `UNKNOWN_TRANSACTION`; they were fabrications. They are gone from `web/lib/ledger.ts`, `README.md` and `TESTING_FOR_AI_JUDGES.md`.
+  - The seed now holds seven transactions that resolve on chain, including the allow, the queued 300 mUSD intent, the owner veto, both rejection paths, the retirement, and the retired-key replay.
+
+- **End-to-end suite asserts instead of printing**
+  - `scripts/testnet-demo-agent-e2e.js` accumulates results and exits non-zero on failure. It resets windows first so runs are deterministic, and it asserts the circuit breaker fires after the third rejection (`AUTO_PAUSE rejects:3`) rather than asserting the agent stays unpaused.
+  - Step 6 now sends a literal `GuardAction::ContractCall` at the custody token. The previous version went through the SDK, which silently rewrites `ft_transfer` into a typed `Transfer`, so the step tested nothing. The SDK now refuses to build a transfer with no recipient instead of sending `to: ""`, which had been panicking the contract during deserialization.
+
+- **RPC default moved to `test.rpc.fastnear.com`**
+  - `rpc.testnet.near.org` now answers view calls with `-429 DEPRECATED` under load and does not serve tx history. A multi-agent read burst measured 7621 ms there versus 719 ms on fastnear. `NEAR_TESTNET_RPC` still overrides it everywhere.
+  - An explicit `NEAR_TESTNET_RPC` now wins over the `nodeUrl` recorded in a credential file, so a stale credential cannot silently pin a dead endpoint.
+
+- **Stale artifacts removed**
+  - Deleted `scripts/security-audit-poc.js` (superseded by the contract test suite) and the untracked `scratch/` directory.
+
 ### Added - 2026-10-28 (Check-Order Alignment, Webhook Sanitization, Dynamic Policy Telemetry, and Telegram Alerts)
 
 - **Check-Order Alignment in Guard Engine (`contracts/policy/src/lib.rs`)**

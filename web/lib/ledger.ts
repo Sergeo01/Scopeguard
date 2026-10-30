@@ -1,5 +1,12 @@
 // ScopeGuard Activity Ledger
-// Stores verified onchain receipts and real-time execution logs.
+//
+// Records policy evaluations this server performed at runtime. The seed below
+// is a short history of real transactions on NEAR testnet; every hash can be
+// opened on nearblocks and every reason string matches the contract's own
+// EVENT_JSON output. It exists so a fresh page load is not empty, not to imply
+// more activity than happened.
+//
+// Static timestamps keep SSR and client hydration identical.
 
 export interface ActivityItem {
   id: string;
@@ -13,69 +20,82 @@ export interface ActivityItem {
   reason?: string;
 }
 
-// Initialized with verified live NEAR testnet transactions
-// Static base timestamps prevent SSR and client hydration divergence
-const BASE_TIME = 1793122000000;
+const BASE_TIME = 1793363000000;
 
 let activityLog: ActivityItem[] = [
   {
-    id: "act-unpause-live-current",
-    txHash: "7a3G4tqvsKQTUUuVyUuRbPjVZhbr41VM5Mo9eFNpVygt",
-    type: "UNPAUSE",
-    timestamp: BASE_TIME + 120000,
-    agent: "trader.sergeo-guard.testnet",
-    reason: "Agent unpaused by owner on guard2.sergeo-guard.testnet",
-  },
-  {
-    id: "act-veto-intent3-live",
-    txHash: "A2aDb1YxXzWHfVxtzoRr2Pz1wcfKSAAjgxmbPKJNeSjj",
-    type: "CANCELLED",
-    timestamp: BASE_TIME + 60000,
-    agent: "trader.sergeo-guard.testnet",
-    target: "sergeo-guard-dex.testnet",
-    method: "swap",
-    amount: "300",
-    reason: "Owner vetoed quarantined pending intent #3",
-  },
-  {
-    id: "act-unpause-live",
-    txHash: "14sYk3Ve1g7qtwBvPx8mGDy4LcLZzCzAKVR55TPkBvC4",
-    type: "UNPAUSE",
-    timestamp: BASE_TIME,
-    agent: "trader.sergeo-guard.testnet",
-    reason: "Agent unpaused by owner on guard2.sergeo-guard.testnet",
-  },
-  {
-    id: "act-rogue-live",
-    txHash: "7W8BXSfQCboJi29WfBu1DYofKyXfkcehS82VbT6kPkSv",
+    id: "seed-reject-target",
+    txHash: "EDwEhWuBTLZTwzfwKu8sJRg2a927CcJLsCqY4tAxvZDZ",
     type: "REJECT",
-    timestamp: BASE_TIME - 120000,
-    agent: "trader.sergeo-guard.testnet",
+    timestamp: BASE_TIME,
+    agent: "agent.sergeo-guard.testnet",
     target: "evil_contract.testnet",
     method: "drain",
-    reason: "TARGET_NOT_ALLOWED (Rogue contract call blocked onchain)",
+    reason: "TARGET_NOT_ALLOWED (rogue contract call refused onchain)",
   },
   {
-    id: "act-veto-intent2-live",
-    txHash: "AnSZkgJCsvwi7sTbxrN43QQWyPHFyX2s7UGSYDXWi9yp",
+    id: "seed-reject-recipient",
+    txHash: "6kEHj53hcqSXbbr2n5j7sLSVrcWwuGjTH6ongEBbsoNL",
+    type: "REJECT",
+    timestamp: BASE_TIME - 60_000,
+    agent: "agent.sergeo-guard.testnet",
+    target: "sergeo-guard-token.testnet",
+    method: "ft_transfer",
+    amount: "100",
+    reason: "RECIPIENT_NOT_ALLOWED (payout to attacker.testnet refused)",
+  },
+  {
+    id: "seed-cancelled-intent",
+    txHash: "ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq",
     type: "CANCELLED",
-    timestamp: BASE_TIME - 300000,
-    agent: "trader.sergeo-guard.testnet",
+    timestamp: BASE_TIME - 120_000,
+    agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
     amount: "300",
-    reason: "Owner vetoed quarantined pending intent #2",
+    reason: "Owner vetoed quarantined intent #1",
   },
   {
-    id: "act-veto-live",
-    txHash: "2bhmibshKH7cEQHc6WZwW1JWXaXRnGKBmwDyKnD4FEq8",
-    type: "CANCELLED",
-    timestamp: BASE_TIME - 500000,
-    agent: "trader.sergeo-guard.testnet",
+    id: "seed-pending-intent",
+    txHash: "2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5",
+    type: "PENDING",
+    timestamp: BASE_TIME - 180_000,
+    agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
     amount: "300",
-    reason: "Owner vetoed pending high-value intent #1",
+    reason: "High-value swap held in the 60s owner veto quarantine",
+  },
+  {
+    id: "seed-allow-swap",
+    txHash: "6MYF5g7TwtSaPEygAnUybRLBLygWBbE45q7Du9fNp8G",
+    type: "ALLOW",
+    timestamp: BASE_TIME - 240_000,
+    agent: "agent.sergeo-guard.testnet",
+    target: "sergeo-guard-dex.testnet",
+    method: "swap",
+    amount: "10",
+    reason: "Allowlisted swap executed inside every bound",
+  },
+  {
+    id: "seed-revoke-test-agent",
+    txHash: "CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9",
+    type: "PAUSE",
+    timestamp: BASE_TIME - 600_000,
+    agent: "test-agent.sergeo-guard.testnet",
+    target: "guard2.sergeo-guard.testnet",
+    method: "revoke_agent",
+    reason: "Owner retired an unused test agent; allowlist erased",
+  },
+  {
+    id: "seed-leaked-key-replay",
+    txHash: "ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5",
+    type: "REJECT",
+    timestamp: BASE_TIME - 900_000,
+    agent: "trader.sergeo-guard.testnet",
+    target: "guard2.sergeo-guard.testnet",
+    method: "execute",
+    reason: "PAUSED (replay signed with the retired agent key was refused)",
   },
 ];
 

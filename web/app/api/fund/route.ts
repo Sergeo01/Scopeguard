@@ -2,55 +2,59 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair, utils } from "near-api-js";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 import { recordActivity } from "@/lib/ledger";
+import { guardSigningRequest } from "@/lib/api-guard";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
-const TOKEN_ID = process.env.SCOPEGUARD_TOKEN_ID || "sergeo-guard-token.testnet";
+const TOKEN_ID =
+  process.env.SCOPEGUARD_TOKEN_CONTRACT || process.env.SCOPEGUARD_TOKEN_ID || "sergeo-guard-token.testnet";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
-function loadOwnerKey(): KeyPair | null {
-  if (process.env.OWNER_PRIVATE_KEY) {
-    return KeyPair.fromString(process.env.OWNER_PRIVATE_KEY as any);
-  }
-  const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${OWNER_ID}.json`);
-  if (fs.existsSync(credPath)) {
-    const data = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-    return KeyPair.fromString((data.private_key || data.secret_key) as any);
-  }
-  return null;
-}
-
+/**
+ * Owner-authority endpoint: mints test tokens and deposits them into an agent
+ * vault. It signs with the owner's full-access key, and it also calls the
+ * token's `mint_faucet`, so it is gated exactly like /api/register:
+ * same-origin only, opt-in via SCOPEGUARD_ALLOW_SERVER_SIGNING, env-only key.
+ */
 export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const agentId = body.agentId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
-    const amount = String(body.amount || "100");
+  const body = await req.json().catch(() => ({}));
+  const agentId = String(body?.agentId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet");
+  const amount = String(body?.amount || "100");
 
-    const ownerKey = loadOwnerKey();
-    if (!ownerKey) {
-      return NextResponse.json({
-        success: false,
-        error: "Owner credentials not configured on server. Use CLI commands to fund manually.",
-      }, { status: 400 });
+  const command = [
+    `near call ${TOKEN_ID} mint_faucet '{"amount":"${amount}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
+    `near call ${TOKEN_ID} ft_transfer_call '{"receiver_id":"${GUARD_ID}","amount":"${amount}","msg":"${agentId}"}' --accountId ${OWNER_ID} --depositYocto 1 --gas 60000000000000`,
+  ].join(" && ");
+
+  const blocked = guardSigningRequest(req, command);
+  if (blocked) return blocked;
+
+  try {
+    const ownerPrivateKey =
+      process.env.SCOPEGUARD_OWNER_PRIVATE_KEY || process.env.OWNER_PRIVATE_KEY;
+
+    if (!ownerPrivateKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          requiresOwnerSignature: true,
+          message:
+            "Server signing is enabled but no owner key is configured. Set OWNER_PRIVATE_KEY or run the commands yourself.",
+          command,
+        },
+        { status: 400 }
+      );
     }
 
     const keyStore = new keyStores.InMemoryKeyStore();
-    await keyStore.setKey(NETWORK_ID, OWNER_ID, ownerKey);
+    await keyStore.setKey(NETWORK_ID, OWNER_ID, KeyPair.fromString(ownerPrivateKey as any));
 
-    const near = await connect({
-      networkId: NETWORK_ID,
-      nodeUrl: RPC_URL,
-      keyStore,
-    });
-
+    const near = await connect({ networkId: NETWORK_ID, nodeUrl: RPC_URL, keyStore });
     const ownerAccount = await near.account(OWNER_ID);
 
-    // 1. Ensure storage is registered for Guard on token contract
+    // 1. Ensure storage is registered for Guard on the token contract
     try {
       await ownerAccount.functionCall({
         contractId: TOKEN_ID,
@@ -63,7 +67,7 @@ export async function POST(req: Request) {
       // Storage already paid
     }
 
-    // 2. Mint test tokens to owner from faucet
+    // 2. Mint test tokens to owner from the faucet
     try {
       await ownerAccount.functionCall({
         contractId: TOKEN_ID,
@@ -72,25 +76,21 @@ export async function POST(req: Request) {
         gas: BigInt("30000000000000"),
       });
     } catch {
-      // Faucet call note
+      // Faucet is advisory; the deposit below is the operation that matters
     }
 
-    // 3. Deposit tokens into Guard vault for agent
+    // 3. Deposit tokens into the Guard vault for the agent
     const depositTx = await ownerAccount.functionCall({
       contractId: TOKEN_ID,
       methodName: "ft_transfer_call",
-      args: {
-        receiver_id: GUARD_ID,
-        amount,
-        msg: agentId,
-      },
+      args: { receiver_id: GUARD_ID, amount, msg: agentId },
       attachedDeposit: BigInt(1),
       gas: BigInt("60000000000000"),
     });
 
     const txHash = depositTx.transaction.hash;
 
-    // 4. Query updated budget
+    // 4. Query the updated budget
     let newVaultBalance = amount;
     try {
       const budget = await ownerAccount.viewFunction({
@@ -98,9 +98,7 @@ export async function POST(req: Request) {
         methodName: "get_budget",
         args: { agent_account: agentId },
       });
-      if (budget && budget.vault_balance) {
-        newVaultBalance = budget.vault_balance;
-      }
+      if (budget && budget.vault_balance) newVaultBalance = budget.vault_balance;
     } catch {
       // Keep optimistic
     }
@@ -127,9 +125,9 @@ export async function POST(req: Request) {
       message: `Successfully funded ${agentId} vault with ${amount} mUSD!`,
     });
   } catch (err: any) {
-    return NextResponse.json({
-      success: false,
-      error: err.message,
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
   }
 }

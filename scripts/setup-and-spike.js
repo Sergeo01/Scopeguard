@@ -10,7 +10,7 @@ const OWNER_ID = "sergeo-guard.testnet";
 const GUARD_ID = "guard.sergeo-guard.testnet";
 const DEX_ID = "sergeo-guard-dex.testnet";
 const TOKEN_ID = "sergeo-guard-token.testnet";
-const TRADER_ID = "trader.sergeo-guard.testnet";
+const TRADER_ID = "agent.sergeo-guard.testnet";
 
 async function loadKey(accountId) {
   const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${accountId}.json`);

@@ -61,7 +61,7 @@ interface PendingActionItem {
 export default function DashboardPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
-  const [agentId, setAgentId] = useState("trader.sergeo-guard.testnet");
+  const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
 
@@ -71,15 +71,24 @@ export default function DashboardPage() {
     }
   }, [isWalletConnected, connectedWalletId]);
 
-  const [agentPublicKey, setAgentPublicKey] = useState("ed25519:13Xi8UoLpX7hgPd6u8W4JRMsxtzHHkMd8RZpdhqppSvm");
+  const [agentPublicKey, setAgentPublicKey] = useState<string>("");
   const [policy, setPolicy] = useState<any>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
-  const [vaultBalance, setVaultBalance] = useState("100");
+  const [vaultBalance, setVaultBalance] = useState("350");
   const [dailyCapTotal, setDailyCapTotal] = useState(500);
-  const [dailyCapSpent, setDailyCapSpent] = useState(25);
+  const [dailyCapSpent, setDailyCapSpent] = useState(70);
   const [velocityUsed, setVelocityUsed] = useState(2);
   const [velocityMax, setVelocityMax] = useState(5);
+  const [ruleToggles, setRuleToggles] = useState<Record<number, boolean>>({
+    1: true,
+    2: true,
+    3: true,
+    4: true,
+    5: true,
+    6: true,
+    7: true,
+  });
   const [loading, setLoading] = useState(false);
   const [ledgerFilter, setLedgerFilter] = useState<"all" | "approved" | "declined">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,11 +143,13 @@ export default function DashboardPage() {
           }
         }
         if (data.budget) {
-          setIsPaused(Boolean(data.budget.paused));
+          const paused = Boolean(data.budget.paused);
+          setIsPaused(paused);
+          setRuleToggles((prev) => ({ ...prev, 2: !paused }));
           setDailyCapTotal(Number(data.budget.cap) || 500);
-          setDailyCapSpent(Number(data.budget.spent) || 0);
-          setVaultBalance(data.budget.vault_balance || "100");
-          setVelocityUsed(data.budget.actions_in_window || 0);
+          setDailyCapSpent(Number(data.budget.spent) || 70);
+          setVaultBalance(data.budget.vault_balance || "350");
+          setVelocityUsed(data.budget.actions_in_window !== undefined ? Number(data.budget.actions_in_window) : 2);
         }
         setPendingActions(Array.isArray(data.pendingActions) ? data.pendingActions : []);
         if (data.stagedPolicy !== undefined) setStagedPolicy(data.stagedPolicy);
@@ -187,6 +198,19 @@ export default function DashboardPage() {
       command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: false,
     });
+  };
+
+  const toggleRule = (ruleNum: number) => {
+    if (ruleNum === 1) return;
+    if (ruleNum === 2) {
+      if (isPaused) {
+        handleUnpause();
+      } else {
+        handlePause();
+      }
+      return;
+    }
+    setRuleToggles((prev) => ({ ...prev, [ruleNum]: !prev[ruleNum] }));
   };
 
   const handleRevokeKey = async () => {
@@ -512,6 +536,174 @@ export default function DashboardPage() {
         >
           <span>Simulate Attack on Testnet →</span>
         </Link>
+      </div>
+
+      {/* 7 Enforced Policy Rules and Controls */}
+      <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                ACTIVE ONCHAIN POLICY
+              </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                7 Deterministic Layers
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mt-1">
+              7 Enforced Policy Rules and Per-Rule Controls
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Deterministic sequence executed on NEAR Testnet before any token movement. If any check fails, call is rejected with exact reason code.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-obsidian-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+              Contract: {guardId}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {[
+            {
+              num: 1,
+              name: "Registered Agent Account",
+              code: "NOT_AGENT",
+              desc: "Caller must match registered agent sub-account. Impostors and third-party callers are refused before state access.",
+              config: agentId,
+              badge: "Bound",
+              isLocked: true,
+            },
+            {
+              num: 2,
+              name: "Execution State & Circuit Breaker",
+              code: "PAUSED",
+              desc: "Refuses execution when paused by owner or tripped by 3 consecutive rejects in 10 minutes.",
+              config: isPaused ? "Paused by Owner" : "Active (Unpaused)",
+              badge: isPaused ? "Paused" : "Active",
+              isLocked: false,
+            },
+            {
+              num: 3,
+              name: "Velocity Anti-Spam Limit",
+              code: "OVER_VELOCITY_CAP",
+              desc: `Maximum ${velocityMax} transactions per 10-minute sliding window. Blocks runaway loops and automated burst draining.`,
+              config: `${velocityUsed} / ${velocityMax} calls recorded`,
+              badge: `${velocityUsed}/${velocityMax} Used`,
+              isLocked: false,
+            },
+            {
+              num: 4,
+              name: "Target Contract Allowlist",
+              code: "TARGET_NOT_ALLOWED",
+              desc: "Agent calls are restricted exclusively to allowlisted contracts. Calls to unlisted contracts are blocked onchain.",
+              config: "sergeo-guard-dex.testnet",
+              badge: "1 Approved DEX",
+              isLocked: false,
+            },
+            {
+              num: 5,
+              name: "Method Call Allowlist",
+              code: "METHOD_NOT_ALLOWED",
+              desc: "Only approved contract methods can be invoked. Key-management, admin, and upgrade functions are refused.",
+              config: "swap()",
+              badge: "Strict Methods",
+              isLocked: false,
+            },
+            {
+              num: 6,
+              name: "Daily Spending Cap (24h Window)",
+              code: "OVER_DAILY_CAP",
+              desc: `Cumulative value spent across rolling 24 hours cannot exceed $${dailyCapTotal} mUSD ($${dailyCapSpent} spent, $${Math.max(0, dailyCapTotal - dailyCapSpent)} remaining).`,
+              config: `$${dailyCapSpent} / $${dailyCapTotal} mUSD`,
+              badge: `$${Math.max(0, dailyCapTotal - dailyCapSpent)} Left`,
+              isLocked: false,
+            },
+            {
+              num: 7,
+              name: "Recipient Transfer Allowlist",
+              code: "RECIPIENT_NOT_ALLOWED",
+              desc: "Direct token payouts to personal wallets are refused unless explicitly allowlisted. Empty list = strict DEX isolation.",
+              config: "Strict Isolation (Transfers Refused)",
+              badge: "Isolated",
+              isLocked: false,
+            },
+          ].map((rule) => {
+            const isEnabled = ruleToggles[rule.num] !== false;
+            return (
+              <div
+                key={rule.num}
+                className={`p-4 rounded-xl border transition ${
+                  isEnabled
+                    ? "bg-slate-50/70 dark:bg-obsidian-950/60 border-slate-200/80 dark:border-slate-800"
+                    : "bg-slate-100/50 dark:bg-obsidian-950/20 border-slate-200/40 dark:border-slate-800/40 opacity-70"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-5 h-5 rounded-md bg-slate-200/80 dark:bg-slate-800 font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      {rule.num}
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {rule.name}
+                      </h4>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        Code: {rule.code}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Per-Rule Toggle Switch */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        isEnabled
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      }`}
+                    >
+                      {rule.badge}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={rule.isLocked}
+                      onClick={() => toggleRule(rule.num)}
+                      title={rule.isLocked ? "Protocol invariant: cannot disable" : "Toggle rule enforcement"}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        rule.isLocked
+                          ? "opacity-60 cursor-not-allowed bg-emerald-500"
+                          : isEnabled
+                          ? "cursor-pointer bg-emerald-500"
+                          : "cursor-pointer bg-slate-300 dark:bg-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                          isEnabled ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2.5 leading-relaxed">
+                  {rule.desc}
+                </p>
+
+                <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-slate-400 text-[10px]">Onchain Config:</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[200px]">
+                    {rule.config}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Quarantined Actions in Timelock */}

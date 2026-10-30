@@ -3,12 +3,12 @@ const path = require("path");
 const os = require("os");
 const { connect, keyStores, KeyPair } = require(path.join(__dirname, "..", "sdk", "node_modules", "near-api-js"));
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
-const TRADER_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+const TRADER_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
 
 async function loadOwnerKey() {
   if (process.env.OWNER_PRIVATE_KEY) {

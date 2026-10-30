@@ -29,7 +29,7 @@ interface TargetPlatform extends ConfiguredPlatform {}
 
 export default function CreateAgentPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
-  const [agentName, setAgentName] = useState("trader.sergeo-guard.testnet");
+  const [agentName, setAgentName] = useState("agent.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(100);
   const [dailyCapInput, setDailyCapInput] = useState<string>("100");
 
@@ -59,6 +59,10 @@ export default function CreateAgentPage() {
   const [draftResult, setDraftResult] = useState<any>(null);
   const [generatedPasskey, setGeneratedPasskey] = useState<string>("");
   const [generatedPublicKey, setGeneratedPublicKey] = useState<string>("");
+  const [txHash, setTxHash] = useState<string>("");
+  const [explorerUrl, setExplorerUrl] = useState<string>("");
+  const [registrationStatus, setRegistrationStatus] = useState<"idle" | "broadcasting" | "registered" | "manual">("idle");
+  const [registrationCommand, setRegistrationCommand] = useState<string>("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -202,19 +206,45 @@ export default function CreateAgentPage() {
     }
   };
 
-  const handleIssueCard = () => {
+  const handleIssueCard = async () => {
     setIsDeploying(true);
+    setRegistrationStatus("broadcasting");
     try {
       const keyPair = KeyPair.fromRandom("ed25519");
       const pubKey = keyPair.getPublicKey().toString();
       const privKey = keyPair.toString();
       setGeneratedPasskey(privKey);
       setGeneratedPublicKey(pubKey);
+
+      try {
+        const regRes = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agentAccountId: agentName,
+            policy: compiledPolicyJson,
+            publicKey: pubKey,
+          }),
+        });
+        const regData = await regRes.json();
+        if (regData.success && regData.txHash) {
+          setTxHash(regData.txHash);
+          setExplorerUrl(regData.explorerUrl);
+          setRegistrationStatus("registered");
+        } else if (regData.command) {
+          setRegistrationCommand(regData.command);
+          setRegistrationStatus("manual");
+        }
+      } catch (err: any) {
+        console.warn("Auto registration broadcast failed:", err);
+        setRegistrationStatus("manual");
+      }
+
       setIsDeploying(false);
       setIssuedSuccess(true);
     } catch (e: any) {
       setIsDeploying(false);
-      alert("Failed to generate keypair: " + e.message);
+      alert("Failed to generate passkey: " + e.message);
     }
   };
 
@@ -433,6 +463,10 @@ export default function CreateAgentPage() {
           publicKey={generatedPublicKey}
           policyJson={compiledPolicyJson}
           onReset={() => setIssuedSuccess(false)}
+          txHash={txHash}
+          explorerUrl={explorerUrl}
+          registrationStatus={registrationStatus}
+          registrationCommand={registrationCommand}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -447,7 +481,7 @@ export default function CreateAgentPage() {
                   type="text"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
-                  placeholder="e.g. trader.sergeo-guard.testnet"
+                  placeholder="e.g. agent.sergeo-guard.testnet"
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 {isWalletConnected && connectedWalletId && (

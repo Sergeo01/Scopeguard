@@ -130,6 +130,7 @@ const ONCHAIN_RULES = [
 ];
 
 export default function HomePage() {
+  const [vaultBalance, setVaultBalance] = useState("350.00");
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(ATTACK_SCENARIOS[0].id);
   const [promptText, setPromptText] = useState(ATTACK_SCENARIOS[0].prompt);
   const [targetAccount, setTargetAccount] = useState(ATTACK_SCENARIOS[0].target);
@@ -140,6 +141,17 @@ export default function HomePage() {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [copiedHash, setCopiedHash] = useState(false);
   const [activeTab, setActiveTab] = useState<"visual" | "payload">("visual");
+
+  React.useEffect(() => {
+    fetch("/api/state")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.budget?.vault_balance) {
+          setVaultBalance(`${data.budget.vault_balance}.00`);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [activeVerdict, setActiveVerdict] = useState<{
     status: "REJECTED" | "PENDING" | "ALLOWED";
@@ -181,6 +193,10 @@ export default function HomePage() {
       ruleNum = 4;
       ruleTitle = "Target Contract Allowlist";
       explanation = `The smart contract ${s.target} is not on the approved target allowlist.`;
+    } else if (s.ruleCode === "OVER_VELOCITY_CAP") {
+      ruleNum = 3;
+      ruleTitle = "Velocity Anti-Spam";
+      explanation = "The agent already used its full action allowance for the current 10-minute window.";
     } else if (s.ruleCode === "METHOD_NOT_ALLOWED") {
       ruleNum = 5;
       ruleTitle = "Method Name Allowlist";
@@ -193,10 +209,26 @@ export default function HomePage() {
       ruleNum = 7;
       ruleTitle = "Recipient Allowlist";
       explanation = `Transfers to recipient ${s.recipient} are refused by onchain policy.`;
+    } else if (s.ruleCode === "PAUSED") {
+      ruleNum = 2;
+      ruleTitle = "Unpaused Operating State";
+      explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
+    } else if (s.ruleCode === "INSUFFICIENT_VAULT_BALANCE") {
+      ruleNum = 9;
+      ruleTitle = "Vault Balance Bound";
+      explanation = `The requested transfer of ${s.amount} mUSD exceeds the agent's own vault balance.`;
+    } else if (s.ruleCode === "PENDING_QUEUE_FULL") {
+      ruleNum = 10;
+      ruleTitle = "Pending Queue Bound";
+      explanation = "The quarantine queue is full, so no further high-value action can be queued.";
+    } else if (s.ruleCode === "NOT_AGENT") {
+      ruleNum = 1;
+      ruleTitle = "Registered Agent";
+      explanation = "The caller is not the agent account registered for this policy.";
     } else if (s.ruleCode === "PENDING") {
-      ruleNum = 0;
+      ruleNum = 8;
       ruleTitle = "High-Value Quarantine Timelock";
-      explanation = "Amount exceeds the $50 threshold and is held in a 60-second owner veto quarantine.";
+      explanation = "Amount is at or above the policy's high-value threshold and is held in the owner veto quarantine.";
     }
 
     setActiveVerdict({
@@ -229,12 +261,79 @@ export default function HomePage() {
         }),
       });
       const data = await res.json();
-      if (data.verdict) {
-        setActiveVerdict(data.verdict);
+      const outcome = data.outcome || data.verdict;
+      const txHash = data.txHash || data.verdict?.txHash || "";
+
+      if (outcome) {
+        let ruleNum = 4;
+        let ruleTitle = "Target Contract Allowlist";
+        let explanation = "";
+
+        if (outcome.reason === "TARGET_NOT_ALLOWED") {
+          ruleNum = 4;
+          ruleTitle = "Target Contract Allowlist";
+          explanation = `The smart contract ${targetAccount} is not on the approved target allowlist.`;
+        } else if (outcome.reason === "OVER_VELOCITY_CAP") {
+          ruleNum = 3;
+          ruleTitle = "Velocity Anti-Spam";
+          explanation = "The agent already used its full action allowance for the current 10-minute window.";
+        } else if (outcome.reason === "METHOD_NOT_ALLOWED") {
+          ruleNum = 5;
+          ruleTitle = "Method Name Allowlist";
+          explanation = `Method ${methodName}() is not permitted on ${targetAccount}.`;
+        } else if (outcome.reason === "OVER_DAILY_CAP") {
+          ruleNum = 6;
+          ruleTitle = "Daily Spending Cap";
+          explanation = `Amount ${amountVal} mUSD exceeds the approved daily spending limit.`;
+        } else if (outcome.reason === "RECIPIENT_NOT_ALLOWED") {
+          ruleNum = 7;
+          ruleTitle = "Recipient Allowlist";
+          explanation = `Transfers to recipient ${recipientVal || "external"} are refused by onchain policy.`;
+        } else if (outcome.reason === "PAUSED") {
+          ruleNum = 2;
+          ruleTitle = "Unpaused Operating State";
+          explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
+        } else if (outcome.reason === "INSUFFICIENT_VAULT_BALANCE") {
+          ruleNum = 9;
+          ruleTitle = "Vault Balance Bound";
+          explanation = `The requested transfer of ${amountVal} mUSD exceeds the agent's own vault balance.`;
+        } else if (outcome.reason === "PENDING_QUEUE_FULL") {
+          ruleNum = 10;
+          ruleTitle = "Pending Queue Bound";
+          explanation = "The quarantine queue is full, so no further high-value action can be queued until the owner settles or cancels one.";
+        } else if (outcome.reason === "NOT_AGENT") {
+          ruleNum = 1;
+          ruleTitle = "Registered Agent";
+          explanation = "The caller is not the agent account registered for this policy.";
+        } else if (outcome.status === "PENDING") {
+          ruleNum = 8;
+          ruleTitle = "High-Value Quarantine Timelock";
+          explanation = "Amount is at or above the policy's high-value threshold and is held in the owner veto quarantine.";
+        } else if (outcome.status === "ALLOWED") {
+          ruleNum = 0;
+          ruleTitle = "Policy Checks Passed";
+          explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
+        }
+
+        setActiveVerdict({
+          status: outcome.status,
+          reasonCode: outcome.reason || (outcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
+          ruleNumber: ruleNum,
+          ruleName: ruleTitle,
+          explanation,
+          txHash,
+          attemptedTarget: targetAccount,
+          attemptedMethod: methodName,
+          attemptedAmount: amountVal,
+          fundsSaved: amountVal,
+        });
+
         setStatusMessage(
-          data.verdict.status === "ALLOWED"
+          txHash
+            ? `Onchain execution verified on NEAR Testnet (Tx: ${txHash.slice(0, 8)}...).`
+            : outcome.status === "ALLOWED"
             ? "Action approved onchain by ScopeGuard."
-            : data.verdict.status === "PENDING"
+            : outcome.status === "PENDING"
             ? "High-value action quarantined under timelock."
             : "Exploit blocked onchain. Zero funds moved."
         );
@@ -263,9 +362,27 @@ export default function HomePage() {
         }),
       });
       const data = await res.json();
-      if (data.verdict) {
-        setActiveVerdict(data.verdict);
-        setStatusMessage("Legitimate swap approved by ScopeGuard.");
+      const outcome = data.outcome || data.verdict;
+      const txHash = data.txHash || data.verdict?.txHash || "";
+
+      if (outcome) {
+        setActiveVerdict({
+          status: outcome.status,
+          reasonCode: outcome.reason || (outcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
+          ruleNumber: 0,
+          ruleName: "Policy Checks Passed",
+          explanation: "Action cleared all onchain security bounds and executed on NEAR Testnet.",
+          txHash,
+          attemptedTarget: "sergeo-guard-dex.testnet",
+          attemptedMethod: "swap",
+          attemptedAmount: "25",
+          fundsSaved: "0",
+        });
+        setStatusMessage(
+          txHash
+            ? `Legitimate swap verified onchain (Tx: ${txHash.slice(0, 8)}...).`
+            : "Legitimate swap approved by ScopeGuard."
+        );
       }
     } catch {
       setStatusMessage("Failed to execute swap.");
@@ -297,7 +414,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-baseline gap-3">
               <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                $100.00
+                ${vaultBalance}
               </span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
                 100% Guarded
@@ -432,7 +549,7 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Agent Passkey:</span>
               <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800 flex items-center gap-2 max-w-full">
-                <span className="truncate">trader.sergeo-guard.testnet</span>
+                <span className="truncate">agent.sergeo-guard.testnet</span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">FunctionCall</span>
               </span>
             </div>
@@ -621,7 +738,7 @@ export default function HomePage() {
               <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-200 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800">
                 {JSON.stringify(
                   {
-                    caller: "trader.sergeo-guard.testnet",
+                    caller: "agent.sergeo-guard.testnet",
                     guard: "guard2.sergeo-guard.testnet",
                     action: {
                       target: targetAccount,
@@ -745,7 +862,7 @@ export default function HomePage() {
                 const isPassed =
                   activeVerdict.status === "REJECTED"
                     ? activeVerdict.ruleNumber > r.num
-                    : activeVerdict.status === "ALLOWED";
+                    : activeVerdict.status === "ALLOWED" || activeVerdict.status === "PENDING";
 
                 return (
                   <div
@@ -779,6 +896,20 @@ export default function HomePage() {
                   </div>
                 );
               })}
+
+              {activeVerdict.status === "PENDING" && (
+                <div className="flex items-center justify-between p-2 rounded-lg text-xs bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-md bg-amber-500/30 flex items-center justify-center font-mono text-[9px] text-amber-200">
+                      8
+                    </span>
+                    <span className="font-semibold text-xs">High-Value Threshold Check</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-amber-400 font-bold animate-pulse">
+                    QUARANTINED (60s Timelock)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

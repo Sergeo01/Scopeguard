@@ -49,12 +49,12 @@ function loadOwnerKey(ownerAccount, networkId = "testnet") {
 
 async function runSetup() {
   const flags = parseFlags(args.slice(1));
-  const agentAccount = flags.agent || flags.account || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+  const agentAccount = flags.agent || flags.account || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
   const ownerAccount = flags.owner || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
   const guardContract = flags.guard || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
   const tokenContract = flags.token || process.env.SCOPEGUARD_TOKEN_ID || "sergeo-guard-token.testnet";
   const networkId = flags.network || process.env.NEAR_NETWORK || "testnet";
-  const rpcUrl = flags.rpc || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+  const rpcUrl = flags.rpc || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
   const outPath = flags.out || "./agent.json";
 
   const rl = readline.createInterface({
@@ -240,7 +240,7 @@ function printManualOwnerCommands(guardContract, agentAccount, policy, ownerAcco
 
 async function runConnect() {
   const flags = parseFlags(args.slice(1));
-  const account = flags.account || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+  const account = flags.account || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
   const key = flags.key || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY;
   if (!key) {
     console.error("Error: Scoped passkey is required. Provide --key <ed25519:...> or set SCOPEGUARD_AGENT_PRIVATE_KEY.");
@@ -263,7 +263,7 @@ async function runConnect() {
     publicKey,
     privateKey: key,
     networkId: "testnet",
-    nodeUrl: process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org",
+    nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
     connected_at: new Date().toISOString(),
   };
 
@@ -295,11 +295,11 @@ async function runAct() {
     } catch {}
   }
 
-  const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+  const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
   const privateKey = flags.key || credential?.privateKey || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY;
   const guardContract = flags.guard || credential?.policyContractId || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
   const networkId = flags.network || credential?.networkId || "testnet";
-  const rpcUrl = flags.rpc || credential?.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+  const rpcUrl = flags.rpc || credential?.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
   if (!privateKey) {
     console.error("Error: No agent passkey found. Run 'node sdk/bin/cli.js connect' or provide --key.");
@@ -391,10 +391,10 @@ async function runBudget() {
     } catch {}
   }
 
-  const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "trader.sergeo-guard.testnet";
+  const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
   const guardContract = flags.guard || credential?.policyContractId || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
   const networkId = flags.network || "testnet";
-  const rpcUrl = flags.rpc || process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+  const rpcUrl = flags.rpc || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
   try {
     const near = await connect({ networkId, nodeUrl: rpcUrl, keyStore: new keyStores.InMemoryKeyStore() });
@@ -443,7 +443,7 @@ async function main() {
       console.log("  budget    Query live budget and remaining allowance on NEAR");
       console.log("\nExamples:");
       console.log("  node sdk/bin/cli.js setup");
-      console.log("  node sdk/bin/cli.js budget --account trader.sergeo-guard.testnet");
+      console.log("  node sdk/bin/cli.js budget --account agent.sergeo-guard.testnet");
       console.log("  node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount 25");
       process.exit(0);
   }
