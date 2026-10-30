@@ -77,8 +77,8 @@ export default function DashboardPage() {
   const [rejectCount, setRejectCount] = useState(0);
   const [vaultBalance, setVaultBalance] = useState("350");
   const [dailyCapTotal, setDailyCapTotal] = useState(500);
-  const [dailyCapSpent, setDailyCapSpent] = useState(70);
-  const [velocityUsed, setVelocityUsed] = useState(2);
+  const [dailyCapSpent, setDailyCapSpent] = useState(0);
+  const [velocityUsed, setVelocityUsed] = useState(0);
   const [velocityMax, setVelocityMax] = useState(5);
   const [ruleToggles, setRuleToggles] = useState<Record<number, boolean>>({
     1: true,
@@ -146,10 +146,10 @@ export default function DashboardPage() {
           const paused = Boolean(data.budget.paused);
           setIsPaused(paused);
           setRuleToggles((prev) => ({ ...prev, 2: !paused }));
-          setDailyCapTotal(Number(data.budget.cap) || 500);
-          setDailyCapSpent(Number(data.budget.spent) || 70);
-          setVaultBalance(data.budget.vault_balance || "350");
-          setVelocityUsed(data.budget.actions_in_window !== undefined ? Number(data.budget.actions_in_window) : 2);
+          setDailyCapTotal(data.budget.cap !== undefined ? Number(data.budget.cap) : 500);
+          setDailyCapSpent(data.budget.spent !== undefined ? Number(data.budget.spent) : 0);
+          setVaultBalance(data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "350");
+          setVelocityUsed(data.budget.actions_in_window !== undefined ? Number(data.budget.actions_in_window) : 0);
         }
         setPendingActions(Array.isArray(data.pendingActions) ? data.pendingActions : []);
         if (data.stagedPolicy !== undefined) setStagedPolicy(data.stagedPolicy);
