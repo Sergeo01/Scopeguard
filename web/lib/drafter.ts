@@ -263,9 +263,24 @@ Rules:
   let isGuessVelocity = true;
   let isGuessTimelock = true;
 
-  // Extract dollar amounts
+  // Extract the daily spend cap.
+  //
+  // Phrasings people actually type include "cap 200 per day", "budget of 300",
+  // "$250/day", "300 mUSD" and "up to 400". The old pattern required "cap of"
+  // or a trailing currency word, so "cap 200 per day" silently fell back to the
+  // 100 default while still claiming to have understood the request.
+  //
+  // The negative lookahead keeps velocity wording ("max 4 actions", "5 swaps
+  // per 10 min") from being mistaken for the cap.
   let dailyCap = "100";
-  const capMatch = text.match(/(?:\$|cap of|limit of|up to|spend)\s*(\d+)/i) || text.match(/(\d+)\s*(?:musd|dollars|usd|\$)/i);
+  const notVelocity = String.raw`(?!\s*(?:actions|trades|swaps|txs|calls|transactions|per\s*10))`;
+  const capMatch =
+    text.match(
+      new RegExp(String.raw`(?:daily\s+cap|daily\s+limit|cap|budget|limit|spend|allowance|up\s+to)\s*(?:of|is|at|to|:)?\s*\$?\s*(\d+)` + notVelocity, "i")
+    ) ||
+    text.match(/\$\s*(\d+)/) ||
+    text.match(new RegExp(String.raw`(\d+)\s*(?:musd|dollars|usd)` + notVelocity, "i")) ||
+    text.match(/(\d+)\s*(?:per|\/)\s*(?:day|24h)/i);
   if (capMatch) {
     dailyCap = capMatch[1];
     isGuessDailyCap = false;

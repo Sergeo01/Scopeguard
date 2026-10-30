@@ -48,6 +48,16 @@ This pass removed four classes of claim that did not survive contact with the ch
 - **Stale artifacts removed**
   - Deleted `scripts/security-audit-poc.js` (superseded by the contract test suite) and the untracked `scratch/` directory.
 
+- **Dependency audit: 1 critical + 15 high → 0 critical, 0 high, 12 low**
+  - `next` 14.2.24 → 15.5.28. That clears the middleware authorization bypass, the two image-optimizer RCEs, the Windows-hosted RCE, the App Router DoS set, the SSRF-in-rewrites issues and the cache-confusion issues. Next 15 accepts React 18.3, so no React rewrite was needed; all routes were re-tested after the bump.
+  - `images.unoptimized: true` remains set, so the image optimizer is never reachable even on an older build.
+  - Added `overrides` for `base-x@^3.0.11` (homograph validation bypass, patch bump inside `bs58@4`'s own range) and `secp256k1@^5.0.2` (ECDH private-key extraction), and bumped `postcss` to 8.5.32 so Next's nested copy dedupes onto the patched release.
+  - The 12 remaining lows are all `elliptic <=6.6.1`, which has no fixed release upstream. It is reachable only through secp256k1 key handling; ScopeGuard uses ed25519 exclusively and never performs ECDH.
+
+- **Drafter parses the cap people actually type**
+  - `cap 200 per day`, `$250/day`, `up to 400` and `budget of 300` now set the cap. Previously only `cap of N` or a trailing `mUSD` matched, so `cap 200 per day` silently produced the 100 default while still presenting itself as understood.
+  - A negative lookahead keeps `max 4 actions` / `5 swaps per 10 min` from being read as the spend cap, and the plain-English summary still labels a genuine default as "conservative default, please verify".
+
 ### Added - 2026-10-28 (Check-Order Alignment, Webhook Sanitization, Dynamic Policy Telemetry, and Telegram Alerts)
 
 - **Check-Order Alignment in Guard Engine (`contracts/policy/src/lib.rs`)**
