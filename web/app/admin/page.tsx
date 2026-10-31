@@ -24,6 +24,7 @@ import {
   Server,
   ArrowRight,
 } from "lucide-react";
+import { ReceiptModal } from "@/components/ReceiptModal";
 
 /**
  * Fleet console.
@@ -113,6 +114,7 @@ export default function FleetConsolePage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [copied, setCopied] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal>(null);
+  const [inspectHash, setInspectHash] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -307,7 +309,7 @@ export default function FleetConsolePage() {
               Value bounded by policy
             </span>
             <div className="text-4xl sm:text-5xl font-extrabold tracking-tight font-mono">
-              ${totals?.vault ?? "-"}
+              ${loading ? "--" : (totals?.vault ?? 0)}
               <span className="text-lg font-semibold text-slate-400 ml-2">mUSD in vaults</span>
             </div>
             <p className="text-xs text-slate-300 max-w-md leading-relaxed">
@@ -332,10 +334,10 @@ export default function FleetConsolePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 w-full lg:w-auto shrink-0">
-            <Tile label="Registered" value={agents.length} note="agents on chain" tone="text-slate-100" />
-            <Tile label="Active" value={totals?.active ?? 0} note="executing normally" tone="text-emerald-400" />
-            <Tile label="Paused" value={totals?.paused ?? 0} note="circuit breakers" tone="text-amber-400" />
-            <Tile label="Revoked" value={totals?.revoked ?? 0} note="allowlist wiped" tone="text-rose-400" />
+            <Tile label="Registered" value={loading ? "--" : agents.length} note="agents on chain" tone="text-slate-100" />
+            <Tile label="Active" value={loading ? "--" : (totals?.active ?? 0)} note="executing normally" tone="text-emerald-400" />
+            <Tile label="Paused" value={loading ? "--" : (totals?.paused ?? 0)} note="circuit breakers" tone="text-amber-400" />
+            <Tile label="Revoked" value={loading ? "--" : (totals?.revoked ?? 0)} note="allowlist wiped" tone="text-rose-400" />
           </div>
         </div>
       </div>
@@ -773,17 +775,26 @@ export default function FleetConsolePage() {
                     </span>
                   )}
                   {log.txHash ? (
-                    <a
-                      href={`https://testnet.nearblocks.io/txns/${log.txHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 font-mono text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      <span>
-                        {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
-                      </span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInspectHash(log.txHash!)}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        <span>Inspect</span>
+                      </button>
+                      <a
+                        href={`https://testnet.nearblocks.io/txns/${log.txHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <span>
+                          {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
+                        </span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                   ) : (
                     <span className="text-[11px] text-slate-400 font-mono">no tx</span>
                   )}
@@ -862,6 +873,9 @@ export default function FleetConsolePage() {
           </div>
         </div>
       )}
+
+      {/* Direct In-App Onchain Receipt Inspector */}
+      <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />
     </div>
   );
 }

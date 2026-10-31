@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   ShieldCheck,
 } from "lucide-react";
+import { ReceiptModal } from "@/components/ReceiptModal";
 
 interface AttackScenario {
   id: string;
@@ -120,13 +121,16 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
 ];
 
 const ONCHAIN_RULES = [
-  { num: 1, name: "Registered Agent", code: "NOT_AGENT", checkDesc: "Caller must match registered agent sub-account" },
-  { num: 2, name: "Unpaused State", code: "PAUSED", checkDesc: "Key must not be frozen by owner or circuit breaker" },
-  { num: 3, name: "Velocity Anti-Spam", code: "OVER_VELOCITY_CAP", checkDesc: "Transactions per 10min within speed limit" },
-  { num: 4, name: "Target Allowlist", code: "TARGET_NOT_ALLOWED", checkDesc: "Destination contract explicitly approved" },
-  { num: 5, name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", checkDesc: "Function name explicitly permitted" },
-  { num: 6, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", checkDesc: "Rolling 24h expenditure within budget cap" },
-  { num: 7, name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", checkDesc: "External payout wallet on approved list" },
+  { num: 1, name: "Registered Agent", code: "NOT_AGENT", group: "Policy Rule", checkDesc: "Caller must match registered agent sub-account" },
+  { num: 2, name: "Unpaused State", code: "PAUSED", group: "Policy Rule", checkDesc: "Key must not be frozen by owner or circuit breaker" },
+  { num: 3, name: "Velocity Anti-Spam", code: "OVER_VELOCITY_CAP", group: "Policy Rule", checkDesc: "Transactions per 10min within speed limit" },
+  { num: 4, name: "Target Allowlist", code: "TARGET_NOT_ALLOWED", group: "Policy Rule", checkDesc: "Destination contract explicitly approved" },
+  { num: 5, name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", group: "Policy Rule", checkDesc: "Function name explicitly permitted" },
+  { num: 6, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", group: "Policy Rule", checkDesc: "Rolling 24h expenditure within budget cap" },
+  { num: 7, name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", group: "Policy Rule", checkDesc: "External payout wallet on approved list" },
+  { num: 8, name: "High-Value Timelock Quarantine", code: "PENDING", group: "Protocol Bound", checkDesc: "Large actions held in owner review timelock" },
+  { num: 9, name: "Vault Solvency Bound", code: "INSUFFICIENT_VAULT_BALANCE", group: "Protocol Bound", checkDesc: "Spend cannot exceed agent vault pot" },
+  { num: 10, name: "Timelock Queue Cap", code: "PENDING_QUEUE_FULL", group: "Protocol Bound", checkDesc: "Quarantine queue bounded to max items" },
 ];
 
 export default function HomePage() {
@@ -140,6 +144,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [copiedHash, setCopiedHash] = useState(false);
+  const [inspectHash, setInspectHash] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"visual" | "payload">("visual");
 
   React.useEffect(() => {
@@ -348,6 +353,13 @@ export default function HomePage() {
   };
 
   const handleLegitSwap = async () => {
+    setSelectedScenarioId("");
+    setTargetAccount("sergeo-guard-dex.testnet");
+    setMethodName("swap");
+    setAmountVal("25");
+    setRecipientVal("sergeo-guard.testnet");
+    setPromptText("Execute scheduled 25 mUSD swap on DEX.");
+
     setLoading(true);
     setStatusMessage("Executing legitimate 25 mUSD swap on ScopeGuard Testnet DEX...");
     try {
@@ -463,14 +475,14 @@ export default function HomePage() {
             </div>
             <div className="flex items-baseline gap-2 pt-1">
               <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                7 Layers
+                10 Layers
               </span>
               <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                 ↗ Active
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Rigid onchain check sequence
+              7 Policy Rules + 3 Protocol Bounds
             </span>
           </div>
 
@@ -827,42 +839,83 @@ export default function HomePage() {
               </p>
 
               {activeVerdict.txHash && (
-                <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
-                  <div className="flex items-center gap-1 font-mono text-slate-400">
-                    <span>Tx: {activeVerdict.txHash.slice(0, 16)}...</span>
+                <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center gap-1.5 font-mono text-slate-400">
+                    <span className="text-slate-300">Tx: {activeVerdict.txHash.slice(0, 14)}...</span>
                     <button
                       type="button"
                       onClick={() => copyHash(activeVerdict.txHash)}
                       className="p-1 hover:text-white cursor-pointer"
+                      title="Copy full transaction hash"
                     >
-                      {copiedHash ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      {copiedHash ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  <a
-                    href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:underline font-semibold inline-flex items-center gap-1"
-                  >
-                    <span>NearBlocks</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInspectHash(activeVerdict.txHash)}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-semibold inline-flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Inspect Receipt</span>
+                    </button>
+                    <a
+                      href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-400 hover:text-emerald-400 font-semibold inline-flex items-center gap-1 transition"
+                    >
+                      <span>NearBlocks</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <a
+                      href={`https://testnet.pikespeak.ai/tx/${activeVerdict.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-400 hover:text-emerald-400 font-semibold inline-flex items-center gap-1 transition"
+                    >
+                      <span>Pikespeak</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* 7-Rule Evaluation List */}
+            {/* 10-Layer Policy & Protocol Evaluation Sequence */}
             <div className="space-y-1.5 pt-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                7-LAYER CHECK SEQUENCE
-              </span>
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                  10-LAYER POLICY & PROTOCOL CHECK SEQUENCE
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  7 Rules + 3 Bounds
+                </span>
+              </div>
               {ONCHAIN_RULES.map((r) => {
-                const isBlocking =
-                  activeVerdict.status === "REJECTED" && activeVerdict.reasonCode === r.code;
-                const isPassed =
-                  activeVerdict.status === "REJECTED"
-                    ? activeVerdict.ruleNumber > r.num
-                    : activeVerdict.status === "ALLOWED" || activeVerdict.status === "PENDING";
+                let isBlocking = false;
+                let isPassed = false;
+                let isQuarantine = false;
+
+                if (activeVerdict.status === "PENDING") {
+                  if (r.num <= 7) {
+                    isPassed = true;
+                  } else if (r.num === 8) {
+                    isQuarantine = true;
+                  } else {
+                    isPassed = true;
+                  }
+                } else if (activeVerdict.status === "ALLOWED") {
+                  isPassed = true;
+                } else if (activeVerdict.status === "REJECTED") {
+                  if (activeVerdict.reasonCode === r.code) {
+                    isBlocking = true;
+                  } else if (activeVerdict.ruleNumber > r.num) {
+                    isPassed = true;
+                  }
+                }
 
                 return (
                   <div
@@ -870,22 +923,33 @@ export default function HomePage() {
                     className={`flex items-center justify-between p-2 rounded-lg text-xs transition ${
                       isBlocking
                         ? "bg-rose-500/20 border border-rose-500/40 text-rose-300 font-semibold"
+                        : isQuarantine
+                        ? "bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold"
                         : isPassed
                         ? "bg-white/[0.04] text-slate-300"
                         : "text-slate-500"
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="w-4 h-4 rounded-md bg-white/10 flex items-center justify-center font-mono text-[9px]">
+                      <span className={`w-4 h-4 rounded-md flex items-center justify-center font-mono text-[9px] ${
+                        isQuarantine ? "bg-amber-500/30 text-amber-200" : "bg-white/10"
+                      }`}>
                         {r.num}
                       </span>
                       <span className="font-semibold text-xs">{r.name}</span>
+                      <span className="text-[9px] text-slate-500 font-mono hidden sm:inline">
+                        ({r.group})
+                      </span>
                     </div>
 
                     <div>
                       {isBlocking ? (
                         <span className="text-[10px] font-mono text-rose-400 font-bold">
                           BLOCKED
+                        </span>
+                      ) : isQuarantine ? (
+                        <span className="text-[10px] font-mono text-amber-400 font-bold animate-pulse">
+                          QUARANTINED (60s Timelock)
                         </span>
                       ) : isPassed ? (
                         <span className="text-[10px] font-mono text-emerald-400">PASSED</span>
@@ -896,23 +960,12 @@ export default function HomePage() {
                   </div>
                 );
               })}
-
-              {activeVerdict.status === "PENDING" && (
-                <div className="flex items-center justify-between p-2 rounded-lg text-xs bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold mt-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-md bg-amber-500/30 flex items-center justify-center font-mono text-[9px] text-amber-200">
-                      8
-                    </span>
-                    <span className="font-semibold text-xs">High-Value Threshold Check</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-amber-400 font-bold animate-pulse">
-                    QUARANTINED (60s Timelock)
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>
+
+      {/* Direct In-App Onchain Receipt Inspector */}
+      <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />
     </div>
   );
 }

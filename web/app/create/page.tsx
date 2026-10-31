@@ -30,8 +30,8 @@ interface TargetPlatform extends ConfiguredPlatform {}
 export default function CreateAgentPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
   const [agentName, setAgentName] = useState("agent.sergeo-guard.testnet");
-  const [dailyCap, setDailyCap] = useState<number>(100);
-  const [dailyCapInput, setDailyCapInput] = useState<string>("100");
+  const [dailyCap, setDailyCap] = useState<number>(500);
+  const [dailyCapInput, setDailyCapInput] = useState<string>("500");
 
   const [platforms, setPlatforms] = useState<TargetPlatform[]>([
     {
@@ -531,7 +531,7 @@ export default function CreateAgentPage() {
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {[1, 25, 100, 250, 1000].map((preset) => (
+                  {[25, 100, 250, 500, 1000].map((preset) => (
                     <button
                       key={preset}
                       type="button"

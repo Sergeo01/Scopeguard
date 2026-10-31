@@ -35,6 +35,7 @@ import {
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { useWallet } from "@/context/WalletContext";
+import { ReceiptModal } from "@/components/ReceiptModal";
 
 interface ActivityItem {
   id: string;
@@ -90,6 +91,8 @@ export default function DashboardPage() {
     7: true,
   });
   const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [inspectHash, setInspectHash] = useState<string | null>(null);
   const [ledgerFilter, setLedgerFilter] = useState<"all" | "approved" | "declined">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedAgent, setCopiedAgent] = useState(false);
@@ -159,6 +162,7 @@ export default function DashboardPage() {
       console.warn("Could not fetch /api/state", e);
     } finally {
       setLoading(false);
+      setIsInitialLoading(false);
     }
   };
 
@@ -343,7 +347,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${vaultBalance}.00
+                  {isInitialLoading ? "--" : `$${vaultBalance}.00`}
                 </span>
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
                   mUSD Working Pot
@@ -391,9 +395,13 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${dailyCapTotal}
-                </span>
+                {isInitialLoading ? (
+                  <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                    ${dailyCapTotal}
+                  </span>
+                )}
                 <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↗ Manual
                 </span>
@@ -414,9 +422,13 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${dailyCapSpent}
-                </span>
+                {isInitialLoading ? (
+                  <span className="inline-block h-8 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                    ${dailyCapSpent}
+                  </span>
+                )}
                 <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↘ 5% of Cap
                 </span>
@@ -437,9 +449,13 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${Math.max(0, dailyCapTotal - dailyCapSpent)}
-                </span>
+                {isInitialLoading ? (
+                  <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                    ${Math.max(0, dailyCapTotal - dailyCapSpent)}
+                  </span>
+                )}
                 <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↗ Safe
                 </span>
@@ -460,9 +476,13 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  {velocityUsed}/{velocityMax}
-                </span>
+                {isInitialLoading ? (
+                  <span className="inline-block h-8 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                    {velocityUsed}/{velocityMax}
+                  </span>
+                )}
                 <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
                   ↘ Normal
                 </span>
@@ -820,7 +840,25 @@ export default function DashboardPage() {
 
             {/* Event Items */}
             <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-              {filteredActivities.length === 0 ? (
+              {isInitialLoading ? (
+                <div className="space-y-2.5 py-1">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-obsidian-950/60 border border-slate-200/80 dark:border-slate-800/80 animate-pulse flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
+                        <div className="space-y-1.5">
+                          <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                          <div className="h-2.5 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
+                        </div>
+                      </div>
+                      <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredActivities.length === 0 ? (
                 <div className="py-12 text-center text-xs text-slate-400">
                   No activity receipts matching filter.
                 </div>
@@ -867,8 +905,16 @@ export default function DashboardPage() {
                           </div>
 
                           {act.reason && (
-                            <p className="text-[11px] text-rose-600 dark:text-rose-400 font-mono mt-0.5">
-                              Refused: {act.reason}
+                            <p
+                              className={`text-[11px] font-mono mt-0.5 ${
+                                isAllowed
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : isPending
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : "text-rose-600 dark:text-rose-400"
+                              }`}
+                            >
+                              {isAllowed ? `Verified: ${act.reason}` : isPending ? `Quarantine: ${act.reason}` : `Refused: ${act.reason}`}
                             </p>
                           )}
                         </div>
@@ -879,15 +925,24 @@ export default function DashboardPage() {
                           {new Date(act.timestamp).toLocaleTimeString()}
                         </span>
                         {act.txHash && (
-                          <a
-                            href={`https://testnet.nearblocks.io/txns/${act.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-mono text-[10px]"
-                          >
-                            <span>Tx</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setInspectHash(act.txHash!)}
+                              className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline font-mono text-[10px] cursor-pointer"
+                            >
+                              <span>Inspect</span>
+                            </button>
+                            <a
+                              href={`https://testnet.nearblocks.io/txns/${act.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-mono text-[10px]"
+                            >
+                              <span>NearBlocks</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1038,6 +1093,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Direct In-App Onchain Receipt Inspector */}
+      <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />
     </div>
   );
 }

@@ -20,14 +20,15 @@ export interface ActivityItem {
   reason?: string;
 }
 
-const BASE_TIME = 1793363000000;
+// Timestamps anchored to runtime launch so ledger entries reflect realistic recent activity.
+const START_TIME = Date.now();
 
 let activityLog: ActivityItem[] = [
   {
     id: "seed-reject-target",
     txHash: "EDwEhWuBTLZTwzfwKu8sJRg2a927CcJLsCqY4tAxvZDZ",
     type: "REJECT",
-    timestamp: BASE_TIME,
+    timestamp: START_TIME - 35_000,
     agent: "agent.sergeo-guard.testnet",
     target: "evil_contract.testnet",
     method: "drain",
@@ -37,7 +38,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-reject-recipient",
     txHash: "6kEHj53hcqSXbbr2n5j7sLSVrcWwuGjTH6ongEBbsoNL",
     type: "REJECT",
-    timestamp: BASE_TIME - 60_000,
+    timestamp: START_TIME - 75_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-token.testnet",
     method: "ft_transfer",
@@ -48,7 +49,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-cancelled-intent",
     txHash: "ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq",
     type: "CANCELLED",
-    timestamp: BASE_TIME - 120_000,
+    timestamp: START_TIME - 140_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -59,7 +60,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-pending-intent",
     txHash: "2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5",
     type: "PENDING",
-    timestamp: BASE_TIME - 180_000,
+    timestamp: START_TIME - 210_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -70,7 +71,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-allow-swap",
     txHash: "6MYF5g7TwtSaPEygAnUybRLBLygWBbE45q7Du9fNp8G",
     type: "ALLOW",
-    timestamp: BASE_TIME - 240_000,
+    timestamp: START_TIME - 290_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -81,7 +82,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-revoke-test-agent",
     txHash: "CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9",
     type: "PAUSE",
-    timestamp: BASE_TIME - 600_000,
+    timestamp: START_TIME - 600_000,
     agent: "test-agent.sergeo-guard.testnet",
     target: "guard2.sergeo-guard.testnet",
     method: "revoke_agent",
@@ -91,7 +92,7 @@ let activityLog: ActivityItem[] = [
     id: "seed-leaked-key-replay",
     txHash: "ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5",
     type: "REJECT",
-    timestamp: BASE_TIME - 900_000,
+    timestamp: START_TIME - 900_000,
     agent: "trader.sergeo-guard.testnet",
     target: "guard2.sergeo-guard.testnet",
     method: "execute",

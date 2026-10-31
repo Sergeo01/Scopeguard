@@ -14,6 +14,9 @@ import {
   Shield,
   ArrowRight,
   RefreshCw,
+  Eye,
+  EyeOff,
+  Lock,
 } from "lucide-react";
 
 interface AgentHandoffCardProps {
@@ -53,14 +56,20 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [revealKey, setRevealKey] = useState(false);
 
   const actualPasskey = passkey || "";
   const actualPublicKey = publicKey || "";
+  const maskedPasskey = actualPasskey ? "ed25519:••••••••••••••••••••••••••••••••••••••••••••" : "";
   const guardContract = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const cliCommand = actualPasskey
     ? `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`
+    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${guardContract}`;
+
+  const displayCliCommand = actualPasskey
+    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${revealKey ? actualPasskey : maskedPasskey} --guard ${guardContract}`
     : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${guardContract}`;
 
   const defaultPolicy = {
@@ -99,6 +108,16 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
     policyContractId: guardContract,
     publicKey: actualPublicKey,
     privateKey: actualPasskey,
+    networkId: "testnet",
+    nodeUrl: "https://test.rpc.fastnear.com",
+    created_at: new Date().toISOString(),
+  };
+
+  const credentialJsonPreview = {
+    agentAccountId: agentName,
+    policyContractId: guardContract,
+    publicKey: actualPublicKey,
+    privateKey: revealKey ? actualPasskey : (maskedPasskey || "[No passkey in memory]"),
     networkId: "testnet",
     nodeUrl: "https://test.rpc.fastnear.com",
     created_at: new Date().toISOString(),
@@ -355,26 +374,44 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {cliCommand}
+                <pre className="p-4 pr-36 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                  {displayCliCommand}
                 </pre>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(cliCommand, "cli")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
-                >
-                  {copiedKey === "cli" ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Command</span>
-                    </>
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  {actualPasskey && (
+                    <button
+                      type="button"
+                      onClick={() => setRevealKey(!revealKey)}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                      title={revealKey ? "Hide passkey" : "Reveal plaintext passkey"}
+                    >
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
+                      <span className="hidden sm:inline">{revealKey ? "Hide Key" : "Reveal"}</span>
+                    </button>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(cliCommand, "cli")}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  >
+                    {copiedKey === "cli" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Copy Command</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>Passkey is masked by default for security during demos and screen recording.</span>
               </div>
             </div>
           )}
@@ -382,17 +419,31 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           {activeTab === "key" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Direct Private Key String
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    Direct Private Key String
+                  </h4>
+                  {actualPasskey && (
+                    <button
+                      type="button"
+                      onClick={() => setRevealKey(!revealKey)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
+                    >
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                      <span>{revealKey ? "Mask Passkey" : "Reveal Passkey"}</span>
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   Paste this string into trading bot marketplaces or API agents that require a private key.
                 </p>
               </div>
 
               <div className="relative group">
-                <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {actualPasskey || "[No passkey in memory. Generate one or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
+                <pre className="p-4 pr-28 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                  {actualPasskey
+                    ? (revealKey ? actualPasskey : maskedPasskey)
+                    : "[No passkey in memory. Generate one or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
                 </pre>
                 {actualPasskey && (
                   <button
@@ -413,6 +464,11 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                     )}
                   </button>
                 )}
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>Masked by default to prevent credential leakage. Scoped strictly to Guard contract execution.</span>
               </div>
             </div>
           )}
@@ -456,16 +512,28 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
           {activeTab === "json" && (
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Traditional JSON File for Developer Workflows
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    Traditional JSON File for Developer Workflows
+                  </h4>
+                  {actualPasskey && (
+                    <button
+                      type="button"
+                      onClick={() => setRevealKey(!revealKey)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
+                    >
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                      <span>{revealKey ? "Mask in Preview" : "Reveal in Preview"}</span>
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   Save as <code className="font-mono text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-800 px-1 py-0.5 rounded">agent.json</code> in your local project directory.
                 </p>
               </div>
 
               <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                {JSON.stringify(credentialJson, null, 2)}
+                {JSON.stringify(credentialJsonPreview, null, 2)}
               </pre>
 
               <div className="flex items-center gap-3">
@@ -490,11 +558,15 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy JSON</span>
+                      <span>Copy JSON (with Key)</span>
                     </>
                   )}
                 </button>
               </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Key preview is masked by default on screen. The downloaded file and copy action contain the complete active passkey for your agent runtime.
+              </p>
             </div>
           )}
 
