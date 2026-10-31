@@ -94,7 +94,7 @@ npm run build --prefix web
 
 ## 7. Live Testnet Deployments & Verified Transactions
 
-ScopeGuard is live and fully verified on the NEAR Testnet.
+ScopeGuard is deployed on NEAR Testnet with active contract instances and verifiable execution receipts.
 
 ### Deployed Testnet Accounts & Contracts
 - **Policy Guard Contract:** [`guard2.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet)

@@ -342,7 +342,7 @@ This pass removed four classes of claim that did not survive contact with the ch
 
 - **AI Judge Automated Verification (`scripts/`)**
   - Created `scripts/verify-ai-judge.js`: minimal, zero-dependency test script for Claude Code, Codex, and human judges.
-  - Verified in 0.1 seconds across all 7 checks, check order, budget tracking, and auto-pause breaker trip.
+  - Verified in 0.1 seconds across all check layers, check order, budget tracking, and auto-pause breaker trip.
 
 - **Web Dashboard & Interactive Panic UI (`web/components/`)**
   - Created `web/components/CircuitBreakerBanner.tsx`: real-time visual indicator for reject count, auto-pause tripping state, and owner unpause trigger.

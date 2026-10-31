@@ -76,7 +76,7 @@ The Guard contract holds the working pot the owner funded. The owner's main fund
 The function-call key's NEAR allowance depletes and the key stops working, like a prepaid card. The dashboard warns the owner at 20 percent remaining. This is a feature, not a bug: a runaway agent halts itself.
 
 **What if the special key itself gets stolen?**
-The thief can only knock on the Guard's door, exactly like the agent. Same seven checks. He cannot send money to himself (he is not on the receiving list), cannot raise the daily cap, cannot change the rule card. Worst case: allowed actions up to the daily cap inside the pot, in public, while the owner is alerted. Then the owner revokes and the thief holds nothing.
+The thief can only knock on the Guard's door, exactly like the agent. Same onchain policy checks. He cannot send money to himself (he is not on the receiving list), cannot raise the daily cap, cannot change the rule card. Worst case: allowed actions up to the daily cap inside the pot, in public, while the owner is alerted. Then the owner revokes and the thief holds nothing.
 
 **Can the owner change the rules later?**
 Yes. set\_policy replaces the whole rule card, owner only, and the AI drafter can draft the new version from a new plain sentence. The same validation gate applies.

@@ -1,0 +1,80 @@
+name: ScopeGuard CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  contracts:
+    name: Rust Contracts Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Run policy contract unit tests
+        run: cargo test --manifest-path contracts/policy/Cargo.toml
+
+      - name: Verify WebAssembly build target
+        run: cargo check --target wasm32-unknown-unknown --manifest-path contracts/policy/Cargo.toml
+
+  packages-and-web:
+    name: TypeScript Packages and Web Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build SDK
+        run: |
+          cd sdk
+          npm install
+          npm run build
+
+      - name: Build Demo Agent
+        run: |
+          cd demo-agent
+          npm install
+          npm run build
+
+      - name: Build Watcher
+        run: |
+          cd watcher
+          npm install
+          npm run build
+
+      - name: Install Web dependencies
+        run: |
+          cd web
+          npm install
+
+      - name: Run Web automated unit tests
+        run: |
+          cd web
+          npm test
+
+      - name: Build Web application
+        run: |
+          cd web
+          npm run build
+        env:
+          NEXT_PUBLIC_POLICY_CONTRACT_ID: guard2.sergeo-guard.testnet
+          NEXT_PUBLIC_OWNER_ACCOUNT_ID: sergeo-guard.testnet
+          NEXT_PUBLIC_TOKEN_CONTRACT: sergeo-guard-token.testnet
+          NEXT_PUBLIC_DEX_CONTRACT: sergeo-guard-dex.testnet
+          NEXT_PUBLIC_NEAR_NETWORK: testnet
+          NEXT_PUBLIC_NEAR_RPC: https://test.rpc.fastnear.com
