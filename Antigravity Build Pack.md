@@ -2,7 +2,7 @@
 
 Before any code, create these files in the project root:
 
-1. `AGENTS.md`: the builder context file the human gives you. It explains the mission, the audience, the five pieces, the seven rules, and the working rules. Read it first.
+1. `AGENTS.md`: the builder context file the human gives you. It explains the mission, the audience, the five pieces, the ten checks, and the working rules. Read it first.
 2. `SPEC.md`: the full build spec the human gives you. It is the source of truth for the contract surface, the screens, the demo script, the day plan, and the cut list. If AGENTS.md, this pack, or your own judgement ever disagree with the spec, the spec wins.
 3. This build pack, for reference.
 4. `contracts/policy/Cargo.toml` and `contracts/policy/src/lib.rs`: copy them from the appendix of this pack. The skeleton was already verified to compile clean for the wasm target with near-sdk 5.29. Do not rewrite it from scratch; start from it and complete the marked TODOs.
@@ -15,7 +15,7 @@ Working name in code: scopeguard (final product name is still the human's call; 
 - **Audience:** people running personal agents on their own computers, not enterprises with IT departments.
 - **Problem:** today an agent holds a full private key, often in a plain text file next to skills written by strangers. Researchers found 341 of 2,857 skills for one popular agent platform malicious, and 30,000+ agent setups exposed online in 12 days. One trick, one fake instruction, or one stolen key equals total loss, and crypto transfers cannot be undone.
 - **Product, in five pieces:** (1) the agent gets its own sub-account under the owner's account; (2) the owner funds a small spending pot, the only money the agent can ever touch; (3) the agent holds only a special function-call key that fits exactly one lock, the Guard's execute method, enforced by NEAR itself; (4) the Guard, a Rust contract on NEAR, checks every request against the owner's rule card and performs the action itself only if every check passes; (5) the rule card: allowed targets and methods, daily cap, receiving allowlist, velocity limit, auto-pause settings.
-- **The seven Guard checks, in this exact order:** NOT\_AGENT, PAUSED, OVER\_VELOCITY\_CAP, TARGET\_NOT\_ALLOWED, METHOD\_NOT\_ALLOWED, OVER\_DAILY\_CAP, RECIPIENT\_NOT\_ALLOWED. After a reject, if rejects inside the auto-pause window reach the configured count, the Guard pauses the agent by itself and emits an AUTO\_PAUSE event.
+- **The ten Guard checks, in this exact order:** NOT\_AGENT, PAUSED, OVER\_VELOCITY\_CAP, TARGET\_NOT\_ALLOWED, METHOD\_NOT\_ALLOWED, OVER\_DAILY\_CAP, RECIPIENT\_NOT\_ALLOWED, PENDING (timelock outcome), INSUFFICIENT\_VAULT\_BALANCE, PENDING\_QUEUE\_FULL. After a reject, if rejects inside the auto-pause window reach the configured count, the Guard pauses the agent by itself and emits an AUTO\_PAUSE event.
 - **Owner powers:** Pause (soft stop), Revoke (destroys the agent's key on NEAR itself), Withdraw (empties the pot back to the owner's account, owner only, destination forced to the owner).
 - **AI drafter:** the owner describes the job in one plain sentence; an AI turns it into a Policy JSON and a plain-English rendering. The drafter only proposes. Strict JSON Schema validation runs before the UI can show it, with one repair retry, then a manual form fallback. Sign stays disabled until validation and lint pass.
 

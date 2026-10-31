@@ -59,15 +59,18 @@ Learn these five pieces and you understand the whole system.
 4. **The Guard (the policy contract).** A Rust contract on NEAR. The agent's key can only call its execute method. The Guard checks every request against the owner's rule card and performs the action itself only if every check passes. Every decision, allowed or rejected, is written to a public onchain record.
 5. **The rule card (the policy).** What the owner approved for this agent: allowed target contracts and method names, a daily spending cap, an optional receiving allowlist, a velocity limit (max actions per 10 minutes), and auto-pause settings (how many rejects in how many minutes trip the emergency brake).
 
-## 3. The seven rules the Guard checks, in this exact order
+## 3. The ten checks the Guard runs, in this exact order
 
 1. NOT_AGENT: the caller must be the registered agent account.
 2. PAUSED: the agent must not be paused, by the owner or by the emergency brake.
 3. OVER_VELOCITY_CAP: actions in the current 10 minute window must be under the velocity limit.
-4. TARGET_NOT_ALLOWED: the target contract must be on the allowlist.
-5. METHOD_NOT_ALLOWED: the method must be allowlisted for that target.
+4. TARGET_NOT_ALLOWED: the target contract must be on the allowlist. A generic `ContractCall` may never target the custody token.
+5. METHOD_NOT_ALLOWED: the method must be allowlisted for that target, and token transfers must use the typed `Transfer` action.
 6. OVER_DAILY_CAP: total spend in the current 24 hour window plus this amount must fit under the daily cap.
 7. RECIPIENT_NOT_ALLOWED: if funds move to a person, that person must be on the receiving allowlist. An empty list means transfers to anyone are always refused.
+8. PENDING: at or above `high_value_threshold` the action is not executed immediately; it waits in the timelock queue for owner settlement. This is an outcome, not a rejection.
+9. INSUFFICIENT_VAULT_BALANCE: a transfer cannot exceed the agent's own vault balance.
+10. PENDING_QUEUE_FULL: the timelock queue is bounded at `MAX_PENDING_ACTIONS`.
 
 Then, after a reject: if rejects inside the auto-pause window reach the configured count, the Guard sets paused to true in the same call and emits an AUTO_PAUSE event.
 

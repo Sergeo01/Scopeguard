@@ -77,7 +77,7 @@ This pass removed four classes of claim that did not survive contact with the ch
   - Added unit test `test_withdraw_failure_refunds_vault_balance` asserting vault balance refund to 100 on failure.
 
 - **Settlement Validation Re-Ordering (`contracts/policy/src/lib.rs`)**
-  - Re-ordered `settle_pending` to validate all seven policy checks before removing the pending intent from the agent queue.
+  - Re-ordered `settle_pending` to validate all policy checks before removing the pending intent from the agent queue.
   - Settle refusals return `{ status: "REJECTED", reason, pending_id }` without calling `self.reject()`, preventing unfair circuit breaker strikes against the agent for owner settlement checks.
 
 - **Strict Non-Zero Policy Bounds Validation (`contracts/policy/src/lib.rs`)**
@@ -302,7 +302,7 @@ This pass removed four classes of claim that did not survive contact with the ch
 
 - **Project Core & Specification**
   - Copied and locked `SPEC.md` from `Agent Passkeys Build Spec.md`.
-  - Added `README.md` with problem framing, five core pieces, seven policy checks, and repository layout.
+  - Added `README.md` with problem framing, five core pieces, ten policy checks, and repository layout.
   - Added `TESTING_FOR_AI_JUDGES.md` dedicated guide for human evaluators and AI judges (Claude Code, Codex).
   - Added root `CHANGELOG.md` to track every change, progress step, and update.
 
@@ -382,7 +382,7 @@ This pass removed four classes of claim that did not survive contact with the ch
   - Added policy fields: `high_value_threshold` (vault units, 0 disables), `high_value_delay_seconds` (default 3600), and `policy_change_delay_seconds` (default 600).
   - Added contract state: `pending_actions` (bounded queue, max 8 entries), `staged_policy` (policy waiting out delay with `effective_at`), and `next_pending_id`.
   - Updated `execute`: high-value actions at or above threshold are appended to `pending_actions`, emit `PENDING`, and return pending id without recording spend. Queue full returns `PENDING_QUEUE_FULL` as a value, never a panic.
-  - Implemented `settle_pending(agent, id)`: callable after delay, re-checks all 7 rules; if passed records spend and performs action (`SETTLED`), if failed discards intent (`REJECT`).
+  - Implemented `settle_pending(agent, id)`: callable after delay, re-checks all policy rules; if passed records spend and performs action (`SETTLED`), if failed discards intent (`REJECT`).
   - Implemented `cancel_pending(agent, id)`: owner only, immediate veto, never feeds circuit breaker (`CANCELLED`).
   - Implemented `set_policy(agent, policy)` with delayed staging (`POLICY_STAGED`), lazy application on next call (`POLICY_APPLIED`), and immediate cancellation (`cancel_policy_change`, `POLICY_CHANGE_CANCELLED`).
   - Verified non-delayed emergency powers: `pause`, `unpause`, `withdraw`, `cancel_pending`, and `cancel_policy_change` execute immediately.
