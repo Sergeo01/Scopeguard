@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -10,6 +10,8 @@ import {
   Check,
   Menu,
   BookOpen,
+  AlertTriangle,
+  Github,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 import { WalletButton } from "@/components/WalletButton";
@@ -24,6 +26,18 @@ export const TopStatusBar: React.FC<{
 }) => {
   const { accountId } = useWallet();
   const [copied, setCopied] = useState(false);
+  const [isAgentPaused, setIsAgentPaused] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/state")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.budget) {
+          setIsAgentPaused(!!data.budget.paused);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const copyGuard = () => {
     navigator.clipboard.writeText("guard2.sergeo-guard.testnet");
@@ -75,12 +89,20 @@ export const TopStatusBar: React.FC<{
             <span>7 Rules Enforced</span>
           </span>
 
-          {/* Pill 2: Protocol Guard Active with Live Heartbeat Dot */}
-          <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-blue-600 text-white flex items-center gap-1.5 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-            <Sparkles className="w-3 h-3 fill-white" />
-            <span>Protocol Guard Active</span>
-          </span>
+          {/* Pill 2: Protocol Guard Status with Live Indicator */}
+          {isAgentPaused ? (
+            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-amber-600 text-white flex items-center gap-1.5 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-200 animate-pulse" />
+              <AlertTriangle className="w-3 h-3" />
+              <span>Circuit Breaker Active (Paused)</span>
+            </span>
+          ) : (
+            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-blue-600 text-white flex items-center gap-1.5 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+              <Sparkles className="w-3 h-3 fill-white" />
+              <span>Protocol Guard Active</span>
+            </span>
+          )}
 
           {/* Pill 3: Network / Guard Contract Address */}
           <button
@@ -100,8 +122,19 @@ export const TopStatusBar: React.FC<{
         </div>
       </div>
 
-      {/* Right Actions: Docs & Wallet Trigger (Single sleek row) */}
+      {/* Right Actions: GitHub, Docs & Wallet Trigger (Single sleek row) */}
       <div className="flex items-center gap-2 shrink-0">
+        <a
+          href="https://github.com/sergeob/scopeguard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition shadow-xs"
+          title="View ScopeGuard GitHub Repository"
+        >
+          <Github className="w-3.5 h-3.5" />
+          <span>GitHub</span>
+        </a>
+
         <button
           type="button"
           onClick={onOpenDocs}

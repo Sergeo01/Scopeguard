@@ -68,13 +68,31 @@ export const DocsModal: React.FC<DocsModalProps> = ({ isOpen, onClose }) => {
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                   ScopeGuard Operator & Developer Guide
                 </h3>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
                   v0.2.0 Testnet
                 </span>
+                <a
+                  href="https://github.com/sergeob/scopeguard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition"
+                >
+                  <span>GitHub</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+                <a
+                  href="https://x.com/scopeguard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 border border-blue-200/60 dark:border-blue-800/40 transition"
+                >
+                  <span>X @scopeguard</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Non-custodial agent passkeys, onchain policy enforcement, and practical integration runbooks.

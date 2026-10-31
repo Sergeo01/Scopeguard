@@ -20,6 +20,8 @@ import {
   Layers,
   Sliders,
   BookOpen,
+  Github,
+  Twitter,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { useWallet } from "@/context/WalletContext";
@@ -114,6 +116,27 @@ export const AppSidebar: React.FC<{
           isExternal: true,
           badge: "Swap",
           badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
+        },
+      ],
+    },
+    {
+      label: "COMMUNITY & CODE",
+      items: [
+        {
+          href: "https://github.com/sergeob/scopeguard",
+          label: "GitHub Repository",
+          icon: Github,
+          isExternal: true,
+          badge: "Source",
+          badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
+        },
+        {
+          href: "https://x.com/scopeguard",
+          label: "X (Twitter)",
+          icon: Twitter,
+          isExternal: true,
+          badge: "@scopeguard",
+          badgeColor: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
         },
       ],
     },

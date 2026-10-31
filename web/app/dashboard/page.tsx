@@ -601,8 +601,8 @@ export default function DashboardPage() {
               name: "Execution State & Circuit Breaker",
               code: "PAUSED",
               desc: "Refuses execution when paused by owner or tripped by 3 consecutive rejects in 10 minutes.",
-              config: isPaused ? "Paused by Owner" : "Active (Unpaused)",
-              badge: isPaused ? "Paused" : "Active",
+              config: isInitialLoading ? "Syncing Onchain State..." : isPaused ? "Paused by Owner" : "Active (Unpaused)",
+              badge: isInitialLoading ? "Syncing" : isPaused ? "Paused" : "Active",
               isLocked: false,
             },
             {

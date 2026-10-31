@@ -130,51 +130,6 @@ export async function POST(req: Request) {
 
     const agentAccount = await near.account(cred.agentAccountId);
 
-    // Fast pre-check: if agent is currently PAUSED onchain, return PAUSED outcome immediately
-    try {
-      const budget = await agentAccount.viewFunction({
-        contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
-        methodName: "get_budget",
-        args: { agent_account: cred.agentAccountId },
-      });
-
-      if (budget && budget.paused) {
-        recordActivity({
-          id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-          type: "REJECT",
-          timestamp: Date.now(),
-          agent: cred.agentAccountId,
-          target,
-          method,
-          amount: amount && amount !== "0" ? amount : undefined,
-          reason: "PAUSED (Preflight check rejected without gas expenditure)",
-        });
-        return NextResponse.json({
-          success: true,
-          outcome: {
-            status: "REJECTED",
-            reason: "PAUSED",
-            pending_id: null,
-          },
-          verdict: {
-            status: "REJECTED",
-            reasonCode: "PAUSED",
-            ruleNumber: 2,
-            ruleName: "Execution State Check",
-            explanation: "Refused by onchain policy: Agent execution is paused by owner.",
-            txHash: undefined,
-            attemptedTarget: target,
-            attemptedMethod: method,
-            attemptedAmount: amount,
-            fundsSaved: amount,
-          },
-          note: "Agent is currently in PAUSED state. Enforcement check rejected without gas expenditure.",
-        });
-      }
-    } catch {
-      // Continue to function call if view query fails
-    }
-
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});
     let action: any;

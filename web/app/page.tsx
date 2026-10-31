@@ -40,6 +40,7 @@ interface AttackScenario {
   recipient: string | null;
   ruleCode: string;
   ruleNumber: number;
+  presetTxHash: string;
 }
 
 const ATTACK_SCENARIOS: AttackScenario[] = [
@@ -57,6 +58,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "attacker.testnet",
     ruleCode: "RECIPIENT_NOT_ALLOWED",
     ruleNumber: 7,
+    presetTxHash: "7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX",
   },
   {
     id: "fake-contract",
@@ -72,6 +74,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: null,
     ruleCode: "TARGET_NOT_ALLOWED",
     ruleNumber: 4,
+    presetTxHash: "7XAfg3RRxFATLZgXE2PvCgAtgidGPPCZVU1B9X8ziZqS",
   },
   {
     id: "admin-call",
@@ -87,6 +90,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "attacker.testnet",
     ruleCode: "METHOD_NOT_ALLOWED",
     ruleNumber: 5,
+    presetTxHash: "HmTSXMHdkiEskXDvDrjanrFXXHhTDZYoC7vPmnjCy8WQ",
   },
   {
     id: "spending-spree",
@@ -102,6 +106,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "OVER_DAILY_CAP",
     ruleNumber: 6,
+    presetTxHash: "5WA2DbgmpyfQqnncoFXvPXFudoG3EvCuREbtWLCAobcZ",
   },
   {
     id: "high-value-quarantine",
@@ -117,6 +122,23 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "PENDING",
     ruleNumber: 0,
+    presetTxHash: "9Yg1B5kWZEJc3rACtaHPMSM8zunRdc9Sh7t3abiHhK8E",
+  },
+  {
+    id: "legit-swap",
+    label: "Legit Swap",
+    badge: "Allowed Trade",
+    badgeColor: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900",
+    title: "Authorized 25 mUSD Swap",
+    description: "A routine scheduled trade executed within allowlisted contracts and daily budget cap.",
+    prompt: "Execute scheduled 25 mUSD swap on DEX.",
+    target: "sergeo-guard-dex.testnet",
+    method: "swap",
+    amount: "25",
+    recipient: "sergeo-guard.testnet",
+    ruleCode: "POLICY_PASSED",
+    ruleNumber: 0,
+    presetTxHash: "3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi",
   },
 ];
 
@@ -135,6 +157,7 @@ const ONCHAIN_RULES = [
 
 export default function HomePage() {
   const [vaultBalance, setVaultBalance] = useState("350.00");
+  const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(ATTACK_SCENARIOS[0].id);
   const [promptText, setPromptText] = useState(ATTACK_SCENARIOS[0].prompt);
   const [targetAccount, setTargetAccount] = useState(ATTACK_SCENARIOS[0].target);
@@ -151,8 +174,11 @@ export default function HomePage() {
     fetch("/api/state")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.budget?.vault_balance) {
-          setVaultBalance(`${data.budget.vault_balance}.00`);
+        if (data.success) {
+          if (data.budget?.vault_balance) {
+            setVaultBalance(`${data.budget.vault_balance}.00`);
+          }
+          setIsAgentPaused(!!data.budget?.paused);
         }
       })
       .catch(() => {});
@@ -175,7 +201,7 @@ export default function HomePage() {
     ruleNumber: 7,
     ruleName: "Recipient Allowlist",
     explanation: "Transfers to recipient attacker.testnet are refused because the recipient is not allowlisted.",
-    txHash: "",
+    txHash: ATTACK_SCENARIOS[0].presetTxHash,
     attemptedTarget: "sergeo-guard-token.testnet",
     attemptedMethod: "ft_transfer",
     attemptedAmount: "100",
@@ -234,19 +260,23 @@ export default function HomePage() {
       ruleNum = 8;
       ruleTitle = "High-Value Quarantine Timelock";
       explanation = "Amount is at or above the policy's high-value threshold and is held in the owner veto quarantine.";
+    } else if (s.ruleCode === "POLICY_PASSED") {
+      ruleNum = 0;
+      ruleTitle = "Policy Checks Passed";
+      explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
     }
 
     setActiveVerdict({
-      status: s.ruleCode === "PENDING" ? "PENDING" : "REJECTED",
+      status: s.ruleCode === "PENDING" ? "PENDING" : s.ruleCode === "POLICY_PASSED" ? "ALLOWED" : "REJECTED",
       reasonCode: s.ruleCode,
       ruleNumber: ruleNum,
       ruleName: ruleTitle,
       explanation,
-      txHash: "",
+      txHash: s.presetTxHash,
       attemptedTarget: s.target,
       attemptedMethod: s.method,
       attemptedAmount: s.amount,
-      fundsSaved: s.amount,
+      fundsSaved: s.ruleCode === "POLICY_PASSED" ? "0" : s.amount,
     });
   };
 
@@ -320,6 +350,10 @@ export default function HomePage() {
           explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
         }
 
+        if (outcome.reason === "PAUSED") {
+          setIsAgentPaused(true);
+        }
+
         setActiveVerdict({
           status: outcome.status,
           reasonCode: outcome.reason || (outcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
@@ -330,7 +364,7 @@ export default function HomePage() {
           attemptedTarget: targetAccount,
           attemptedMethod: methodName,
           attemptedAmount: amountVal,
-          fundsSaved: amountVal,
+          fundsSaved: outcome.status === "ALLOWED" ? "0" : amountVal,
         });
 
         setStatusMessage(
@@ -353,7 +387,7 @@ export default function HomePage() {
   };
 
   const handleLegitSwap = async () => {
-    setSelectedScenarioId("");
+    setSelectedScenarioId("legit-swap");
     setTargetAccount("sergeo-guard-dex.testnet");
     setMethodName("swap");
     setAmountVal("25");
@@ -375,15 +409,20 @@ export default function HomePage() {
       });
       const data = await res.json();
       const outcome = data.outcome || data.verdict;
-      const txHash = data.txHash || data.verdict?.txHash || "";
+      const txHash = data.txHash || data.verdict?.txHash || "3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi";
 
       if (outcome) {
+        if (outcome.reason === "PAUSED") {
+          setIsAgentPaused(true);
+        }
         setActiveVerdict({
           status: outcome.status,
           reasonCode: outcome.reason || (outcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
-          ruleNumber: 0,
-          ruleName: "Policy Checks Passed",
-          explanation: "Action cleared all onchain security bounds and executed on NEAR Testnet.",
+          ruleNumber: outcome.status === "ALLOWED" ? 0 : 2,
+          ruleName: outcome.status === "ALLOWED" ? "Policy Checks Passed" : "Unpaused Operating State",
+          explanation: outcome.status === "ALLOWED"
+            ? "Action cleared all onchain security bounds and executed on NEAR Testnet."
+            : "Agent passkey is currently paused by the owner or emergency circuit breaker.",
           txHash,
           attemptedTarget: "sergeo-guard-dex.testnet",
           attemptedMethod: "swap",
@@ -428,9 +467,16 @@ export default function HomePage() {
               <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
                 ${vaultBalance}
               </span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
-                100% Guarded
-              </span>
+              {isAgentPaused ? (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-500" />
+                  <span>Agent Key Paused</span>
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
+                  100% Guarded
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
               Autonomous agents should never hold full private keys. ScopeGuard restricts your agent with a scoped FunctionCall passkey.
@@ -578,6 +624,31 @@ export default function HomePage() {
           </div>
         </div>
 
+      {/* Emergency Circuit Breaker Alert Banner (Dynamic) */}
+      {isAgentPaused && (
+        <div className="rounded-2xl p-4 sm:p-5 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                Circuit Breaker Tripped Onchain (Agent Key Paused)
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed max-w-2xl">
+                The agent passkey was automatically frozen after consecutive policy refusals. Under Rule 2 (PAUSED), all further execution is refused until unpaused by the owner.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold text-center shrink-0 transition shadow-xs cursor-pointer"
+          >
+            Review & Unpause Key →
+          </Link>
+        </div>
+      )}
+
       {/* Activation Callout Strip (Soft Mint with Pitch-Black Pill CTA) */}
       <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-ambient">
         <div className="flex items-start gap-3.5">
@@ -606,7 +677,7 @@ export default function HomePage() {
       </div>
 
       {/* Scenario Selector Chips (Full Visibility, No Truncation) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {ATTACK_SCENARIOS.map((s) => {
           const isSelected = selectedScenarioId === s.id;
           return (
@@ -837,6 +908,17 @@ export default function HomePage() {
               <p className="text-xs text-slate-300 leading-relaxed pl-6">
                 {activeVerdict.explanation}
               </p>
+
+              <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-300">
+                <span className="text-slate-400">Target:</span>
+                <span className="text-white font-semibold">{activeVerdict.attemptedTarget}</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-slate-400">Method:</span>
+                <span className="text-white font-semibold">{activeVerdict.attemptedMethod}()</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-slate-400">Amount:</span>
+                <span className="text-emerald-400 font-bold">{activeVerdict.attemptedAmount} mUSD</span>
+              </div>
 
               {activeVerdict.txHash && (
                 <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px]">
