@@ -58,7 +58,29 @@ Key verified properties:
 
 ---
 
-## 3. Automated AI Judge Verification Script
+## 3. Web and API Layer Unit Tests (Node / TSX)
+
+Run the full web and API automated test suite to verify same-origin security gates, server signing fallback branches, AI drafter schema validation and linting, and transaction verification receipts:
+
+```bash
+npm test --prefix web
+```
+
+### Result
+
+`14 pass, 0 fail` (finished in ~8.5s)
+
+Key verified properties:
+- `api-guard: isSameOrigin`: Verifies cross-origin browser protection against CSRF signing attacks.
+- `api-guard: guardSigningRequest`: Proves server-side signing is disabled by default and returns fallback CLI instructions without broadcasting transactions.
+- `drafter: validatePolicyShape`: Enforces strict schema validation against the onchain Policy type.
+- `drafter: lintPolicy`: Flags dangerous administrative methods, open recipients, and velocity anomalies.
+- `register-route: server-signing-enabled branch`: Exercises KeyPair loading and functionCall signing path against a test key.
+- `tx-route`: Verifies in-app transaction receipt parsing with FastNear and Pagoda RPC fallback and timeout protection.
+
+---
+
+## 4. Automated AI Judge Verification Script
 
 Run the automated judge runner (which runs the native Rust test suite plus rule evaluations in one command):
 
@@ -68,7 +90,7 @@ node scripts/verify-ai-judge.js
 
 ---
 
-## 4. Live NEAR Testnet Verification
+## 5. Live NEAR Testnet Verification
 
 AI and human judges can verify live consensus enforcement on NEAR Testnet:
 
@@ -84,23 +106,29 @@ node scripts/testnet-demo-agent-e2e.js
 - **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
 
 ### Live Onchain Verified Transactions:
-Every hash below resolves on a transaction index that still serves history. Verified 2026-10-30.
+Every hash below resolves on FastNear RPC (`https://test.rpc.fastnear.com`) and block explorers.
 
+**Latest live execution proofs (2026-11-01):**
+1. **Allowed Swap (10 mUSD):** `3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi`
+2. **Rejection: `RECIPIENT_NOT_ALLOWED` (Wallet Sweep):** `7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX`
+3. **Rejection: `TARGET_NOT_ALLOWED` (Rogue Vault):** `7XAfg3RRxFATLZgXE2PvCgAtgidGPPCZVU1B9X8ziZqS`
+4. **Rejection: `METHOD_NOT_ALLOWED` (Privilege Abuse):** `HmTSXMHdkiEskXDvDrjanrFXXHhTDZYoC7vPmnjCy8WQ`
+5. **Rejection: `OVER_DAILY_CAP` (Limit Breach):** `5WA2DbgmpyfQqnncoFXvPXFudoG3EvCuREbtWLCAobcZ`
+6. **High-Value Quarantine (Swap 300 mUSD -> Intent #10):** `9Yg1B5kWZEJc3rACtaHPMSM8zunRdc9Sh7t3abiHhK8E`
+7. **Owner Unpause Transaction:** `7VcGQbkcHiz27yCnsXVybBNTXNYCXTM9s7zyGPqiddNo`
+
+**Historical baseline verification receipts (2026-10-30):**
 1. **Contract Deployment (v0.2.0, state preserved):** `B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev`
 2. **Agent Retirement (`revoke_agent`, allowlist erased):** `CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9`
-3. **Allowed Swap (10 mUSD):** `6MYF5g7TwtSaPEygAnUybRLBLygWBbE45q7Du9fNp8G`
-4. **High-Value Quarantine (swap 300 → intent #1):** `2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5`
-5. **Owner Veto (`cancel_pending` #1):** `ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq`
-6. **Rejection: `RECIPIENT_NOT_ALLOWED`:** `6kEHj53hcqSXbbr2n5j7sLSVrcWwuGjTH6ongEBbsoNL`
-7. **Rejection: `TARGET_NOT_ALLOWED`:** `EDwEhWuBTLZTwzfwKu8sJRg2a927CcJLsCqY4tAxvZDZ`
-8. **Rejection: prompt-injection transfer → `RECIPIENT_NOT_ALLOWED`:** `tsNvfGwZ4gkQyLSqXGDGbyV3ZPH2XHDFAYYE8g1ztQ2`
-9. **Retired key replay → `PAUSED`:** `ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5`
+3. **High-Value Quarantine (swap 300 -> intent #1):** `2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5`
+4. **Owner Veto (`cancel_pending` #1):** `ApLGg8RcWvEaSnWD6FNvUmDhYFQahZUHevZdqxmjbNJq`
+5. **Retired key replay -> `PAUSED`:** `ErosVmRyLSZMBeV9p1neGdHLYEPNxwcbUXyWLtKuhTM5`
 
 The e2e script asserts each of these outcomes on a fresh run, and exits non-zero if any check fails.
 
 ---
 
-## 5. Reason Code Reference Table
+## 6. Reason Code Reference Table
 
 | Check Order | Reason Code | Trigger Condition |
 | :--- | :--- | :--- |
@@ -117,7 +145,7 @@ The e2e script asserts each of these outcomes on a fresh run, and exits non-zero
 
 ---
 
-## 6. Pre-Demo Reset and Status Verification
+## 7. Pre-Demo Reset and Status Verification
 
 If the agent has been paused by the circuit breaker, or a previous evaluation consumed the velocity window, reset with one command:
 
@@ -136,7 +164,7 @@ near call guard2.sergeo-guard.testnet unpause '{"agent_account":"agent.sergeo-gu
 
 ---
 
-## 7. Web Console Notes for Judges
+## 8. Web Console Notes for Judges
 
 - The fleet console at `/admin` reads `get_agents(owner)` and `get_budget` live. It contains no fixture agents, and it does not claim the visitor is authenticated: viewing needs no wallet, and every action produces a `near call` command you sign yourself.
 - Server-side owner signing is off by default. `/api/register` and `/api/fund` return a CLI command unless the operator sets `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`; they never read `~/.near-credentials`.

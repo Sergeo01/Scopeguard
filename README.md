@@ -172,4 +172,4 @@ The `/api/attack` simulation route holds the demo agent's scoped key (env or `de
 
 ## 11. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (33 native Rust unit tests and automated check scripts).
+See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (42 native Rust unit tests, 14 web tests, and automated check scripts).

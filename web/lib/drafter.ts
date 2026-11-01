@@ -72,11 +72,11 @@ export function validatePolicyShape(p: any): string[] {
   if (!isInt(p.high_value_threshold, 0, Number.MAX_SAFE_INTEGER)) {
     errors.push("high_value_threshold must be a non-negative integer");
   }
-  if (!isInt(p.high_value_delay_seconds, 0, Number.MAX_SAFE_INTEGER)) {
-    errors.push("high_value_delay_seconds must be a non-negative integer");
+  if (!isInt(p.high_value_delay_seconds, 1, Number.MAX_SAFE_INTEGER)) {
+    errors.push("high_value_delay_seconds must be a positive integer (> 0)");
   }
-  if (!isInt(p.policy_change_delay_seconds, 0, Number.MAX_SAFE_INTEGER)) {
-    errors.push("policy_change_delay_seconds must be a non-negative integer");
+  if (!isInt(p.policy_change_delay_seconds, 1, Number.MAX_SAFE_INTEGER)) {
+    errors.push("policy_change_delay_seconds must be a positive integer (> 0)");
   }
 
   return errors;

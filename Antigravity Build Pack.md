@@ -52,8 +52,8 @@ Working name in code: scopeguard (final product name is still the human's call; 
 ## Order of work: Autonomous Delivery
 
 Build comprehensively across all modules without artificial timeline restrictions or day/week pacing.
-1. **Policy Contract:** 7 ordered check rules, typed `GuardAction`, vault token custody, async rollback settlement, timelock queue, and auto-pause circuit breaker.
-2. **Unit Test Suite:** 30 passing native tests covering check order, arithmetic overflow, vault custody, and breaker state.
+1. **Policy Contract:** 10-layer policy and protocol check sequence (7 policy rules + 3 protocol bounds), typed `GuardAction`, vault token custody, async rollback settlement, timelock queue, and auto-pause circuit breaker.
+2. **Unit Test Suite:** 42 passing native tests, 14 web tests, covering check order, arithmetic overflow, vault custody, and breaker state.
 3. **SDK & Demo Agent:** strongly typed client and deterministic red-team agent harness running live tasks on testnet.
 4. **Web Studio Console:** 4-zone dashboard, real-time activity ledger, prompt injection simulator, accessible non-custodial owner modal, and instant CLI generator.
 5. **Watcher & Verification:** real-time event tailing on NEAR RPC and automated verification runner (`scripts/verify-ai-judge.js`).

@@ -14,7 +14,7 @@ Agent Passkeys solves exactly this one problem: an agent should never hold a key
 
 ## 2. The product in plain words
 
-The owner describes the agent's job in one sentence. An AI drafter turns that sentence into a least-privilege permission scope and shows it back in plain English. The owner approves with one signature. The agent then receives a special NEAR key, a function-call access key, that the protocol itself restricts to one contract, named methods, and a capped allowance. On top of that key sits a policy contract that enforces the rest of the job description: which contracts the agent may touch, which methods it may call, how much it may move per day, and which recipients are allowed. Through Chain Signatures, the same scoped identity controls the agent's addresses on other chains, so the agent can still do real work. Steal the key, inject the agent, fully compromise the machine: the worst case is bounded by the scope the owner approved. The owner can pause the agent instantly, or revoke the key from a phone, and the agent stops existing as a financial actor.
+The owner describes the agent's job in one sentence. An AI drafter turns that sentence into a least-privilege permission scope and shows it back in plain English. The owner approves with one signature. The agent then receives a special NEAR key, a function-call access key, that the protocol itself restricts to one contract, named methods, and a capped allowance. On top of that key sits a policy contract that enforces the rest of the job description: which contracts the agent may touch, which methods it may call, how much it may move per day, and which recipients are allowed. Through the rule card and policy contract, the agent's identity is strictly bounded on NEAR, and in Phase 2, through Chain Signatures, the same scoped identity will control the agent's derived addresses on other chains. Steal the key, inject the agent, fully compromise the machine: the worst case is bounded by the scope the owner approved. The owner can pause the agent instantly, or revoke the key from a phone, and the agent stops existing as a financial actor.
 
 ## 3. How a user flows through it
 
@@ -30,39 +30,54 @@ The owner describes the agent's job in one sentence. An AI drafter turns that se
 
 Four components, plus a powerless watcher. Nothing else in v1.
 
-### 4.1 Policy contract (Rust, near-sdk-rs), one deployment, testnet first
+### 4.1 Policy contract (Rust, near-sdk 5), deployed on NEAR Testnet
 
-Account: passkeys.<dev>.testnet during the build, a clean named account for the submission.
+Account: guard2.sergeo-guard.testnet (Token: sergeo-guard-token.testnet, DEX: sergeo-guard-dex.testnet).
 
-State per registered agent:
-- owner: the human account that created and controls this agent
-- agent_account: the agent's sub-account id
+Policy structure:
+- token: single registered NEP-141 token custodies by the vault in v1
 - targets: map of allowed contract id to allowed method names
-- daily_cap: maximum total value movable per day, in the vault token's units
-- window_start: timestamp of the current budget window
-- spent_in_window: running total for the current window
+- daily_cap: maximum total value movable per 24h window, in vault token units
 - recipients: allowlist of accounts that may receive transfers (empty means transfers are forbidden)
-- paused: bool
-- max_actions_per_10min: maximum actions allowed in any 10 minute burst window (Sentinel absorption, merged 2026-10-23)
-- window_start_burst: timestamp of the current burst window
-- actions_in_window: running count for the burst window
-- auto_pause_rejects: number of rejected attempts inside the auto-pause window that trips the circuit breaker (default 5)
+- max_actions_per_10min: maximum actions allowed in any 10 minute burst window
+- auto_pause_rejects: number of rejected attempts inside the auto-pause window that trips the circuit breaker (default 3 to 5)
 - auto_pause_window_minutes: the breaker's window (default 10)
-- reject_log: bounded log of the last 20 rejected attempts with timestamps, feeding the breaker and the dashboard
+- high_value_threshold: action amount at or above this threshold is queued in timelock instead of immediate execution
+- high_value_delay_seconds: delay in seconds for high-value actions to sit in pending queue (default 60s for demo)
+- policy_change_delay_seconds: delay in seconds for owner set_policy change to become effective (default 60s for demo)
+
+Agent state per registered agent (AgentRecord):
+- owner: the human account that created and controls this agent
+- policy: Policy struct above
+- paused: bool
+- day_window_start / spent_in_window: timestamp and spend total for the 24h budget window
+- velocity_window_start / actions_in_window: timestamp and counter for the 10m burst window
+- reject_times: bounded log of recent rejected timestamps feeding the circuit breaker
+- pending_actions: pending high-value actions waiting out delay (bounded at 8 items)
+- staged_policy: staged policy waiting out policy_change_delay_seconds
+- next_pending_id: monotonic identifier for quarantined intents
+- vault_balance: real NEP-141 token vault balance custody by the Guard
 
 Methods:
 - register_agent(agent_account, policy): called by the owner during onboarding. Stores the policy. One agent account maps to exactly one owner.
-- set_policy(policy): owner only, checked against the stored owner. Replaces the scope. Used when the job changes and the AI re-drafts.
-- execute(target, method, args, amount, recipient?): the only method the agent's function-call key may call. Checks, in order: caller is the registered agent account (predecessor check), not paused, burst velocity fits inside max_actions_per_10min (window resets lazily after 10 minutes), target is allowlisted, method is allowlisted for that target, amount fits inside the remaining daily budget (window resets lazily after 24h), recipient is allowlisted when the action moves funds. The velocity check runs before the allowlist checks so a spam loop dies on the cheapest check. On success it records the spend, emits an ALLOW event, and performs the action from the contract (cross-contract call for contract actions, vault transfer for payouts). On any failed check it records the attempt in the reject log, emits a REJECT event, and returns a rejected outcome carrying the machine-readable reason code, performing no action. Engineering rule (corrected 2026-10-23 while drafting the contract skeleton): execute must not panic on a policy reject. A panicking call reverts its own state writes, which would erase the reject log entry and undo the circuit breaker's pause. Rejects are therefore returned as values, not panics, so the log entry, the reject count, and the breaker flip all persist onchain. Only genuine misuse (an unregistered caller) may panic, before any state is touched. Circuit breaker (Sentinel absorption, merged 2026-10-23): if the rejects inside auto_pause_window_minutes reach auto_pause_rejects, execute sets paused to true inside the same call and emits an AUTO_PAUSE event with the count and window. The owner unpauses with unpause(). The breaker needs nothing trusted offchain and fires even if every watcher is dead.
-- pause() / unpause(): owner only. Pause blocks execute immediately.
-- withdraw(amount, to): owner only, and the destination is forced to the owner account. This is how the human recovers vault funds even if the agent is fully compromised.
-- Views: get_policy(agent), get_budget(agent) returning cap, spent, remaining, window end; get_agent(owner) listing.
+- set_policy(agent_account, policy): owner only, checked against the stored owner. Stages the new scope for the configured delay.
+- cancel_policy_change(agent_account): owner only, clears a staged policy.
+- execute(action: GuardAction): the only method the agent's function-call key may call. Strictly accepts strongly-typed GuardAction enum (Transfer, Swap, ContractCall), eliminating flat parameter manipulation. Checks, in order: (1) caller is registered agent (predecessor check), (2) not paused, (3) burst velocity under limit, (4) target contract is allowlisted and generic ContractCall does not target custody token, (5) method is allowlisted and generic ContractCall cannot call transfer or swap, (6) spend fits under daily cap, (7) recipient is allowlisted, (8) high-value actions at or above threshold are quarantined into timelock lane (outcome PENDING), (9) transfer fits within internal vault balance, (10) pending queue does not exceed capacity (8 items).
+- settle_pending(agent_account, id): owner only, settles a quarantined intent after its executable_at delay expires.
+- cancel_pending(agent_account, id): owner only, removes a quarantined intent.
+- pause(agent_account) / unpause(agent_account): owner only. Pause blocks execute immediately. Unpause resets breaker strikes.
+- revoke_agent(agent_account): owner only, permanent revocation that wipes target and recipient allowlists, cancels pending intents and staged policy, and keeps record withdrawable.
+- reset_windows(agent_account): owner only, zeroes rolling spend, velocity, and reject strikes without altering permissions.
+- withdraw(agent_account, amount): owner only, and destination is forced to the owner account. Trapped funds prevented via async callback rollback.
+- ft_on_transfer(sender_id, amount, msg): receives NEP-141 token deposits from owner into agent vault.
+- Views: get_policy, get_budget, get_agents, get_pending_actions, get_staged_policy, get_version.
 
-Reason codes (kept short, shown verbatim in the dashboard and the demo): NOT_AGENT, PAUSED, OVER_VELOCITY_CAP, TARGET_NOT_ALLOWED, METHOD_NOT_ALLOWED, OVER_DAILY_CAP, RECIPIENT_NOT_ALLOWED.
+Reason codes: NOT_AGENT, PAUSED, OVER_VELOCITY_CAP, TARGET_NOT_ALLOWED, METHOD_NOT_ALLOWED, OVER_DAILY_CAP, RECIPIENT_NOT_ALLOWED, PENDING (outcome), INSUFFICIENT_VAULT_BALANCE, PENDING_QUEUE_FULL.
 
 Security notes for the contract:
 - The contract is the only place policy lives. The agent runtime holds no policy copy it could alter.
 - The vault balance is the hard outer bound. Even a hypothetical policy bug cannot lose more than the working balance the owner chose to fund.
+- execute never panics on a policy reject: state writes for the intrusion audit log and circuit breaker are preserved. Panics occur only on unregistered callers.
 - All owner-only methods verify the caller equals the stored owner. There is no admin key and no upgrade key in v1; the contract is deployed once, immutable, which is itself a pitch point.
 
 ### 4.2 The agent credential model (the core trick)
@@ -120,9 +135,9 @@ A tiny Node service with no keys and no signing power. It tails the policy contr
 - MockDex: a toy swap contract with a fixed rate between mUSD and a second mock token (mETH). Method swap(amount) is the demo agent's legit job target.
 - The judge address: any testnet account a judge controls or names. The demo invites them to name it live.
 
-## 6. Cross-chain Architecture (Chain Signatures)
+## 6. Cross-chain Architecture (Chain Signatures: Phase 2 Roadmap)
 
-The policy contract supports multi-chain signature requests. When policy allows it, execute can call the MPC signer contract (v1.signer on mainnet; testnet id v2.multichain-mpc.testnet) to sign a payload for the agent account's derived address on foreign chains (such as Ethereum Sepolia). Cross-chain transactions are subject to the same strict onchain policy checks: target allowlist, method allowlist, and recipient allowlist.
+Multi-chain signature delegation via NEAR Chain Signatures MPC (v1.signer on mainnet; testnet id v2.multichain-mpc.testnet) is scoped as a Phase 2 stretch in the project roadmap (see Antigravity Build Pack.md FAQ). The core hackathon v1 release focuses strictly on NEAR native and NEP-141 token policy enforcement and vault governance. Cross-chain transactions in Phase 2 will plug into the same strict onchain policy sequence: target allowlist, method allowlist, and recipient allowlist.
 
 ## 7. Demo script (target 2 minutes 30 seconds, recorded plus live attack page)
 
@@ -162,7 +177,7 @@ All components are built, integrated, and verified directly:
 3. **Autonomous Red-Team Demo Agent:** deterministic agent runtime running real tasks and proving onchain enforcement.
 4. **Next.js Studio Console:** 4-zone dashboard, real-time activity ledger, prompt injection simulator, accessible non-custodial owner modal, and instant CLI generator.
 5. **Automated Notification Watcher:** real-time event tailing on NEAR RPC with instant webhook alerts.
-6. **Full Verification Suite:** 30 passing unit tests and automated AI judge runner (`scripts/verify-ai-judge.js`).
+6. **Full Verification Suite:** 42 passing native Rust unit tests, 14 web tests, and automated AI judge runner (`scripts/verify-ai-judge.js`).
 
 ## 12. Unconstrained Quality & Verification Standards
 

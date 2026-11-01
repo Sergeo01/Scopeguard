@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
           method: "tx",
           params: [hash, accountId],
         }),
+        signal: AbortSignal.timeout(4000),
         cache: "no-store",
       });
 

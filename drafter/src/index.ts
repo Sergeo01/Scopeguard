@@ -49,8 +49,8 @@ const policySchema: JSONSchemaType<DrafterPolicy> = {
     auto_pause_rejects: { type: "integer", minimum: 1, maximum: 50 },
     auto_pause_window_minutes: { type: "integer", minimum: 1, maximum: 1440 },
     high_value_threshold: { type: "integer", minimum: 0 },
-    high_value_delay_seconds: { type: "integer", minimum: 0, maximum: 604800 },
-    policy_change_delay_seconds: { type: "integer", minimum: 0, maximum: 604800 },
+    high_value_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
+    policy_change_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
   },
   required: [
     "token",
