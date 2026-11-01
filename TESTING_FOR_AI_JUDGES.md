@@ -45,7 +45,7 @@ Key verified properties:
 - `test_unauthorized_token_cannot_deposit_to_vault`: Proves unauthorized callers cannot call `ft_on_transfer` to inflate the vault.
 - `test_staged_wildcard_policy_rejected`: Proves wildcard methods are rejected during policy updates.
 - `test_swap_does_not_falsely_debit_vault`: Proves vault balance only decrements on real token movement.
-- `test_only_owner_can_settle_timelock`: Proves agents cannot settle their own quarantined intents.
+- `test_only_owner_can_settle_timelock`: Proves agents cannot settle their own quarantined intents. `settle_pending` is strictly owner-only. When settle fails (for example, if the daily cap would be exceeded or the agent was paused), it returns an Outcome with `status: "REJECTED"` and keeps the item queued in `pending_actions` for retry, rather than discarding it.
 - `test_transfer_failure_refunds_vault_balance`: Proves asynchronous rollback restores internal vault balance and spent budget if downstream transfer fails.
 - `test_withdraw_failure_refunds_vault_balance`: Proves internal vault balance is refunded if downstream owner withdrawal transfer fails.
 - `test_revoke_agent_wipes_allowlists_and_pauses`: Proves `revoke_agent` empties targets and recipients and sets both `paused` and `revoked` while keeping the vault withdrawable.

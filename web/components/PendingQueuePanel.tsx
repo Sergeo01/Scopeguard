@@ -17,15 +17,18 @@ export interface PendingActionItem {
 interface PendingQueuePanelProps {
   pendingActions: PendingActionItem[];
   onCancelPending: (id: number) => Promise<void>;
+  onSettlePending?: (id: number) => Promise<void>;
   isOwner: boolean;
 }
 
 export const PendingQueuePanel: React.FC<PendingQueuePanelProps> = ({
   pendingActions,
   onCancelPending,
+  onSettlePending,
   isOwner,
 }) => {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [settlingId, setSettlingId] = useState<number | null>(null);
   const [nowSec, setNowSec] = useState<number>(Math.floor(Date.now() / 1000));
 
   useEffect(() => {
@@ -41,6 +44,16 @@ export const PendingQueuePanel: React.FC<PendingQueuePanelProps> = ({
       await onCancelPending(id);
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleSettle = async (id: number) => {
+    if (!onSettlePending) return;
+    setSettlingId(id);
+    try {
+      await onSettlePending(id);
+    } finally {
+      setSettlingId(null);
     }
   };
 
@@ -107,11 +120,21 @@ export const PendingQueuePanel: React.FC<PendingQueuePanelProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {isReady && onSettlePending && (
+                    <button
+                      onClick={() => handleSettle(action.id)}
+                      disabled={settlingId === action.id}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>{settlingId === action.id ? "Settling..." : "Settle & Execute"}</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => handleCancel(action.id)}
                     disabled={cancellingId === action.id}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 shadow-sm transition flex items-center gap-2"
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <XCircle className="w-4 h-4 text-rose-600" />
                     <span>{cancellingId === action.id ? "Vetoing Onchain..." : "Veto & Cancel Purchase"}</span>

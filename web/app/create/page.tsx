@@ -24,6 +24,7 @@ import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
+import { validatePolicyShape, lintPolicy } from "@/lib/drafter";
 
 interface TargetPlatform extends ConfiguredPlatform {}
 
@@ -48,7 +49,7 @@ export default function CreateAgentPage() {
   const [speedLimit, setSpeedLimit] = useState<number>(5);
   const [autoPauseAfter, setAutoPauseAfter] = useState<number>(3);
   const [autoPauseWindowMinutes, setAutoPauseWindowMinutes] = useState<number>(10);
-  const [timelockThreshold, setTimelockThreshold] = useState<number>(50);
+  const [timelockThreshold, setTimelockThreshold] = useState<number>(250);
   const [telegramChatId, setTelegramChatId] = useState<string>("@sergeo");
 
   const [activeView, setActiveView] = useState<"visual" | "json">("visual");
@@ -157,8 +158,13 @@ export default function CreateAgentPage() {
     auto_pause_window_minutes: autoPauseWindowMinutes,
     high_value_threshold: Number(timelockThreshold),
     high_value_delay_seconds: 60,
-    policy_change_delay_seconds: 3600,
+    policy_change_delay_seconds: 60,
   };
+
+  const policyValidationErrors = validatePolicyShape(compiledPolicyJson);
+  const policyLintWarnings = lintPolicy(compiledPolicyJson as any);
+  const hasDangerPolicyLint = policyLintWarnings.some((w) => w.severity === "danger");
+  const isPolicyValid = policyValidationErrors.length === 0 && !hasDangerPolicyLint;
 
   const handleAiDraft = async () => {
     if (!aiPrompt.trim()) return;
@@ -656,12 +662,36 @@ export default function CreateAgentPage() {
               )}
             </div>
 
+            {/* Validation & Security Feedback */}
+            {policyValidationErrors.length > 0 && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+                <div className="font-bold">Policy Schema Validation Error:</div>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {policyValidationErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {hasDangerPolicyLint && (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs space-y-1">
+                <div className="font-bold">Security Lint Warning:</div>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {policyLintWarnings
+                    .filter((w) => w.severity === "danger")
+                    .map((w, i) => (
+                      <li key={i}>{w.message}</li>
+                    ))}
+                </ul>
+              </div>
+            )}
+
             {/* Register Action Button */}
             <button
               type="button"
-              disabled={isDeploying}
+              disabled={isDeploying || !isPolicyValid}
               onClick={handleIssueCard}
-              className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDeploying ? (
                 <>

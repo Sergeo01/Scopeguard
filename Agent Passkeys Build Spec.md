@@ -63,7 +63,7 @@ Methods:
 - set_policy(agent_account, policy): owner only, checked against the stored owner. Stages the new scope for the configured delay.
 - cancel_policy_change(agent_account): owner only, clears a staged policy.
 - execute(action: GuardAction): the only method the agent's function-call key may call. Strictly accepts strongly-typed GuardAction enum (Transfer, Swap, ContractCall), eliminating flat parameter manipulation. Checks, in order: (1) caller is registered agent (predecessor check), (2) not paused, (3) burst velocity under limit, (4) target contract is allowlisted and generic ContractCall does not target custody token, (5) method is allowlisted and generic ContractCall cannot call transfer or swap, (6) spend fits under daily cap, (7) recipient is allowlisted, (8) high-value actions at or above threshold are quarantined into timelock lane (outcome PENDING), (9) transfer fits within internal vault balance, (10) pending queue does not exceed capacity (8 items).
-- settle_pending(agent_account, id): owner only, settles a quarantined intent after its executable_at delay expires.
+- settle_pending(agent, id): owner only, settles a quarantined intent after its executable_at delay expires. If checks fail on settlement, returns a REJECTED outcome and keeps the item queued in pending_actions for retry instead of discarding it.
 - cancel_pending(agent_account, id): owner only, removes a quarantined intent.
 - pause(agent_account) / unpause(agent_account): owner only. Pause blocks execute immediately. Unpause resets breaker strikes.
 - revoke_agent(agent_account): owner only, permanent revocation that wipes target and recipient allowlists, cancels pending intents and staged policy, and keeps record withdrawable.
@@ -79,6 +79,29 @@ Security notes for the contract:
 - The vault balance is the hard outer bound. Even a hypothetical policy bug cannot lose more than the working balance the owner chose to fund.
 - execute never panics on a policy reject: state writes for the intrusion audit log and circuit breaker are preserved. Panics occur only on unregistered callers.
 - All owner-only methods verify the caller equals the stored owner. There is no admin key and no upgrade key in v1; the contract is deployed once, immutable, which is itself a pitch point.
+
+### 4.8 Timelock Queue Settlement, Delay Configurations, and Administrative Operations
+
+#### Timelock Queue Settlement Invariants
+- settle_pending(agent, id): Owner only (caller equals stored owner). Verifies now_sec is greater than or equal to executable_at. Re-evaluates current policy and balances against the queued intent.
+  - If any check fails upon settlement (for example, if daily cap would be exceeded or agent was paused), the Guard returns an Outcome with status REJECTED and retains the item in pending_actions for future owner retry or cancellation. It does not discard the pending intent on failure.
+  - If all checks pass, the Guard dequeues the item and executes it via an asynchronous cross-contract promise.
+- cancel_pending(agent_account, id): Owner only. Immediately dequeues and removes the quarantined action from pending_actions, emitting a CANCELLED event. Funds never leave the vault.
+
+#### Demo Delays vs Production Defaults (Explicit Note)
+- High-Value Quarantine Delay (high_value_delay_seconds):
+  - Testnet Demo Default: 60 seconds (allows live evaluation during interactive judge testing without 24-hour stalls).
+  - Production Default: 86,400 seconds (24 hours) for real-world enterprise and personal vault protection.
+- Policy Change Delay (policy_change_delay_seconds):
+  - Testnet Demo Default: 60 seconds (allows rapid demonstration of staged policy transitions).
+  - Production Default: 86,400 seconds (24 hours) or 3,600 seconds (1 hour minimum) to prevent instant rogue permission escalations.
+
+#### Administrative Operations Summary
+- pause(agent_account): Owner only. Freezes execution immediately (paused = true).
+- unpause(agent_account): Owner only. Restores unpaused execution and clears consecutive breaker strikes.
+- withdraw(agent_account, amount): Owner only. Transfers custodied NEP-141 tokens from the Guard vault strictly back to the registered owner account. Destination is immutable. Includes automatic rollback via on_withdraw_resolved if the transfer fails.
+- revoke_agent(agent_account): Owner only. Permanently empties target and recipient allowlists, clears pending actions and staged policy, and sets paused = true. The agent record remains so vault balance and audit trails remain queryable and withdrawable.
+- reset_windows(agent_account): Owner only. Clears rolling daily spend, velocity burst counters, and reject strikes without modifying allowlists or permissions. Fails if agent is revoked.
 
 ### 4.2 The agent credential model (the core trick)
 

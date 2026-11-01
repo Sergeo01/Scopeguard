@@ -98,7 +98,7 @@ export const AppSidebar: React.FC<{
           label: "Guard Contract",
           icon: Shield,
           isExternal: true,
-          badge: "v0.1.0",
+          badge: "v0.2.0",
           badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
         },
         {
@@ -123,7 +123,7 @@ export const AppSidebar: React.FC<{
       label: "COMMUNITY & CODE",
       items: [
         {
-          href: "https://github.com/sergeob/scopeguard",
+          href: "https://github.com/Sergeo01/Scopeguard",
           label: "GitHub Repository",
           icon: Github,
           isExternal: true,
@@ -255,7 +255,7 @@ export const AppSidebar: React.FC<{
             <span>Docs & Guide</span>
           </div>
           <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-200/70 dark:bg-blue-900/70 text-blue-800 dark:text-blue-200">
-            v1.0
+            v0.2.0
           </span>
         </button>
 

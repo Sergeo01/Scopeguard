@@ -26,7 +26,7 @@ export const TopStatusBar: React.FC<{
 }) => {
   const { accountId } = useWallet();
   const [copied, setCopied] = useState(false);
-  const [isAgentPaused, setIsAgentPaused] = useState(false);
+  const [isAgentPaused, setIsAgentPaused] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch("/api/state")
@@ -90,7 +90,12 @@ export const TopStatusBar: React.FC<{
           </span>
 
           {/* Pill 2: Protocol Guard Status with Live Indicator */}
-          {isAgentPaused ? (
+          {isAgentPaused === null ? (
+            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+              <span>Syncing Status...</span>
+            </span>
+          ) : isAgentPaused ? (
             <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-amber-600 text-white flex items-center gap-1.5 shadow-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-200 animate-pulse" />
               <AlertTriangle className="w-3 h-3" />
@@ -125,7 +130,7 @@ export const TopStatusBar: React.FC<{
       {/* Right Actions: GitHub, Docs & Wallet Trigger (Single sleek row) */}
       <div className="flex items-center gap-2 shrink-0">
         <a
-          href="https://github.com/sergeob/scopeguard"
+          href="https://github.com/Sergeo01/Scopeguard"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition shadow-xs"

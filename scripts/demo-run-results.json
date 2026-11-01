@@ -1,0 +1,102 @@
+[
+  {
+    "step": 1,
+    "name": "Legitimate Swap (25 mUSD on DEX)",
+    "hash": "D4GPBVNhzpop3cATjHEKb6W1bSNYqmai5CQzGJDQcFj8",
+    "status": "ALLOWED",
+    "reason": "None (ALLOWED)",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 2,
+    "name": "Non-allowlisted Recipient (Sweep to attacker.testnet)",
+    "hash": "ABQVbCn7X6KNVjTNEMb9cEKfC6cMhVLzJ55EqjowVXab",
+    "status": "REJECTED",
+    "reason": "RECIPIENT_NOT_ALLOWED",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 3,
+    "name": "Unlisted Target (evil_contract.testnet)",
+    "hash": "7iQmfRkne5caDdoeyLYPty745QeSLPXUHuhVEMuWznLk",
+    "status": "REJECTED",
+    "reason": "TARGET_NOT_ALLOWED",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 4,
+    "name": "Unlisted Method (DEX drain)",
+    "hash": "GvN2oSJwEZA19vJNEsw1m9JxH662TmTfVC4TYsUMFZjw",
+    "status": "REJECTED",
+    "reason": "METHOD_NOT_ALLOWED",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  },
+  {
+    "step": 5,
+    "name": "Over Daily Cap (Swap 1200 mUSD)",
+    "hash": "7kjCzv1U8f7uszgwsfKroaZ2XDsqMhKR6pkLtbfU45zM",
+    "status": "REJECTED",
+    "reason": "OVER_DAILY_CAP",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  },
+  {
+    "step": 6,
+    "name": "Circuit Breaker Trip (3 Rejects in Window)",
+    "hash": "CzBk92F5DxaVLhTcVJbMrSFb34oARxeN3e1Ey15SpfHU",
+    "status": "REJECTED",
+    "reason": "TARGET_NOT_ALLOWED (Tripped AUTO_PAUSE)",
+    "spent": "0",
+    "remaining": "500",
+    "paused": true
+  },
+  {
+    "step": 7,
+    "name": "Owner Unpause & Reset Windows",
+    "hash": "5TVN9JSmyyF3TEwC2TAgnbJQkEhnu9wa5NFf62yg2hnD (unpause) / CPUuXiNXADozakGERBhCNG5PbCgQAYuG6BzKmei7Pyh7 (reset)",
+    "status": "CONFIRMED",
+    "reason": "Restored ACTIVE state",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  },
+  {
+    "step": 8,
+    "name": "High-Value Quarantine (Swap 300 mUSD, Pending #11)",
+    "hash": "HcHHN2dS4LzihH9BSQrzk6SiWJWDFmyPnWyuZnTgdAN",
+    "status": "PENDING",
+    "reason": "Pending Timelock #11",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  },
+  {
+    "step": 9,
+    "name": "Owner Cancel / Veto of Item #11",
+    "hash": "FanLtvUYHaj3LTqC7NLEfDCn6B8ZDXUVEpu7RGFZ7jAj",
+    "status": "CANCELLED",
+    "reason": "Vetoed Pending #11",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  },
+  {
+    "step": 10,
+    "name": "High-Value Settle after Window (Item #12)",
+    "hash": "77169hFCvwz1rvjuLqfbtxcHQoirFRwvTgzwS9bE1ufC (queue) / DTPa2KsxhPtXgSCtTxnRp3WJVuDwBZuyAVcWqgKJMgfV (settle)",
+    "status": "SETTLED",
+    "reason": "Settled & Executed on DEX",
+    "spent": "300",
+    "remaining": "200",
+    "paused": false
+  }
+]

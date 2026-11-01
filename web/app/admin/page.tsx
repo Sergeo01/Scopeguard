@@ -93,8 +93,11 @@ const statusOf = (a: AgentRow): "ACTIVE" | "PAUSED" | "REVOKED" =>
 
 const scopeOf = (a: AgentRow): string => {
   if (!a.targets) return "unreadable";
-  const keys = Object.keys(a.targets);
-  return keys.length ? keys.join(", ") : "no targets";
+  const entries = Object.entries(a.targets);
+  if (!entries.length) return "no targets";
+  return entries
+    .map(([t, m]) => `${t} (${Array.isArray(m) ? m.join(",") : m})`)
+    .join(", ");
 };
 
 const relative = (ts: number, nowSec: number): string => {
@@ -551,9 +554,13 @@ export default function FleetConsolePage() {
 
                       <td className="py-3.5 text-slate-600 dark:text-slate-300 font-medium max-w-[200px]">
                         <span className="break-all">{scopeOf(agent)}</span>
-                        {agent.recipients && agent.recipients.length > 0 && (
+                        {agent.recipients && agent.recipients.length > 0 ? (
                           <span className="block text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
                             payouts: {agent.recipients.join(", ")}
+                          </span>
+                        ) : (
+                          <span className="block text-[10px] text-slate-400 mt-0.5">
+                            no outside payouts (DEX isolation)
                           </span>
                         )}
                       </td>

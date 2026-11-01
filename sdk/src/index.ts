@@ -259,66 +259,127 @@ export class ScopeGuardOwnerClient {
 
   async pause(agentAccount: string): Promise<void> {
     const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "pause",
-      args: { agent_account: agentAccount },
-      gas: BigInt("30000000000000"),
-    });
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "pause",
+        args: { agent_account: agentAccount },
+        gas: BigInt("30000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
 
   async unpause(agentAccount: string): Promise<void> {
     const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "unpause",
-      args: { agent_account: agentAccount },
-      gas: BigInt("30000000000000"),
-    });
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "unpause",
+        args: { agent_account: agentAccount },
+        gas: BigInt("30000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
 
   async settlePending(agentAccount: string, id: number): Promise<Outcome> {
     const account = await this.getAccount();
-    const outcome = await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "settle_pending",
-      args: { agent: agentAccount, id },
-      gas: BigInt("40000000000000"),
-    });
-    return JSON.parse(
-      Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
-    ) as Outcome;
+    try {
+      const outcome = await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "settle_pending",
+        args: { agent: agentAccount, id },
+        gas: BigInt("40000000000000"),
+      });
+      return JSON.parse(
+        Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
+      ) as Outcome;
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
 
   async cancelPending(agentAccount: string, id: number): Promise<void> {
     const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "cancel_pending",
-      args: { agent_account: agentAccount, id },
-      gas: BigInt("20000000000000"),
-    });
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "cancel_pending",
+        args: { agent_account: agentAccount, id },
+        gas: BigInt("20000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
 
   async cancelPolicyChange(agentAccount: string): Promise<void> {
     const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "cancel_policy_change",
-      args: { agent_account: agentAccount },
-      gas: BigInt("20000000000000"),
-    });
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "cancel_policy_change",
+        args: { agent_account: agentAccount },
+        gas: BigInt("20000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
 
   async withdraw(agentAccount: string, amount: string): Promise<void> {
     const account = await this.getAccount();
-    await account.functionCall({
-      contractId: this.policyContractId,
-      methodName: "withdraw",
-      args: { agent_account: agentAccount, amount },
-      gas: BigInt("50000000000000"),
-    });
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "withdraw",
+        args: { agent_account: agentAccount, amount },
+        gas: BigInt("50000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
   }
+}
+
+/**
+ * Maps raw RPC errors and Wasm panic traces to human-readable explanations.
+ */
+export function formatNearError(err: any): string {
+  if (!err) return "Unknown transaction error";
+  const msg = typeof err === "string" ? err : err.message || err.toString();
+
+  if (msg.includes("Only the owner can settle") || msg.includes("Only owner")) {
+    return "Owner only: caller is not the registered owner of this agent";
+  }
+  if (msg.includes("action not executable yet")) {
+    return "Not executable yet: timelock veto delay has not expired";
+  }
+  if (msg.includes("pending action not found")) {
+    return "Pending intent not found or already settled";
+  }
+  if (msg.includes("insufficient vault balance")) {
+    return "Insufficient vault balance: requested transfer exceeds internal custody";
+  }
+  if (msg.includes("agent is revoked")) {
+    return "Agent is revoked: allowlist is empty and actions are permanently blocked";
+  }
+  if (msg.includes("Smart contract panicked: ")) {
+    const match = msg.match(/Smart contract panicked:\s*([^,\n\r]+)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  if (msg.includes("Guest panic: ")) {
+    const match = msg.match(/Guest panic:\s*([^,\n\r]+)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  return msg;
 }
 
 /**

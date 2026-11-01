@@ -82,14 +82,14 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
     auto_pause_window_minutes: autoPauseWindowMinutes,
     high_value_threshold: Math.floor(dailyCap / 2),
     high_value_delay_seconds: 60,
-    policy_change_delay_seconds: 600,
+    policy_change_delay_seconds: 60,
   };
 
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
 near call ${guardContract} register_agent '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || defaultPolicy)}}' --accountId ${ownerName} --gas 100000000000000
 
-# 2. Add scoped function-call passkey to agent account (restricted to Guard execute only)
-near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${guardContract} --methodNames execute --allowance 1 --accountId ${ownerName}`;
+# 2. Add scoped function-call passkey to agent account (restricted to Guard execute only, with 0.25 NEAR allowance for gas fees)
+near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${guardContract} --methodNames execute --allowance 0.25 --accountId ${ownerName}`;
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}

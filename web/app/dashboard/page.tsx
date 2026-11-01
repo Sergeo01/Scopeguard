@@ -230,8 +230,17 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Emergency Vault Evacuation",
       description: `Transfers all custodied ${vaultBalance} mUSD tokens from the Guard vault directly back to the owner account.`,
-      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
+    });
+  };
+
+  const handleSettlePending = async (id: number) => {
+    setActiveOwnerModal({
+      title: `Settle Pending Intent #${id}`,
+      description: "Executes a timelocked high-value action after the veto delay has expired. Only the owner can settle.",
+      command: `near call ${guardId} settle_pending '{"agent":"${agentId}","id":${id}}' --accountId ${ownerId} --gas 100000000000000`,
+      isDanger: false,
     });
   };
 
@@ -430,11 +439,11 @@ export default function DashboardPage() {
                   </span>
                 )}
                 <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                  ↘ 5% of Cap
+                  {dailyCapTotal > 0 ? Math.round((dailyCapSpent / dailyCapTotal) * 100) : 0}% of Cap
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                1 active testnet trade
+                {dailyCapSpent > 0 ? `$${dailyCapSpent} recorded in 24h window` : "Zero spend in current 24h window"}
               </span>
             </div>
 
@@ -483,8 +492,12 @@ export default function DashboardPage() {
                     {velocityUsed}/{velocityMax}
                   </span>
                 )}
-                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                  ↘ Normal
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5 ${
+                  velocityUsed >= velocityMax
+                    ? "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
+                    : "bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                }`}>
+                  {velocityUsed >= velocityMax ? "Breaker Tripped" : "Normal"}
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -619,8 +632,14 @@ export default function DashboardPage() {
               name: "Target Contract Allowlist",
               code: "TARGET_NOT_ALLOWED",
               desc: "Agent calls are restricted exclusively to allowlisted contracts. Calls to unlisted contracts are blocked onchain.",
-              config: "sergeo-guard-dex.testnet",
-              badge: "1 Approved DEX",
+              config: isInitialLoading
+                ? "Syncing onchain policy..."
+                : policy?.targets && Object.keys(policy.targets).length > 0
+                ? Object.keys(policy.targets).join(", ")
+                : "No targets allowlisted",
+              badge: isInitialLoading
+                ? "Syncing"
+                : `${policy?.targets ? Object.keys(policy.targets).length : 0} Target(s)`,
               isLocked: false,
             },
             {
@@ -628,7 +647,13 @@ export default function DashboardPage() {
               name: "Method Call Allowlist",
               code: "METHOD_NOT_ALLOWED",
               desc: "Only approved contract methods can be invoked. Key-management, admin, and upgrade functions are refused.",
-              config: "swap()",
+              config: isInitialLoading
+                ? "Syncing onchain policy..."
+                : policy?.targets && Object.keys(policy.targets).length > 0
+                ? Object.entries(policy.targets)
+                    .map(([t, m]: any) => `${t}: ${Array.isArray(m) ? m.join(", ") : m}`)
+                    .join(" | ")
+                : "No methods allowlisted",
               badge: "Strict Methods",
               isLocked: false,
             },
@@ -637,8 +662,8 @@ export default function DashboardPage() {
               name: "Daily Spending Cap (24h Window)",
               code: "OVER_DAILY_CAP",
               desc: `Cumulative value spent across rolling 24 hours cannot exceed $${dailyCapTotal} mUSD ($${dailyCapSpent} spent, $${Math.max(0, dailyCapTotal - dailyCapSpent)} remaining).`,
-              config: `$${dailyCapSpent} / $${dailyCapTotal} mUSD`,
-              badge: `$${Math.max(0, dailyCapTotal - dailyCapSpent)} Left`,
+              config: isInitialLoading ? "Syncing..." : `$${dailyCapSpent} / $${dailyCapTotal} mUSD`,
+              badge: isInitialLoading ? "Syncing" : `$${Math.max(0, dailyCapTotal - dailyCapSpent)} Left`,
               isLocked: false,
             },
             {
@@ -646,8 +671,16 @@ export default function DashboardPage() {
               name: "Recipient Transfer Allowlist",
               code: "RECIPIENT_NOT_ALLOWED",
               desc: "Direct token payouts to personal wallets are refused unless explicitly allowlisted. Empty list = strict DEX isolation.",
-              config: "Strict Isolation (Transfers Refused)",
-              badge: "Isolated",
+              config: isInitialLoading
+                ? "Syncing onchain policy..."
+                : policy?.recipients && policy.recipients.length > 0
+                ? policy.recipients.join(", ")
+                : "Strict Isolation (Transfers Refused)",
+              badge: isInitialLoading
+                ? "Syncing"
+                : policy?.recipients && policy.recipients.length > 0
+                ? `${policy.recipients.length} Recipient(s)`
+                : "Isolated",
               isLocked: false,
             },
           ].map((rule) => {
@@ -735,41 +768,55 @@ export default function DashboardPage() {
               <span>Quarantined High-Value Actions ({pendingActions.length})</span>
             </div>
             <span className="text-[11px] text-blue-600 dark:text-blue-400 font-mono">
-              Threshold: $50 mUSD
+              Threshold: ${policy?.high_value_threshold || 250} mUSD
             </span>
           </div>
 
           <div className="space-y-2">
-            {pendingActions.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 shadow-xs"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
-                      Action #{item.id}: {item.method}() on {item.target}
-                    </span>
-                    <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                      ${item.amount} mUSD
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    {item.secondsRemaining && item.secondsRemaining > 0
-                      ? `Owner review delay: ${item.secondsRemaining}s remaining`
-                      : "Quarantine window ended. Ready for settlement."}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleCancelPending(item.id)}
-                  className="px-4 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-xs self-start sm:self-center"
+            {pendingActions.map((item) => {
+              const isReady = !item.secondsRemaining || item.secondsRemaining <= 0;
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 shadow-xs"
                 >
-                  Veto & Cancel
-                </button>
-              </div>
-            ))}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                        Action #{item.id}: {item.method}() on {item.target}
+                      </span>
+                      <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        ${item.amount} mUSD
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      {isReady
+                        ? "Quarantine window ended. Ready for owner settlement."
+                        : `Owner review delay: ${item.secondsRemaining}s remaining`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-center">
+                    {isReady && (
+                      <button
+                        type="button"
+                        onClick={() => handleSettlePending(item.id)}
+                        className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      >
+                        Settle & Execute
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleCancelPending(item.id)}
+                      className="px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      Veto & Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -911,10 +958,20 @@ export default function DashboardPage() {
                                   ? "text-emerald-600 dark:text-emerald-400"
                                   : isPending
                                   ? "text-blue-600 dark:text-blue-400"
+                                  : act.type === "CANCELLED" || act.type === "PAUSE" || act.type === "UNPAUSE"
+                                  ? "text-amber-600 dark:text-amber-400"
                                   : "text-rose-600 dark:text-rose-400"
                               }`}
                             >
-                              {isAllowed ? `Verified: ${act.reason}` : isPending ? `Quarantine: ${act.reason}` : `Refused: ${act.reason}`}
+                              {isAllowed
+                                ? `Verified: ${act.reason}`
+                                : isPending
+                                ? `Quarantine: ${act.reason}`
+                                : act.type === "CANCELLED"
+                                ? `Vetoed: ${act.reason}`
+                                : act.type === "PAUSE" || act.type === "UNPAUSE"
+                                ? `Admin: ${act.reason}`
+                                : `Refused: ${act.reason}`}
                             </p>
                           )}
                         </div>

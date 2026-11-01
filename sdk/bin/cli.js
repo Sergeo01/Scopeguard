@@ -233,8 +233,8 @@ function printManualOwnerCommands(guardContract, agentAccount, policy, ownerAcco
   console.log("----------------------------------------------------------------");
   console.log(`# 1. Register policy on Guard:`);
   console.log(`near call ${guardContract} register_agent '{"agent_account":"${agentAccount}","policy":${JSON.stringify(policy)}}' --accountId ${ownerAccount} --gas 100000000000000\n`);
-  console.log(`# 2. Add scoped passkey to agent:`);
-  console.log(`near add-key ${agentAccount} ${publicKey} --contractId ${guardContract} --methodNames execute --allowance 1 --accountId ${ownerAccount}`);
+  console.log(`# 2. Add scoped passkey to agent (0.25 NEAR gas allowance for transaction fees):`);
+  console.log(`near add-key ${agentAccount} ${publicKey} --contractId ${guardContract} --methodNames execute --allowance 0.25 --accountId ${ownerAccount}`);
   console.log("----------------------------------------------------------------");
 }
 

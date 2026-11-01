@@ -249,8 +249,60 @@ Rules:
               validationErrors: [],
             };
           }
-          // Model output did not match the schema: fall through to the
-          // deterministic parser rather than shipping an unvalidated policy.
+
+          // Exactly one repair retry with validator errors fed back to the model
+          try {
+            const repairRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${options.apiKey}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [{ text: `${systemPrompt}\n\nUser request: "${promptText}"` }],
+                    },
+                    {
+                      role: "model",
+                      parts: [{ text: rawContent }],
+                    },
+                    {
+                      role: "user",
+                      parts: [
+                        {
+                          text: `Your JSON failed strict validation with these errors: ${errors.join(
+                            ", "
+                          )}. Repair the policy to strictly adhere to the schema and return raw JSON.`,
+                        },
+                      ],
+                    },
+                  ],
+                  generationConfig: { responseMimeType: "application/json" },
+                }),
+              }
+            );
+            if (repairRes.ok) {
+              const repairData = await repairRes.json();
+              const repairContent = repairData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (repairContent) {
+                const repaired = JSON.parse(repairContent);
+                const repairedErrors = validatePolicyShape(repaired);
+                if (repairedErrors.length === 0) {
+                  return {
+                    policy: repaired,
+                    plainEnglish: generatePlainEnglish(repaired),
+                    warnings: lintPolicy(repaired),
+                    isManualFallback: false,
+                    schemaValidated: true,
+                    validationErrors: [],
+                  };
+                }
+              }
+            }
+          } catch {
+            // Repair failed, fall through to deterministic fallback
+          }
         }
       }
     } catch {
@@ -333,7 +385,7 @@ Rules:
     auto_pause_window_minutes: 10,
     high_value_threshold: threshold,
     high_value_delay_seconds: 60,
-    policy_change_delay_seconds: 600,
+    policy_change_delay_seconds: 60,
   };
 
   const plainEnglish = generatePlainEnglish(draft, {
