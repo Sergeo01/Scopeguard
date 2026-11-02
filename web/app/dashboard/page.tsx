@@ -36,6 +36,7 @@ import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreake
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { useWallet } from "@/context/WalletContext";
 import { ReceiptModal } from "@/components/ReceiptModal";
+import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 
 interface ActivityItem {
   id: string;
@@ -543,6 +544,9 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+
+      {/* Worst-Case Loss Bound Indicator */}
+      <WorstCaseBoundIndicator dailyCap={dailyCapTotal} vaultBalance={vaultBalance} />
 
       {/* Activation Callout Strip (Soft Mint with Pitch-Black Pill CTA) */}
       <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-ambient">

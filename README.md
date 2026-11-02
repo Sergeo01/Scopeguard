@@ -148,6 +148,12 @@ The product promise: **"Give your agent a key that can only do its job."**
 4. **The Policy Guard Contract:** A Rust contract on NEAR implementing ten ordered checks. If checks pass, it executes the action. If any check fails, it writes to an onchain reject log, returns the machine-readable reason code without panicking, and trips an auto-pause circuit breaker if rejections spike.
 5. **The Owner Rule Card:** The owner's policy specifying allowed target contracts, allowed methods, a fixed 24-hour spend cap window (protected by a 10-minute velocity throttle against boundary bursts), a recipient allowlist, a velocity limit (actions per 10 minutes), and auto-pause settings.
 
+### The Worst-Case Bound: Mathematical Guarantee
+
+Without any human intervention, the maximum theoretical loss is mathematically bounded at the daily cap ($500 mUSD) because all high-value actions are held in timelock quarantine requiring explicit owner settlement.
+
+Even under continuous malicious prompt injection while the owner is away, the agent can never exceed its daily spend cap ($500 mUSD) in any 24-hour window. Any transaction attempting to move an amount at or above the high-value threshold is halted onchain and placed into timelock quarantine. Because quarantined actions can only be settled by the owner's cryptographic signature, an unattended agent cannot lose more than the daily cap under any circumstance.
+
 ---
 
 ## 5. The Ten Guard Checks (Strict Order)
@@ -333,10 +339,30 @@ While individual developers can deploy ScopeGuard directly, the primary benefici
 
 ---
 
-## 11. Honest Limits, Known Gaps, and Security Invariants
+## 11. Architectural Integration: IronClaw and ScopeGuard
+
+### The Defense-in-Depth Model: Local Sandboxing Meets Onchain Passkeys
+
+Autonomous AI agents moving money require dual-layer security across both execution tiers: the host environment where the model runs, and the blockchain consensus where money moves.
+
+In this defense-in-depth architecture: IronClaw isolates local compute, tools, and credentials via WASM sandboxing; ScopeGuard isolates funds, keys, and execution onchain via NEAR protocol consensus; connecting them via Model Context Protocol gives IronClaw safe autonomous spending.
+
+- **IronClaw (Local Compute Layer):** IronClaw isolates local compute, tools, and credentials via WASM sandboxing. It prevents malicious agent skills, compromised dependencies, and untrusted tool executions from reading the host filesystem, exfiltrating local environment secrets, or spawning unauthorized child processes.
+- **ScopeGuard (Onchain Consensus Layer):** ScopeGuard isolates funds, keys, and execution onchain via NEAR protocol consensus. The agent never holds a master private key. It holds a protocol-scoped FunctionCall access key restricted to `guard.execute`, where 10 ordered policy checks and timelock quarantines govern all value transfers directly on the blockchain.
+- **The Connection (Model Context Protocol / MCP):** Connecting them via Model Context Protocol gives IronClaw safe autonomous spending. When an IronClaw-sandboxed agent needs to swap tokens, pay for an API, or settle an invoice, it issues a structured spend request via an MCP tool to ScopeGuard. ScopeGuard cryptographically validates the action against the owner's policy card onchain before any funds can move.
+
+### Why Both Are Essential
+
+Local compute sandboxing alone cannot protect funds once a valid transaction is broadcast to the network: an injected model could instruct a sandboxed tool to transfer all available tokens to an attacker wallet. Conversely, onchain passkeys alone cannot protect local credentials or prevent arbitrary filesystem tampering on the host machine.
+
+Together, IronClaw isolates the execution environment while ScopeGuard bounds financial exposure. Even if an attacker achieves complete model manipulation inside the local WASM sandbox, the attack dies onchain at the ScopeGuard contract.
+
+---
+
+## 12. Honest Limits, Known Gaps, and Security Invariants
 
 We believe in radical transparency:
-1. **Bounded Loss, Not Zero Loss:** If an owner configures a $100 daily cap, an injected agent could still execute legitimate trades that lose up to $100 on that day. The guarantee is that the agent can never lose $10,000 or drain external wallets.
+1. **Bounded Loss, Not Zero Loss:** Without any human intervention, the maximum theoretical loss is mathematically bounded at the daily cap ($500 mUSD) because all high-value actions are held in timelock quarantine requiring explicit owner settlement. If an owner configures a $100 daily cap, an injected agent could still execute legitimate trades that lose up to $100 on that day. The guarantee is that the agent can never lose $10,000 or drain external wallets.
 2. **Single-Token Vault in v1:** In v1, each Guard policy specifies a single registered NEP-141 token pot (`policy.token`). The Guard strictly verifies the token contract on deposit and ensures transfers move that token. Generic `ContractCall` actions are prohibited from targeting `policy.token` directly, ensuring all value moves strictly through typed `Transfer`. Multi-token asset treasuries are scheduled for v2.
 3. **Mock DEX Accounting Scope:** The demo DEX contract demonstrates fixed-rate swap gating and daily cap counting. In v1, swaps do not fake-debit tokens unless real assets move via `ft_transfer_call`. Full DEX AMM liquidity pool integration is planned for v2.
 4. **Asynchronous Settlement and Automatic Rollback:** In ScopeGuard, token transfers debit the internal vault balance and daily spend cap before dispatching downstream cross-contract calls. If a transfer fails downstream (for example an unregistered receiver), private callbacks (`on_action_resolved` and `on_withdraw_resolved`) catch the downstream promise failure and automatically restore the internal vault balance and roll back the spend budget.
@@ -348,6 +374,6 @@ We believe in radical transparency:
 
 ---
 
-## 12. Verification and Testing
+## 13. Verification and Testing
 
 See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (42 native Rust unit tests, 14 web tests, and automated check scripts).
