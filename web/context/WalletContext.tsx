@@ -321,8 +321,18 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         disconnectWallet,
         refreshBalance,
         isAuthModalOpen,
-        openAuthModal: () => setIsAuthModalOpen(true),
-        closeAuthModal: () => setIsAuthModalOpen(false),
+        openAuthModal: () => {
+          setIsAuthModalOpen(true);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("scopeguard:open-auth"));
+          }
+        },
+        closeAuthModal: () => {
+          setIsAuthModalOpen(false);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("scopeguard:close-auth"));
+          }
+        },
       }}
     >
       {children}

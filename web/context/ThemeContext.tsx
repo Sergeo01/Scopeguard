@@ -18,8 +18,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("scopeguard_theme") as Theme | null;
-    const initialTheme: Theme = saved === "light" ? "light" : "dark";
+    let initialTheme: Theme = "dark";
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryTheme = params.get("theme");
+      if (queryTheme === "light" || queryTheme === "dark") {
+        initialTheme = queryTheme;
+        localStorage.setItem("scopeguard_theme", queryTheme);
+      } else {
+        const saved = localStorage.getItem("scopeguard_theme") as Theme | null;
+        if (saved === "light" || saved === "dark") {
+          initialTheme = saved;
+        }
+      }
+    }
     setThemeState(initialTheme);
     applyTheme(initialTheme);
   }, []);

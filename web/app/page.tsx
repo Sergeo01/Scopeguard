@@ -38,6 +38,7 @@ import {
 import { MarketingNavbar } from "@/components/MarketingNavbar";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { ReceiptModal } from "@/components/ReceiptModal";
+import { AuthModal } from "@/components/AuthModal";
 import { AttackAutopsy, AutopsyData } from "@/components/AttackAutopsy";
 import { useWallet } from "@/context/WalletContext";
 import { useDocs } from "@/context/DocsContext";
@@ -557,12 +558,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-radial-mask pointer-events-none" />
 
           <div className="relative max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 flex flex-col items-center text-center space-y-8">
-            {/* Top pill badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>NEAR Build Beyond Boundaries Hackathon: AI Security &amp; Defense</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-            </div>
+
 
             {/* Main Header with Inline Pill Badge (BeatAPI signature feature) */}
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-950 dark:text-white leading-[1.14] max-w-4xl">
@@ -1499,6 +1495,9 @@ export default function HomePage() {
       {inspectHash && (
         <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />
       )}
+
+      {/* Unified Authentication Modal */}
+      <AuthModal />
     </div>
   );
 }
