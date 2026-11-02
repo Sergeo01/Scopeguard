@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/context/WalletContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LogoProvider } from "@/context/LogoContext";
+import { DocsProvider } from "@/context/DocsContext";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
@@ -27,7 +28,9 @@ export default function RootLayout({
         <ThemeProvider>
           <WalletProvider>
             <LogoProvider>
-              <AppShell>{children}</AppShell>
+              <DocsProvider>
+                <AppShell>{children}</AppShell>
+              </DocsProvider>
             </LogoProvider>
           </WalletProvider>
         </ThemeProvider>

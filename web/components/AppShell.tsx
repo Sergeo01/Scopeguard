@@ -1,22 +1,40 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopStatusBar } from "@/components/TopStatusBar";
-import { DocsModal } from "@/components/DocsModal";
 import { AuthModal } from "@/components/AuthModal";
+import { useDocs } from "@/context/DocsContext";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showDocsModal, setShowDocsModal] = useState(false);
+  const pathname = usePathname();
+  const { openDocs } = useDocs();
 
+  // Route Separation:
+  // "/" is the Public Marketing Landing Page (full viewport, no dashboard sidebar)
+  const isLandingPage = pathname === "/";
+
+  if (isLandingPage) {
+    return (
+      <div className="min-h-screen w-full bg-[#080B11] text-slate-100 flex flex-col selection:bg-blue-600/30 selection:text-blue-300">
+        <main className="flex-1 w-full">
+          {children}
+        </main>
+        <AuthModal />
+      </div>
+    );
+  }
+
+  // Dashboard, Create, Admin, and Operations Console routes
   return (
     <div className="flex h-screen w-full overflow-hidden bg-dot-matrix">
       {/* Fixed Left Sidebar */}
       <AppSidebar
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        onOpenDocs={() => setShowDocsModal(true)}
+        onOpenDocs={openDocs}
       />
 
       {/* Fluid Main Body */}
@@ -24,7 +42,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Top Status Bar */}
         <TopStatusBar
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
-          onOpenDocs={() => setShowDocsModal(true)}
+          onOpenDocs={openDocs}
         />
 
         {/* Scrollable Viewport Content */}
@@ -32,9 +50,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {children}
         </main>
       </div>
-
-      {/* Interactive Docs & Guide Modal */}
-      <DocsModal isOpen={showDocsModal} onClose={() => setShowDocsModal(false)} />
 
       {/* Unified Authentication & Sub-accounts Modal */}
       <AuthModal />
