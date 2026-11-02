@@ -620,7 +620,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
 
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href="/#arena"
               className="px-4 py-2 rounded-xl bg-white dark:bg-obsidian-850 hover:bg-slate-100 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition shadow-xs"
             >
               Test Attack Simulator

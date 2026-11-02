@@ -85,12 +85,14 @@ body {
   -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
 }
 
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(800%); }
+@keyframes scanline-x {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(250%); }
+  100% { transform: translateX(-100%); }
 }
 
 .animate-scanline {
-  animation: scanline 4s ease-in-out infinite;
+  animation: scanline-x 3.5s ease-in-out infinite;
 }
+
 

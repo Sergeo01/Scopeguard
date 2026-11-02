@@ -600,7 +600,7 @@ export default function DashboardPage() {
         </div>
 
         <Link
-          href="/"
+          href="/#arena"
           className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
         >
           <span>Simulate Attack on Testnet →</span>
