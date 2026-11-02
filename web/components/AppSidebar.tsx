@@ -52,43 +52,48 @@ export const AppSidebar: React.FC<{
   onOpenDocs,
 }) => {
   const pathname = usePathname();
-  const { accountId, isConnected, disconnectWallet } = useWallet();
+  const { user, accountId, isConnected, isAdmin, signOut, openAuthModal } = useWallet();
   const { setShowSelector } = useLogo();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const operationItems: NavItem[] = [
+    {
+      href: "/",
+      label: "Attack Simulator",
+      icon: Sparkles,
+      badge: "Live",
+      badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+    },
+    {
+      href: "/dashboard",
+      label: "Security Console",
+      icon: LayoutDashboard,
+      badge: "7 Rules",
+      badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+    },
+    {
+      href: "/create",
+      label: "Issue Passkey",
+      icon: PlusCircle,
+      badge: "New",
+      badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+    },
+  ];
+
+  if (isAdmin) {
+    operationItems.push({
+      href: "/admin",
+      label: "Platform Admin",
+      icon: Sliders,
+      badge: "Cockpit",
+      badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+    });
+  }
 
   const navGroups: NavGroup[] = [
     {
       label: "OPERATIONS",
-      items: [
-        {
-          href: "/",
-          label: "Attack Simulator",
-          icon: Sparkles,
-          badge: "Live",
-          badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-        },
-        {
-          href: "/dashboard",
-          label: "Security Console",
-          icon: LayoutDashboard,
-          badge: "7 Rules",
-          badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
-        },
-        {
-          href: "/create",
-          label: "Issue Passkey",
-          icon: PlusCircle,
-          badge: "New",
-          badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
-        },
-        {
-          href: "/admin",
-          label: "Platform Admin",
-          icon: Sliders,
-          badge: "Cockpit",
-          badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-        },
-      ],
+      items: operationItems,
     },
     {
       label: "ONCHAIN CONTRACTS",
@@ -267,33 +272,48 @@ export const AppSidebar: React.FC<{
         </div>
 
         {/* Profile Card */}
-        <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-900 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-blue-600 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-              {accountId ? accountId.charAt(0).toUpperCase() : "S"}
+        {user ? (
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-900 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                    {user.displayName}
+                  </span>
+                  {isAdmin && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                  {accountId || "no wallet linked"}
+                </span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white block truncate">
-                {accountId || "sergeo-guard.testnet"}
-              </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Verified Owner
-              </span>
-            </div>
-          </div>
 
-          {isConnected && (
             <button
               type="button"
-              onClick={disconnectWallet}
-              className="p-1 text-slate-400 hover:text-rose-600 transition"
-              title="Disconnect Wallet"
+              onClick={signOut}
+              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition rounded-lg hover:bg-slate-200/50 dark:hover:bg-obsidian-800 cursor-pointer"
+              title="Sign out of ScopeGuard"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={openAuthModal}
+            className="w-full p-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-obsidian-900 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Sign in to ScopeGuard</span>
+          </button>
+        )}
       </div>
     </aside>
   );

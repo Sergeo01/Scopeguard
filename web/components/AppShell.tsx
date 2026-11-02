@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopStatusBar } from "@/components/TopStatusBar";
 import { DocsModal } from "@/components/DocsModal";
+import { AuthModal } from "@/components/AuthModal";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,6 +35,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       {/* Interactive Docs & Guide Modal */}
       <DocsModal isOpen={showDocsModal} onClose={() => setShowDocsModal(false)} />
+
+      {/* Unified Authentication & Sub-accounts Modal */}
+      <AuthModal />
     </div>
   );
 };

@@ -19,9 +19,11 @@ import {
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { WalletButton } from "@/components/WalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useWallet } from "@/context/WalletContext";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
+  const { isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -35,6 +37,7 @@ export const Navbar: React.FC = () => {
     { href: "/", label: "Attack Simulator", icon: Sparkles },
     { href: "/dashboard", label: "Security Console", icon: LayoutDashboard },
     { href: "/create", label: "Issue Passkey", icon: PlusCircle },
+    ...(isAdmin ? [{ href: "/admin", label: "Platform Admin", icon: Shield }] : []),
   ];
 
   return (

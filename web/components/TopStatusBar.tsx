@@ -12,6 +12,7 @@ import {
   BookOpen,
   AlertTriangle,
   Github,
+  Sliders,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 import { WalletButton } from "@/components/WalletButton";
@@ -24,7 +25,7 @@ export const TopStatusBar: React.FC<{
   onOpenMobileMenu,
   onOpenDocs,
 }) => {
-  const { accountId } = useWallet();
+  const { user, accountId, isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [isAgentPaused, setIsAgentPaused] = useState<boolean | null>(null);
 
@@ -52,7 +53,7 @@ export const TopStatusBar: React.FC<{
     return "Good evening";
   };
 
-  const displayName = accountId ? accountId.split(".")[0] : "Sergeo";
+  const displayName = user?.displayName || (accountId ? accountId.split(".")[0] : "");
 
   return (
     <header className="w-full bg-white/80 dark:bg-obsidian-950/85 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md px-4 sm:px-8 h-14 sm:h-16 flex items-center justify-between transition-all sticky top-0 z-40 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
@@ -79,9 +80,27 @@ export const TopStatusBar: React.FC<{
 
         {/* Desktop Greeting & Live Status Pills (Hidden on mobile to avoid cluttered multi-row wrap) */}
         <div className="hidden lg:flex items-center gap-3 min-w-0">
-          <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
-            {getGreeting()}, <span className="text-blue-600 dark:text-blue-400 capitalize">{displayName}</span>
-          </h2>
+          {user ? (
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              {getGreeting()}, <span className="text-blue-600 dark:text-blue-400 capitalize">{displayName}</span>
+            </h2>
+          ) : (
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              Welcome to <span className="text-blue-600 dark:text-blue-400">ScopeGuard</span>
+            </h2>
+          )}
+
+          {/* Pill 0: Admin Cockpit Pill (Only shown to detected platform administrator) */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="rounded-full px-3 py-0.5 text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+              title="Open Platform Admin Cockpit"
+            >
+              <Sliders className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Admin Cockpit</span>
+            </Link>
+          )}
 
           {/* Pill 1: Verified Protection Pill */}
           <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-xs">

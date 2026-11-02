@@ -25,6 +25,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ReceiptModal } from "@/components/ReceiptModal";
+import { useWallet } from "@/context/WalletContext";
 
 /**
  * Fleet console.
@@ -109,6 +110,7 @@ const relative = (ts: number, nowSec: number): string => {
 };
 
 export default function FleetConsolePage() {
+  const { user, isAdmin, openAuthModal } = useWallet();
   const [fleet, setFleet] = useState<FleetResponse | null>(null);
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,6 +252,45 @@ export default function FleetConsolePage() {
       (e.reason || "").toLowerCase().includes(q)
     );
   });
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-6">
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-500/10 border border-amber-500/25 text-amber-500 flex items-center justify-center shadow-xs">
+          <Shield className="w-8 h-8 text-amber-500" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 px-2.5 py-0.5 rounded-full inline-block">
+            Restricted Fleet Console
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+            Administrator Access Required
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            {user
+              ? `You are currently authenticated as "${user.displayName}" (${user.email || user.provider}), which does not have platform administrator privileges.`
+              : "You are not currently signed in. Please authenticate with an authorized administrator account to access platform fleet telemetry."}
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={openAuthModal}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-bold transition shadow-xs hover:bg-slate-800 dark:hover:bg-slate-100 cursor-pointer"
+          >
+            Sign in as Administrator
+          </button>
+          <Link
+            href="/"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-obsidian-850 transition"
+          >
+            Return to Attack Simulator
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
