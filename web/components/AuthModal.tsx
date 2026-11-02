@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   X,
   Mail,
@@ -10,6 +11,7 @@ import {
 import { useWallet } from "@/context/WalletContext";
 
 export const AuthModal: React.FC = () => {
+  const router = useRouter();
   const {
     isAuthModalOpen,
     closeAuthModal,
@@ -41,6 +43,7 @@ export const AuthModal: React.FC = () => {
     try {
       const email = emailInput.trim();
       await signInWithSocial("google", email || undefined);
+      router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
     }
@@ -51,6 +54,7 @@ export const AuthModal: React.FC = () => {
     try {
       const email = emailInput.trim();
       await signInWithSocial("github", email || undefined);
+      router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
     }
@@ -61,6 +65,7 @@ export const AuthModal: React.FC = () => {
     setLoadingProvider("near");
     try {
       await signInWithNear(nearAccountInput.trim() || "user.testnet");
+      router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
     }
@@ -73,6 +78,7 @@ export const AuthModal: React.FC = () => {
     try {
       await signInWithEmail(emailInput.trim());
       setEmailInput("");
+      router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
     }

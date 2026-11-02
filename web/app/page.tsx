@@ -23,10 +23,18 @@ import {
   ChevronRight,
   AlertTriangle,
   ShieldCheck,
+  Bot,
+  ArrowDown,
+  ShieldAlert,
+  Cpu,
+  CheckCheck,
+  FileCode,
+  Sliders,
 } from "lucide-react";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { AttackAutopsy, AutopsyData } from "@/components/AttackAutopsy";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
+import { useWallet } from "@/context/WalletContext";
 
 interface AttackScenario {
   id: string;
@@ -158,6 +166,7 @@ const ONCHAIN_RULES = [
 ];
 
 export default function HomePage() {
+  const { user, openAuthModal } = useWallet();
   const [vaultBalance, setVaultBalance] = useState("350.00");
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(ATTACK_SCENARIOS[0].id);
@@ -555,9 +564,298 @@ export default function HomePage() {
       : null;
 
   return (
-    <div className="space-y-6">
-      {/* Hero Financial Arena Card (Clean Single-Layer Container) */}
-      <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+    <div className="space-y-8">
+      {/* 1. Main Landing Page Hero Section */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-obsidian-900 dark:via-obsidian-950/70 dark:to-obsidian-900 border border-slate-200/90 dark:border-slate-800 p-8 sm:p-12 lg:p-14 shadow-ambient space-y-8">
+        {/* Glow backdrop decoration */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none -z-10" />
+
+        {/* Hackathon Track & Live Badges */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-obsidian-800 border border-slate-200 dark:border-slate-700/80 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>NEAR Build Beyond Boundaries Hackathon</span>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold">
+            Track 06: AI Security & Defense
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[11px] font-semibold">
+            Track 07: Agent Economy
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-medium">
+            guard2.sergeo-guard.testnet
+          </span>
+        </div>
+
+        {/* Hero Title and Value Proposition */}
+        <div className="max-w-4xl space-y-4">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12]">
+            Give Your AI Agent Power Over Money{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600 dark:from-emerald-400 dark:to-blue-400">
+              Without the Power to Lose Everything
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
+            Autonomous agents holding full private keys turn a single prompt injection or malicious skill into a total wipeout. ScopeGuard restricts your agent with a scoped FunctionCall passkey bounded by 10 onchain policy layers on NEAR Protocol. Your agent can execute its assigned job, but unapproved actions die safely onchain.
+          </p>
+        </div>
+
+        {/* Primary Call to Action Row */}
+        <div className="flex flex-wrap items-center gap-3.5 pt-2">
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 rounded-full bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
+            >
+              <Shield className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+              <span>Open Security Console</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="px-6 py-3 rounded-full bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
+            >
+              <Lock className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+              <span>Sign In to ScopeGuard</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+
+          <a
+            href="#arena"
+            className="px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-bold border border-slate-200 dark:border-slate-700/80 transition flex items-center gap-2"
+          >
+            <Terminal className="w-4 h-4 text-rose-500" />
+            <span>Launch Live Attack Arena</span>
+            <ArrowDown className="w-4 h-4" />
+          </a>
+
+          <Link
+            href="/create"
+            className="px-5 py-3 rounded-full bg-transparent hover:bg-slate-100 dark:hover:bg-obsidian-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-semibold transition flex items-center gap-1.5"
+          >
+            <span>Issue Agent Passkey</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </Link>
+        </div>
+
+        {/* 4-Column Proof Matrix */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+              POLICY ARCHITECTURE
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              10 Layers
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              7 Policy Rules + 3 Protocol Bounds
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+              THREAT MITIGATION
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              100% Refusal
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Verified on NEAR Testnet consensus
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+              MAX POTENTIAL LOSS
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              $0.00 Lost
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Mathematical bound on agent pot
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+              ENFORCEMENT LOCATION
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400">
+              NEAR Protocol
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Native FunctionCall key isolation
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Problem vs Solution Comparison Section ("The Disease vs The Cure") */}
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            THE SECURITY PARADOX
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Why Giving AI Agents Master Keys Fails
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+            Personal AI agents on your machine need to move funds, but handing them full private keys turns one trick into complete wipeout.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Unprotected Agent (The Disease) */}
+          <div className="rounded-2xl p-6 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                <h3 className="text-sm font-bold text-rose-900 dark:text-rose-200">
+                  Unprotected Agent (Plain Master Key)
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                Fatal Equation
+              </span>
+            </div>
+
+            <p className="text-xs text-rose-900/80 dark:text-rose-300/80 leading-relaxed">
+              The agent holds a full private key stored in a plain text file on your computer, alongside skills written by strangers.
+            </p>
+
+            <ul className="space-y-2.5 text-xs text-rose-900/90 dark:text-rose-300/90">
+              <li className="flex items-start gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span><strong>Prompt Injection:</strong> A poisoned email or webpage orders the agent to sweep all funds to an attacker.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span><strong>No Spending Limits:</strong> The agent can transfer your entire account balance in a single transaction.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span><strong>Irreversible Losses:</strong> Crypto transfers cannot be undone. Outcome is a total wallet drain to $0.00.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* ScopeGuard Architecture (The Cure) */}
+          <div className="rounded-2xl p-6 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
+                  ScopeGuard Guarded Passkey
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Guaranteed Bound
+              </span>
+            </div>
+
+            <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80 leading-relaxed">
+              The agent holds only a scoped FunctionCall passkey restricted to the Guard contract. Master recovery keys remain in your custody.
+            </p>
+
+            <ul className="space-y-2.5 text-xs text-emerald-900/90 dark:text-emerald-300/90">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>10-Layer Onchain Checks:</strong> Every request is evaluated against daily caps, velocity speed, and contract allowlists.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>Automatic Emergency Brake:</strong> Three consecutive policy rejections trip the circuit breaker and freeze the agent onchain.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span><strong>Bounded Exposure:</strong> The worst case is strictly capped at what you chose to fund in the agent pot.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. How It Works (3 Simple Steps) */}
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            WORKFLOW LIFECYCLE
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Autonomous Agent Security in Three Steps
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+            ScopeGuard makes scoped key creation frictionless for developers, bots, and autonomous AI agents.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Step 1 */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-mono font-bold text-sm">
+              01
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Describe Job in Plain English
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Type what your agent should do (for example, "Swap mUSD on Mock DEX with a $500 daily cap"). Our AI Scope Drafter produces a verified least-privilege policy JSON.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-mono font-bold text-sm">
+              02
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Issue Scoped Passkey
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              ScopeGuard generates a NEAR FunctionCall key restricted to Guard execution with a gas allowance. Hand it off via 1-line CLI, direct key string, or chat prompt.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-bold text-sm">
+              03
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Enforce Onchain 24/7
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              The agent works autonomously. Valid transactions execute onchain. Malicious injections or unapproved recipient sweeps die onchain with zero gas fees lost.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Live Attack Simulation Arena (Featured Interactive Section) */}
+      <section id="arena" className="scroll-mt-20 space-y-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              INTERACTIVE THREAT SIMULATOR
+            </span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+              Attack Testing Arena
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Order the Demo Agent to Attack and Watch Attacks Die Onchain
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+            Anyone (including hackathon judges) can fire live attacks against our testnet agent without signing in. Test unallowlisted sweeps, phishing contracts, or excessive limits below.
+          </p>
+        </div>
+
+        {/* Hero Financial Arena Card (Clean Single-Layer Container) */}
+        <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
         {/* Top Header Row with Score Box */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800/80">
           <div className="space-y-2">
@@ -1172,6 +1470,109 @@ export default function HomePage() {
           <AttackAutopsy data={autopsyData} onInspect={(hash) => setInspectHash(hash)} />
         </div>
       )}
+      </section>
+
+      {/* 5. Ecosystem Compatibility & Frictionless Handoff */}
+      <section className="bg-white dark:bg-obsidian-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+        <div className="space-y-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            FRAMEWORK COMPATIBILITY
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Built for the Fast-Growing AI Agent Ecosystem
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+            Compatible with any personal or autonomous agent running on NEAR or across multichain environments.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-obsidian-950/60 border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-blue-500" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">NEAR AI & IronClaw</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              First-class support via Tool Registry WASM modules, capabilities.json, and MCP servers.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-obsidian-950/60 border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-purple-500" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">OpenClaw & Bots</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Drop-in replacement for plain private keys in scheduled background trading and DeFi daemons.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-obsidian-950/60 border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-500" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">Eliza & Social Agents</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Safe token tips, micro-rewards, and community payouts strictly capped under daily budgets.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-obsidian-950/60 border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-2">
+              <Code2 className="w-4 h-4 text-amber-500" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">LangChain & AutoGPT</h4>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Deterministic protocol guardrails so autonomous LLM tool-calling can never overspend or drain.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Bottom Final Conversion Callout */}
+      <section className="rounded-3xl bg-slate-950 text-white p-8 sm:p-10 border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl text-center md:text-left">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+            ScopeGuard Hackathon Submission
+          </span>
+          <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+            Give Your Agent a Key That Can Only Do Its Job
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            Ready to test? Sign in to manage your agent passkeys, or audit our open source smart contract and automated verification tests on GitHub.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-bold transition shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <span>Launch Security Console</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-bold transition shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <span>Sign In to ScopeGuard</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          <a
+            href="https://github.com/Sergeo01/Scopeguard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-bold border border-slate-700 transition flex items-center gap-2"
+          >
+            <span>GitHub Source</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+          </a>
+        </div>
+      </section>
 
       {/* Direct In-App Onchain Receipt Inspector */}
       <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />

@@ -61,7 +61,7 @@ interface PendingActionItem {
 }
 
 export default function DashboardPage() {
-  const { accountId: connectedWalletId, isConnected: isWalletConnected, refreshBalance } = useWallet();
+  const { user, accountId: connectedWalletId, isConnected: isWalletConnected, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
@@ -322,6 +322,38 @@ export default function DashboardPage() {
             <span>7 Rules Active</span>
           </span>
         </div>
+      </div>
+
+      {/* Hybrid View Onboarding Quickstart Banner */}
+      <div className="bg-gradient-to-r from-blue-500/10 via-emerald-500/5 to-slate-100/50 dark:to-obsidian-900/40 border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-start gap-3.5">
+          <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                {user ? `Welcome, ${user.displayName}` : "Security Console"}
+              </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Live Demo Telemetry
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Observing Live Guarded Agent: agent.sergeo-guard.testnet
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+              This console displays real-time telemetry from the public ScopeGuard demo agent. Ready to secure your own trading bot or background agent? Issue a custom scoped passkey with your own spending cap and allowlisted contracts in under 60 seconds.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/create"
+          className="bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+        >
+          <span>Issue Your First Passkey →</span>
+        </Link>
       </div>
 
       {/* Circuit Breaker Status Banner */}

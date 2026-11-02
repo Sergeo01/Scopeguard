@@ -59,8 +59,15 @@ export const AppSidebar: React.FC<{
   const operationItems: NavItem[] = [
     {
       href: "/",
-      label: "Attack Simulator",
+      label: "Overview",
       icon: Sparkles,
+      badge: "Home",
+      badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+    },
+    {
+      href: "/#arena",
+      label: "Attack Arena",
+      icon: Terminal,
       badge: "Live",
       badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
     },
