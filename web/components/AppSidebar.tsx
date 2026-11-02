@@ -190,7 +190,7 @@ export const AppSidebar: React.FC<{
             className="w-full pl-8 pr-10 py-1.5 bg-slate-50 dark:bg-obsidian-900 border border-slate-200/80 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-obsidian-800 text-slate-500">
-            ⌘K
+            Ctrl+K
           </span>
         </div>
 
@@ -282,7 +282,7 @@ export const AppSidebar: React.FC<{
         {user ? (
           <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-900 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 text-xs font-bold shrink-0">
                 {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
               </div>
               <div className="min-w-0">

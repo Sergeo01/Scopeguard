@@ -18,6 +18,8 @@ import {
   ExternalLink,
   Layers,
   Sparkles,
+  ArrowUpRight,
+  Zap,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
@@ -290,8 +292,9 @@ export default function CreateAgentPage() {
               <span className="font-mono text-xl font-bold text-slate-900 dark:text-white">
                 Scoped Key
               </span>
-              <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                ↗ Validated
+              <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                Validated
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 block">
@@ -316,8 +319,9 @@ export default function CreateAgentPage() {
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title="guard2.sergeo-guard.testnet">
                 guard2...
               </span>
-              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                ↗ Fixed
+              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                Fixed
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -339,8 +343,9 @@ export default function CreateAgentPage() {
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">
                 execute
               </span>
-              <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                ↗ Single
+              <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                <ArrowUpRight className="w-3 h-3" />
+                Single
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -362,8 +367,9 @@ export default function CreateAgentPage() {
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                 ${dailyCap} mUSD
               </span>
-              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                ↗ Custom
+              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                <ArrowUpRight className="w-3 h-3" />
+                Custom
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -385,8 +391,9 @@ export default function CreateAgentPage() {
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 1-Tap
               </span>
-              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                ↘ Instant
+              <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                Instant
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">

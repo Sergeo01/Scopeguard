@@ -30,6 +30,7 @@ import {
   Shield,
   Trash2,
   ArrowRight,
+  ArrowUpRight,
   Sparkles,
 } from "lucide-react";
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
@@ -325,9 +326,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Hybrid View Onboarding Quickstart Banner */}
-      <div className="bg-gradient-to-r from-blue-500/10 via-emerald-500/5 to-slate-100/50 dark:to-obsidian-900/40 border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-white dark:bg-obsidian-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs transition-colors">
         <div className="flex items-start gap-3.5">
-          <div className="p-2.5 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0">
+          <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="space-y-1">
@@ -350,9 +351,10 @@ export default function DashboardPage() {
 
         <Link
           href="/create"
-          className="bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+          className="bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-xl px-4 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto active:scale-[0.99]"
         >
-          <span>Issue Your First Passkey →</span>
+          <span>Issue Your First Passkey</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
@@ -414,8 +416,9 @@ export default function DashboardPage() {
                 <span className="font-mono text-2xl font-bold text-slate-900 dark:text-white">
                   100%
                 </span>
-                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                  ↗ Grade A
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" />
+                  Grade A
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 block">
@@ -444,8 +447,9 @@ export default function DashboardPage() {
                     ${dailyCapTotal}
                   </span>
                 )}
-                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                  ↗ Manual
+                <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" />
+                  Manual
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -498,8 +502,9 @@ export default function DashboardPage() {
                     ${Math.max(0, dailyCapTotal - dailyCapSpent)}
                   </span>
                 )}
-                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                  ↗ Safe
+                <span className="bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" />
+                  Safe
                 </span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -570,7 +575,8 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <Coins className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Deposit $100 mUSD into Vault →</span>
+                  <span>Deposit $100 mUSD into Vault</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
                 </>
               )}
             </button>
@@ -603,7 +609,8 @@ export default function DashboardPage() {
           href="/#arena"
           className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
         >
-          <span>Simulate Attack on Testnet →</span>
+          <span>Simulate Attack on Testnet</span>
+          <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
         </Link>
       </div>
 

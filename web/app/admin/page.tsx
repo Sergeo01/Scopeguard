@@ -24,6 +24,7 @@ import {
   Terminal,
   Server,
   ArrowRight,
+  X,
 } from "lucide-react";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { useWallet } from "@/context/WalletContext";
@@ -310,8 +311,9 @@ export default function FleetConsolePage() {
       )}
 
       {/* Hero: funds actually bounded by policy */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B0F19] via-[#111827] to-[#1E1B4B] p-6 sm:p-8 text-white border border-slate-800/80 shadow-xl">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-[#090D16] p-6 sm:p-8 text-white border border-slate-800 shadow-sm">
+        <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-mask pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
@@ -838,10 +840,10 @@ export default function FleetConsolePage() {
               </div>
               <button
                 onClick={() => setModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-md"
                 aria-label="Close"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -932,10 +934,10 @@ function Telemetry({
   tone: "purple" | "orange" | "sky" | "emerald";
 }) {
   const toneMap = {
-    purple: "border-purple-200/60 dark:border-purple-900/40 bg-gradient-to-b from-purple-50/50 to-purple-100/60 dark:from-purple-950/20 dark:to-purple-900/20 text-purple-700 dark:text-purple-300",
-    orange: "border-orange-200/60 dark:border-orange-900/40 bg-gradient-to-b from-orange-50/40 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/20 text-orange-700 dark:text-orange-300",
-    sky: "border-sky-200/60 dark:border-sky-900/40 bg-gradient-to-b from-sky-50/40 to-sky-100/50 dark:from-sky-950/20 dark:to-sky-900/20 text-sky-700 dark:text-sky-300",
-    emerald: "border-emerald-200/60 dark:border-emerald-900/40 bg-gradient-to-b from-emerald-50/40 to-emerald-100/50 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300",
+    purple: "border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/70 text-slate-700 dark:text-slate-300",
+    orange: "border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300",
+    sky: "border-blue-200/80 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300",
+    emerald: "border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300",
   } as const;
 
   return (

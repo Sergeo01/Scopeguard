@@ -622,7 +622,7 @@ export default function HomePage() {
                 {/* Code / Command Block */}
                 <div className="flex items-center gap-3 p-3.5 bg-slate-50/70 dark:bg-slate-900/80">
                   <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400 select-none">
-                    {devSnippetTab === "prompt" ? "»" : "$"}
+                    {devSnippetTab === "prompt" ? ">" : "$"}
                   </span>
                   <code className="min-w-0 flex-1 font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 select-all overflow-x-auto whitespace-pre">
                     {snippetMap[devSnippetTab]}
@@ -660,7 +660,7 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
               <a
                 href="#arena"
-                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-sm font-bold shadow-lg shadow-rose-600/25 transition flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold border border-rose-500/40 shadow-xs active:scale-[0.98] transition flex items-center gap-2 cursor-pointer"
               >
                 <Terminal className="w-4 h-4" />
                 <span>Launch Live Attack Arena</span>
@@ -670,7 +670,7 @@ export default function HomePage() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
+                  className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold border border-blue-500/40 shadow-xs active:scale-[0.98] transition flex items-center gap-2"
                 >
                   <Gauge className="w-4 h-4 text-emerald-400" />
                   <span>Open Security Console</span>
@@ -680,7 +680,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={openAuthModal}
-                  className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-slate-700 transition flex items-center gap-2 cursor-pointer shadow-xs"
+                  className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-slate-700 active:scale-[0.98] transition flex items-center gap-2 cursor-pointer shadow-xs"
                 >
                   <Lock className="w-4 h-4 text-emerald-500" />
                   <span>Sign In to Console</span>
@@ -1023,7 +1023,7 @@ export default function HomePage() {
                   <span className="text-emerald-600 dark:text-emerald-400 font-bold">$350 / $350 mUSD</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-900 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 w-full" />
+                  <div className="h-full bg-emerald-500 rounded-full w-full" />
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
                   <span>Worst case bound</span>
@@ -1445,41 +1445,45 @@ export default function HomePage() {
         {/* SECTION 8: CLOSING CALL TO ACTION BANNER */}
         {/* ========================================================= */}
         <section className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 pb-12">
-          <div className="rounded-3xl bg-gradient-to-r from-blue-50 via-slate-50 to-indigo-50 dark:from-blue-950/60 dark:via-slate-900 dark:to-indigo-950/60 border border-blue-200 dark:border-blue-900/40 p-8 sm:p-12 text-center space-y-6 shadow-sm dark:shadow-2xl">
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-              Ready to Give Your Agent Money Safely?
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto">
-              Stop handing your autonomous agents master private keys. Issue a scoped FunctionCall passkey in 60 seconds and monitor every trade onchain.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-              {user ? (
+          <div className="relative overflow-hidden rounded-3xl bg-[#090D16] border border-slate-800 p-8 sm:p-12 text-center space-y-6 shadow-sm">
+            <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-radial-mask pointer-events-none" />
+            <div className="relative z-10 space-y-6">
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+                Ready to Give Your Agent Money Safely?
+              </h2>
+              <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+                Stop handing your autonomous agents master private keys. Issue a scoped FunctionCall passkey in 60 seconds and monitor every trade onchain.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+                {user ? (
+                  <Link
+                    href="/dashboard"
+                    className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-xs active:scale-[0.98] transition flex items-center gap-2"
+                  >
+                    <Gauge className="w-4 h-4 text-emerald-400" />
+                    <span>Open Security Console</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openAuthModal}
+                    className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-sm font-bold shadow-xs active:scale-[0.98] transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Lock className="w-4 h-4 text-emerald-600" />
+                    <span>Sign In to ScopeGuard</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
                 <Link
-                  href="/dashboard"
-                  className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
+                  href="/create"
+                  className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold border border-slate-700 shadow-xs active:scale-[0.98] transition flex items-center gap-2"
                 >
-                  <Gauge className="w-4 h-4 text-emerald-400" />
-                  <span>Open Security Console</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Issue Agent Passkey</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
                 </Link>
-              ) : (
-                <button
-                  type="button"
-                  onClick={openAuthModal}
-                  className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-sm font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
-                >
-                  <Lock className="w-4 h-4 text-emerald-500" />
-                  <span>Sign In to ScopeGuard</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
-              <Link
-                href="/create"
-                className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-slate-700 transition flex items-center gap-2 shadow-xs"
-              >
-                <span>Issue Agent Passkey</span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </Link>
+              </div>
             </div>
           </div>
         </section>
