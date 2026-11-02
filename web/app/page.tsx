@@ -690,14 +690,13 @@ export default function HomePage() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={openDocs}
+              <Link
+                href="/docs"
                 className="px-5 py-3.5 rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-sm font-semibold transition flex items-center gap-1.5"
               >
                 <span>Read Architecture Spec</span>
                 <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-              </button>
+              </Link>
             </div>
 
             {/* Interactive Before vs After Comparison Card (BeatAPI Style) */}

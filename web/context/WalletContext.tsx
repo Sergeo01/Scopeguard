@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { connect, keyStores, utils } from "near-api-js";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export interface ScopeGuardUser {
   id: string;
@@ -160,7 +161,66 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user, fetchNearBalance]);
 
+  // Handle MyNearWallet redirect return and Supabase auth state change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const returnAccountId = params.get("account_id");
+      if (returnAccountId) {
+        signInWithNear(returnAccountId);
+        const cleanPath = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanPath);
+      }
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const email = session.user.email || "";
+        const name = session.user.user_metadata?.full_name || email.split("@")[0] || "User";
+        const isAdmin = checkIsAdmin(email, null, false);
+        const defaultWallet = isAdmin ? DEFAULT_OWNER : `${email.split("@")[0]}.testnet`;
+
+        const profileUser: ScopeGuardUser = {
+          id: session.user.id,
+          email,
+          displayName: name,
+          provider: (session.user.app_metadata?.provider as any) || "google",
+          avatar: session.user.user_metadata?.avatar_url,
+          isAdmin,
+          connectedWallets: isAdmin
+            ? [DEFAULT_OWNER, "trader." + DEFAULT_OWNER]
+            : [defaultWallet],
+          activeAccountId: defaultWallet,
+        };
+
+        saveUserProfile(profileUser);
+        fetchNearBalance(defaultWallet);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchNearBalance]);
+
   const signInWithSocial = async (provider: "google" | "github", customEmail?: string) => {
+    const supabase = getSupabaseClient();
+    if (supabase && isSupabaseConfigured && typeof window !== "undefined") {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (!error) return;
+      console.warn("Supabase OAuth warning:", error.message);
+    }
+
     const email = customEmail || (provider === "google" ? "user@gmail.com" : "user@github.com");
     const name = email.split("@")[0];
     const isAdmin = checkIsAdmin(email, null, false);
@@ -204,6 +264,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const signInWithEmail = async (email: string) => {
     const cleanEmail = email.trim();
     if (!cleanEmail) return;
+
+    const supabase = getSupabaseClient();
+    if (supabase && isSupabaseConfigured && typeof window !== "undefined") {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (!error) return;
+      console.warn("Supabase OTP warning:", error.message);
+    }
+
     const name = cleanEmail.split("@")[0];
     const isAdmin = checkIsAdmin(cleanEmail, null, false);
     const defaultWallet = isAdmin ? DEFAULT_OWNER : `${name}.testnet`;

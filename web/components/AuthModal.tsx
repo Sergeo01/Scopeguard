@@ -2,8 +2,30 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, ArrowLeft } from "lucide-react";
+import {
+  X,
+  Mail,
+  ArrowLeft,
+  Wallet,
+  ExternalLink,
+  ChevronRight,
+  Shield,
+  CheckCircle2,
+  AlertCircle,
+  Terminal,
+} from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
+
+interface WalletOption {
+  id: string;
+  name: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+  icon: string;
+  actionType: "mynearwallet" | "injected" | "preset";
+  presetAccount?: string;
+}
 
 export const AuthModal: React.FC = () => {
   const router = useRouter();
@@ -18,8 +40,10 @@ export const AuthModal: React.FC = () => {
   const [isOpenLocal, setIsOpenLocal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [showNearStep, setShowNearStep] = useState(false);
+  const [showDeveloperMode, setShowDeveloperMode] = useState(false);
   const [nearAccountInput, setNearAccountInput] = useState("");
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [connectionNotice, setConnectionNotice] = useState<string | null>(null);
 
   // Synchronize with URL query parameter (?auth=1 / ?signin=1) and custom event
   React.useEffect(() => {
@@ -31,6 +55,14 @@ export const AuthModal: React.FC = () => {
         params.get("login") === "1"
       ) {
         setIsOpenLocal(true);
+      }
+      if (
+        params.get("auth") === "near" ||
+        params.get("wallet") === "near" ||
+        params.get("connect") === "near"
+      ) {
+        setIsOpenLocal(true);
+        setShowNearStep(true);
       }
       const handleOpen = () => setIsOpenLocal(true);
       const handleClose = () => setIsOpenLocal(false);
@@ -81,19 +113,6 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleNearSubmit = async (e?: React.FormEvent, directAccount?: string) => {
-    if (e) e.preventDefault();
-    const accountToConnect = directAccount || nearAccountInput.trim() || "sergeo-guard.testnet";
-    setLoadingProvider("near");
-    try {
-      await signInWithNear(accountToConnect);
-      setShowNearStep(false);
-      router.push("/dashboard");
-    } finally {
-      setLoadingProvider(null);
-    }
-  };
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput.trim()) return;
@@ -106,6 +125,121 @@ export const AuthModal: React.FC = () => {
       setLoadingProvider(null);
     }
   };
+
+  // Direct Wallet Handlers
+  const handleConnectMyNearWallet = () => {
+    setLoadingProvider("mynearwallet");
+    setConnectionNotice("Redirecting to MyNearWallet for protocol authorization...");
+    const contractId = "guard2.sergeo-guard.testnet";
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "https://scopeguard.blockframe.cloud";
+    const successUrl = `${currentOrigin}/dashboard?wallet=mynearwallet&account_id=`;
+    const failureUrl = `${currentOrigin}/?error=wallet_canceled`;
+    const redirectUrl = `https://testnet.mynearwallet.com/login/?title=ScopeGuard&contract_id=${contractId}&success_url=${encodeURIComponent(successUrl)}&failure_url=${encodeURIComponent(failureUrl)}`;
+    window.location.href = redirectUrl;
+  };
+
+  const handleConnectInjectedWallet = async (walletId: string, walletName: string) => {
+    setLoadingProvider(walletId);
+    setConnectionNotice(`Requesting authorization from ${walletName}...`);
+
+    try {
+      const anyWin = typeof window !== "undefined" ? (window as any) : null;
+      let injectedProvider = null;
+
+      if (walletId === "meteor" && anyWin?.meteorWallet) {
+        injectedProvider = anyWin.meteorWallet;
+      } else if (walletId === "here" && anyWin?.hereWallet) {
+        injectedProvider = anyWin.hereWallet;
+      } else if (walletId === "sender" && anyWin?.near?.isSender) {
+        injectedProvider = anyWin.near;
+      } else if (anyWin?.near) {
+        injectedProvider = anyWin.near;
+      }
+
+      if (injectedProvider && typeof injectedProvider.requestSignIn === "function") {
+        const res = await injectedProvider.requestSignIn({
+          contractId: "guard2.sergeo-guard.testnet",
+        });
+        const accId = res?.accountId || anyWin?.near?.accountId;
+        if (accId) {
+          await signInWithNear(accId);
+          setShowNearStep(false);
+          router.push("/dashboard");
+          return;
+        }
+      }
+
+      // If extension not installed in browser, inform user cleanly
+      setConnectionNotice(`${walletName} extension not detected. Please install extension or connect via MyNearWallet.`);
+    } catch (err: any) {
+      setConnectionNotice(`Failed to connect with ${walletName}: ${err.message || "Request declined"}`);
+    } finally {
+      setTimeout(() => setLoadingProvider(null), 1000);
+    }
+  };
+
+  const handleDirectPresetConnect = async (accId: string) => {
+    setLoadingProvider(accId);
+    try {
+      await signInWithNear(accId);
+      setShowNearStep(false);
+      router.push("/dashboard");
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  const handleManualAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nearAccountInput.trim()) return;
+    setLoadingProvider("manual");
+    try {
+      await signInWithNear(nearAccountInput.trim());
+      setShowNearStep(false);
+      router.push("/dashboard");
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  const directWallets: WalletOption[] = [
+    {
+      id: "mynearwallet",
+      name: "MyNearWallet",
+      badge: "Web Wallet",
+      badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      description: "Direct web authentication, works on all browsers and mobile",
+      icon: "MNW",
+      actionType: "mynearwallet",
+    },
+    {
+      id: "meteor",
+      name: "Meteor Wallet",
+      badge: "Extension / Web",
+      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+      description: "Direct authorization for Meteor extension and web app",
+      icon: "MET",
+      actionType: "injected",
+    },
+    {
+      id: "here",
+      name: "Here Wallet",
+      badge: "Mobile QR / Web",
+      badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+      description: "Mobile app biometric verification and web connect",
+      icon: "HERE",
+      actionType: "injected",
+    },
+    {
+      id: "sender",
+      name: "Sender Wallet",
+      badge: "Extension",
+      badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      description: "Fast in-browser signing via Sender Chrome extension",
+      icon: "SND",
+      actionType: "injected",
+    },
+  ];
 
   return (
     <div
@@ -170,7 +304,10 @@ export const AuthModal: React.FC = () => {
             {/* 2. Continue with NEAR */}
             <button
               type="button"
-              onClick={() => setShowNearStep(true)}
+              onClick={() => {
+                setConnectionNotice(null);
+                setShowNearStep(true);
+              }}
               disabled={!!loadingProvider}
               className="w-full h-[52px] rounded-[16px] border border-[#1E222D] bg-[#080A0F] hover:bg-[#11141D] hover:border-[#2D3344] text-[14.5px] font-semibold text-white flex items-center justify-center gap-3 transition cursor-pointer disabled:opacity-50"
             >
@@ -232,12 +369,16 @@ export const AuthModal: React.FC = () => {
             </form>
           </>
         ) : (
-          /* Smooth NEAR Connection Sub-step */
-          <div className="space-y-4 pt-1 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between">
+          /* Direct NEAR Wallets Selector (Connecting Directly Without Pasting Username) */
+          <div className="space-y-3 pt-1 animate-in fade-in duration-150">
+            {/* Header with Back button */}
+            <div className="flex items-center justify-between pb-1">
               <button
                 type="button"
-                onClick={() => setShowNearStep(false)}
+                onClick={() => {
+                  setShowNearStep(false);
+                  setConnectionNotice(null);
+                }}
                 className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -245,54 +386,120 @@ export const AuthModal: React.FC = () => {
               </button>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[#56F39A]" />
-                <span className="text-[11px] font-mono text-[#56F39A]">NEAR Account</span>
+                <span className="text-[11px] font-mono text-[#56F39A]">Direct Connect</span>
               </div>
             </div>
 
-            <form onSubmit={(e) => handleNearSubmit(e)} className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Enter your NEAR Account ID:
-                </label>
-                <input
-                  type="text"
-                  value={nearAccountInput}
-                  onChange={(e) => setNearAccountInput(e.target.value)}
-                  placeholder="e.g. sergeo-guard.testnet"
-                  className="w-full h-[48px] px-4 rounded-[14px] border border-[#1E222D] bg-[#0B0E14] text-sm text-white font-mono placeholder-[#3F4656] focus:outline-none focus:border-[#56F39A] transition"
-                  autoFocus
-                />
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-white">Select a NEAR Wallet</h3>
+              <p className="text-[11px] text-slate-400">
+                Connect directly using your preferred Web3 wallet:
+              </p>
+            </div>
+
+            {/* Direct Wallet Cards */}
+            <div className="space-y-2">
+              {directWallets.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => {
+                    if (w.actionType === "mynearwallet") {
+                      handleConnectMyNearWallet();
+                    } else {
+                      handleConnectInjectedWallet(w.id, w.name);
+                    }
+                  }}
+                  disabled={!!loadingProvider}
+                  className="w-full p-3 rounded-[14px] border border-[#1E222D] bg-[#0C0F17] hover:bg-[#121622] hover:border-[#2E3547] text-left transition flex items-center justify-between gap-3 cursor-pointer group disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#161B28] border border-slate-700/60 flex items-center justify-center font-bold font-mono text-[11px] text-emerald-400 shrink-0">
+                      {w.icon}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white group-hover:text-emerald-400 transition">
+                          {w.name}
+                        </span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${w.badgeColor}`}>
+                          {w.badge}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                        {w.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition shrink-0" />
+                </button>
+              ))}
+            </div>
+
+            {/* Connection Notice or Status Alert */}
+            {connectionNotice && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-[11px] text-amber-300">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                <span>{connectionNotice}</span>
+              </div>
+            )}
+
+            {/* Quick Sandbox / Preset Demo Wallets */}
+            <div className="pt-2 border-t border-[#181C26] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                  Quick Sandbox Accounts
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDeveloperMode(!showDeveloperMode)}
+                  className="text-[10px] text-slate-400 hover:text-white transition cursor-pointer"
+                >
+                  {showDeveloperMode ? "Hide Custom" : "Custom Account"}
+                </button>
               </div>
 
-              {/* Quick Select Preset Accounts */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] text-slate-500 font-medium">Quick connect:</span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleNearSubmit(undefined, "sergeo-guard.testnet")}
-                    className="px-2.5 py-1 rounded-lg bg-[#11141D] hover:bg-[#181D2A] border border-[#1E222D] text-[11px] font-mono text-slate-300 transition cursor-pointer"
-                  >
-                    sergeo-guard.testnet (Admin)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNearSubmit(undefined, "trader.sergeo-guard.testnet")}
-                    className="px-2.5 py-1 rounded-lg bg-[#11141D] hover:bg-[#181D2A] border border-[#1E222D] text-[11px] font-mono text-slate-300 transition cursor-pointer"
-                  >
-                    trader.testnet
-                  </button>
-                </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDirectPresetConnect("sergeo-guard.testnet")}
+                  className="px-2.5 py-2 rounded-xl bg-[#0D111A] hover:bg-[#161D2C] border border-[#1E222D] text-left transition cursor-pointer"
+                >
+                  <div className="text-[10px] font-bold text-emerald-400">sergeo-guard.testnet</div>
+                  <div className="text-[9px] text-slate-400">Owner &amp; Admin Key</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDirectPresetConnect("trader.sergeo-guard.testnet")}
+                  className="px-2.5 py-2 rounded-xl bg-[#0D111A] hover:bg-[#161D2C] border border-[#1E222D] text-left transition cursor-pointer"
+                >
+                  <div className="text-[10px] font-bold text-blue-400">trader.sergeo...</div>
+                  <div className="text-[9px] text-slate-400">MockDEX Trading Sub-Account</div>
+                </button>
               </div>
 
-              <button
-                type="submit"
-                disabled={loadingProvider === "near"}
-                className="w-full h-[48px] rounded-[14px] bg-[#56F39A] hover:bg-[#47E58B] text-slate-950 text-sm font-bold flex items-center justify-center transition cursor-pointer disabled:opacity-50"
-              >
-                <span>{loadingProvider === "near" ? "Connecting..." : "Connect NEAR Account"}</span>
-              </button>
-            </form>
+              {/* Expandable Manual Account ID Input */}
+              {showDeveloperMode && (
+                <form onSubmit={handleManualAccountSubmit} className="pt-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={nearAccountInput}
+                      onChange={(e) => setNearAccountInput(e.target.value)}
+                      placeholder="e.g. your-name.testnet"
+                      className="flex-1 h-9 px-3 rounded-xl border border-[#1E222D] bg-[#0A0C12] text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!nearAccountInput.trim() || loadingProvider === "manual"}
+                      className="px-3 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+                    >
+                      Connect
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         )}
       </div>

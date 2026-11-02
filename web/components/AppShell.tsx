@@ -13,12 +13,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { openDocs } = useDocs();
 
   // Route Separation:
-  // "/" is the Public Marketing Landing Page (full viewport, no dashboard sidebar)
+  // "/" is the Public Marketing Landing Page
+  // "/docs" is the Dedicated GitBook-Style Documentation Page
   const isLandingPage = pathname === "/";
+  const isDocsPage = pathname?.startsWith("/docs");
 
-  if (isLandingPage) {
+  if (isLandingPage || isDocsPage) {
     return (
-      <div className="min-h-screen w-full bg-[#080B11] text-slate-100 flex flex-col selection:bg-blue-600/30 selection:text-blue-300">
+      <div className="min-h-screen w-full bg-white dark:bg-[#07090E] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-600/30 selection:text-blue-300">
         <main className="flex-1 w-full">
           {children}
         </main>
