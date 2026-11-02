@@ -190,8 +190,23 @@ export default function HomePage() {
   const [vaultBalance, setVaultBalance] = useState("350.00");
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [comparisonMode, setComparisonMode] = useState<"without" | "with">("with");
-  const [copiedCli, setCopiedCli] = useState(false);
   const [selectedRuleNum, setSelectedRuleNum] = useState<number>(4);
+
+  // Multi-Mode Developer Card State
+  const [devSnippetTab, setDevSnippetTab] = useState<"cli" | "sdk" | "prompt">("cli");
+  const [copiedSnippet, setCopiedSnippet] = useState(false);
+
+  const snippetMap = {
+    cli: "npx @scopeguard/cli protect --agent <your-agent.near>",
+    sdk: "npm install @scopeguard/sdk",
+    prompt: '"Route all fund transfers through ScopeGuard passkey protocol. Maximum daily spend bound is $500.00."',
+  };
+
+  const copySnippet = () => {
+    navigator.clipboard.writeText(snippetMap[devSnippetTab]);
+    setCopiedSnippet(true);
+    setTimeout(() => setCopiedSnippet(false), 2000);
+  };
 
   // Attack Arena State
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(ATTACK_SCENARIOS[0].id);
@@ -244,12 +259,6 @@ export default function HomePage() {
     attemptedAmount: "100",
     fundsSaved: "100",
   });
-
-  const copyCliCommand = () => {
-    navigator.clipboard.writeText("npx @scopeguard/cli connect --guard guard2.sergeo-guard.testnet");
-    setCopiedCli(true);
-    setTimeout(() => setCopiedCli(false), 2000);
-  };
 
   const selectScenario = (s: AttackScenario) => {
     setSelectedScenarioId(s.id);
@@ -534,7 +543,7 @@ export default function HomePage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-white dark:bg-[#07090E] text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       {/* Sticky Marketing Header */}
       <MarketingNavbar />
 
@@ -542,82 +551,114 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 1: HERO (BeatAPI Benchmark Aesthetic) */}
         {/* ========================================================= */}
-        <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden border-b border-slate-800/80">
+        <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden border-b border-slate-200 dark:border-slate-800/80">
           {/* Background Ambient Glows & Grid */}
           <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
           <div className="absolute inset-0 bg-radial-mask pointer-events-none" />
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-blue-600/15 via-emerald-500/10 to-indigo-600/15 blur-[120px] pointer-events-none rounded-full" />
 
-          {/* Faint Background Code Watermarks (BeatAPI Style) */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none hidden xl:block select-none opacity-[0.06] font-mono text-[11px] leading-6 text-slate-300">
-            <pre className="absolute top-8 left-12 -rotate-6">
-              near call guard2.sergeo-guard.testnet execute &#123; &quot;action&quot;: &#123; &quot;ContractCall&quot;: ... &#125; &#125;
-            </pre>
-            <pre className="absolute top-12 right-12 rotate-6">
-              AccessKeyPermission::FunctionCall &#123; receiver_id: &quot;guard2.sergeo-guard.testnet&quot;, methods: [&quot;execute&quot;] &#125;
-            </pre>
-            <pre className="absolute bottom-12 left-20 rotate-3">
-              check_velocity_and_daily_cap(spend_window, max_actions=5)
-            </pre>
-            <pre className="absolute bottom-16 right-20 -rotate-3">
-              assert!(rule_order == NOT_AGENT -&gt; PAUSED -&gt; VELOCITY -&gt; TARGET -&gt; METHOD)
-            </pre>
-          </div>
-
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center space-y-8">
+          <div className="relative max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 flex flex-col items-center text-center space-y-8">
             {/* Top pill badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-xs font-semibold text-slate-300 shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>NEAR Build Beyond Boundaries Hackathon: AI Security &amp; Defense</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
             </div>
 
             {/* Main Header with Inline Pill Badge (BeatAPI signature feature) */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.14] max-w-4xl">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-950 dark:text-white leading-[1.14] max-w-4xl">
               Give Your AI Agent{" "}
-              <span className="inline-flex items-center gap-1.5 align-middle mx-1 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs sm:text-sm font-mono font-medium text-emerald-400 shadow-inner">
-                <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="inline-flex items-center gap-1.5 align-middle mx-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-mono font-medium text-emerald-600 dark:text-emerald-400 shadow-inner">
+                <Shield className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>Scoped Passkey</span>
               </span>{" "}
               Power Over Money{" "}
-              <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-blue-400">
+              <span className="block mt-2 text-blue-600 dark:text-blue-500">
                 Without the Power to Lose Everything
               </span>
             </h1>
 
             {/* Sub-headline */}
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-3xl font-normal">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl font-normal">
               Autonomous agents holding full private keys turn a single prompt injection or rogue skill into a total account drain. ScopeGuard restricts your agent with a protocol-level NEAR FunctionCall passkey bounded by 10 onchain policy rules. Your agent does its job, unapproved transfers die safely onchain.
             </p>
 
-            {/* 1-Line Interactive Command Strip (BeatAPI Benchmark feature) */}
+            {/* Interactive 3-Tab Developer & Agent Handoff Card */}
             <div className="w-full max-w-2xl">
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-2.5 shadow-2xl backdrop-blur-md">
-                <span className="font-mono text-sm font-bold text-emerald-400 select-none">$</span>
-                <code className="min-w-0 flex-1 text-left font-mono text-xs sm:text-sm text-slate-200 truncate">
-                  npx @scopeguard/cli connect --guard guard2.sergeo-guard.testnet
-                </code>
-                <button
-                  type="button"
-                  onClick={copyCliCommand}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition shrink-0 border border-slate-700"
-                  title="Copy 1-line agent connection command"
-                >
-                  {copiedCli ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] shadow-sm dark:shadow-2xl overflow-hidden text-left transition-colors">
+                {/* 3 Tabs Header */}
+                <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-1.5 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setDevSnippetTab("cli")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      devSnippetTab === "cli"
+                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                    }`}
+                  >
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>CLI Protection</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDevSnippetTab("sdk")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      devSnippetTab === "sdk"
+                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                    }`}
+                  >
+                    <Code2 className="w-3.5 h-3.5" />
+                    <span>TypeScript SDK</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDevSnippetTab("prompt")}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      devSnippetTab === "prompt"
+                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                    }`}
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>Agent Prompt</span>
+                  </button>
+                </div>
+
+                {/* Code / Command Block */}
+                <div className="flex items-center gap-3 p-3.5 bg-slate-50/70 dark:bg-slate-900/80">
+                  <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400 select-none">
+                    {devSnippetTab === "prompt" ? "»" : "$"}
+                  </span>
+                  <code className="min-w-0 flex-1 font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 select-all overflow-x-auto whitespace-pre">
+                    {snippetMap[devSnippetTab]}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={copySnippet}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shrink-0 border border-slate-200 dark:border-slate-700 shadow-xs"
+                    title="Copy to clipboard"
+                  >
+                    {copiedSnippet ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Connects any OpenClaw, Eliza, IronClaw, or custom agent in 1 command.
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                {devSnippetTab === "cli"
+                  ? "Instantly binds any autonomous agent on your machine to onchain ScopeGuard enforcement."
+                  : devSnippetTab === "sdk"
+                  ? "Lightweight TypeScript client library for programmatically checking budgets and actions."
+                  : "Copy-paste instruction for conversational agents (Claude, ChatGPT, OpenClaw, Antigravity)."}
               </p>
             </div>
 
@@ -645,9 +686,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={openAuthModal}
-                  className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold border border-slate-700 transition flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-slate-700 transition flex items-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <Lock className="w-4 h-4 text-emerald-400" />
+                  <Lock className="w-4 h-4 text-emerald-500" />
                   <span>Sign In to Console</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -656,35 +697,35 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={openDocs}
-                className="px-5 py-3.5 rounded-xl text-slate-400 hover:text-white text-sm font-semibold transition flex items-center gap-1.5"
+                className="px-5 py-3.5 rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-sm font-semibold transition flex items-center gap-1.5"
               >
                 <span>Read Architecture Spec</span>
-                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
               </button>
             </div>
 
             {/* Interactive Before vs After Comparison Card (BeatAPI Style) */}
             <div className="w-full max-w-4xl pt-8">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-6 sm:p-8 backdrop-blur-md shadow-2xl text-left space-y-6">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] p-6 sm:p-8 shadow-sm dark:shadow-2xl text-left space-y-6">
                 {/* Switcher header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
                   <div>
-                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                      <ShieldAlert className="w-5 h-5 text-amber-400" />
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <ShieldAlert className="w-5 h-5 text-amber-500" />
                       <span>The Architecture Difference</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Toggle to inspect what happens during a prompt injection attack.
                     </p>
                   </div>
-                  <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-semibold shrink-0">
+                  <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
                     <button
                       type="button"
                       onClick={() => setComparisonMode("without")}
                       className={`px-3 py-1.5 rounded-lg transition ${
                         comparisonMode === "without"
-                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20"
+                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                       }`}
                     >
                       Without ScopeGuard (Master Key)
@@ -694,8 +735,8 @@ export default function HomePage() {
                       onClick={() => setComparisonMode("with")}
                       className={`px-3 py-1.5 rounded-lg transition ${
                         comparisonMode === "with"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                       }`}
                     >
                       With ScopeGuard (Scoped Passkey)
@@ -706,66 +747,66 @@ export default function HomePage() {
                 {/* Switcher body */}
                 {comparisonMode === "without" ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-200">
-                    <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block">
+                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
                         Credential Type
                       </span>
-                      <p className="text-sm font-semibold text-white">Full Access Master Key</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Full Access Master Key</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         Plain private key sitting in local file or environment variable next to unverified third-party skills.
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block">
+                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
                         Attack Vector
                       </span>
-                      <p className="text-sm font-semibold text-white">Prompt Injection Override</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Prompt Injection Override</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         Attacker injects transfer instruction into email, tweet, or webpage that the agent naively parses.
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 block">
+                    <div className="p-4 rounded-xl bg-rose-100/70 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block">
                         Worst Case Damage
                       </span>
-                      <p className="text-sm font-bold text-rose-300 flex items-center gap-1.5">
-                        <TrendingDown className="w-4 h-4 text-rose-400" />
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                        <TrendingDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                         <span>Total Treasury Wipeout (100%)</span>
                       </p>
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
                         Entire wallet balance drained in 1 transaction. No recovery, no bank to call, irreversible loss.
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-200">
-                    <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 block">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
                         Credential Type
                       </span>
-                      <p className="text-sm font-semibold text-white">Scoped FunctionCall Passkey</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">Scoped FunctionCall Passkey</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         Protocol-enforced by NEAR to only call Guard execute(). Cannot delete keys, transfer NEAR, or drain funds.
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 block">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
                         Attack Vector
                       </span>
-                      <p className="text-sm font-semibold text-white">10-Layer Onchain Defense</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">10-Layer Onchain Defense</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         Prompt injection attempts unauthorized drain. Guard refuses with RECIPIENT_NOT_ALLOWED onchain.
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 block">
+                    <div className="p-4 rounded-xl bg-emerald-100/70 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
                         Worst Case Damage
                       </span>
-                      <p className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         <span>$0.00 Lost. Pot Preserved.</span>
                       </p>
-                      <p className="text-xs text-slate-300">
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
                         Zero funds leave the vault. Exploit dies onchain, auto-pause trips if repeated, and owner retains full power.
                       </p>
                     </div>
@@ -779,15 +820,15 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 2: FRAMEWORK ECOSYSTEM RIBBON */}
         {/* ========================================================= */}
-        <section id="ecosystem" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <section id="ecosystem" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-6">
           <div className="text-center space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400">
               Ecosystem Compatibility
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
               Securing Autonomous Agents Across Every Major Framework
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
               Any agent running on Node.js, Python, or standard MCP servers connects via scoped passkeys in seconds.
             </p>
           </div>
@@ -796,15 +837,15 @@ export default function HomePage() {
             {FRAMEWORKS.map((fw) => (
               <div
                 key={fw.name}
-                className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition space-y-1.5"
+                className="p-4 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs transition space-y-1.5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-white">{fw.name}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{fw.name}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     {fw.tag}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">{fw.desc}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">{fw.desc}</p>
               </div>
             ))}
           </div>
@@ -813,56 +854,56 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 3: THE FATAL DISEASE (Problem Statement) */}
         {/* ========================================================= */}
-        <section id="problem" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <section id="problem" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400">
               The Real-World Threat
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
               The Fatal Equation: One Trick Equals Total Loss
             </h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               To let an agent trade or pay for services, owners hand it a master key. If the agent makes one mistake, the damage is infinite.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 dark:text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">341 Malicious Skills</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">341 Malicious Skills</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Researchers audited 2,857 skills for a popular agent platform and found 341 contained backdoors designed to steal credentials.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400">
                 <Bot className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Prompt Injections</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Prompt Injections</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Agents read emails, tweets, and websites. An attacker buries a hidden command that the LLM faithfully parses and executes.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-500 dark:text-purple-400">
                 <FileCode className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">30,000 Exposed Keys</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">30,000 Exposed Keys</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Over 30,000 agent machines were found exposed online in 12 days, leaving full private keys sitting in plain text files.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400">
                 <XCircle className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">Irreversible Loss</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Irreversible Loss</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Crypto transfers cannot be undone. There is no bank to call, no chargeback, and no second chance once funds move.
               </p>
             </div>
@@ -872,35 +913,30 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 4: BENTO GRID WITH INTERACTIVE MICRO-WIDGETS */}
         {/* ========================================================= */}
-        <section id="bento" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <section id="bento" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Bento Architecture
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
               The 10-Layer Onchain Defense Matrix
             </h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               Every request is judged onchain in strict sequential order before any contract or token transfer executes.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Widget 1: Policy Radar (Spans 2 columns) */}
-            <div className="lg:col-span-2 rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-8 space-y-6 relative overflow-hidden">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="lg:col-span-2 rounded-3xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 relative overflow-hidden shadow-sm dark:shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-emerald-400 animate-pulse" />
-                  <h3 className="text-base font-bold text-white">10-Check Policy Radar</h3>
+                  <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">10-Check Policy Radar</h3>
                 </div>
-                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   10/10 Guards Active
                 </span>
-              </div>
-
-              {/* Scanning visual bar */}
-              <div className="relative h-1 w-full bg-slate-900 rounded-full overflow-hidden">
-                <div className="absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-scanline" />
               </div>
 
               {/* Interactive List of Rules */}
@@ -914,12 +950,12 @@ export default function HomePage() {
                       onClick={() => setSelectedRuleNum(rule.num)}
                       className={`text-left p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
                         isSelected
-                          ? "bg-slate-900 border-blue-500 text-white shadow-md"
-                          : "bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-900 hover:border-slate-700"
+                          ? "bg-blue-50 dark:bg-slate-900 border-blue-500 text-slate-900 dark:text-white shadow-xs"
+                          : "bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-[11px] font-mono font-bold flex items-center justify-center shrink-0 text-slate-400">
+                        <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 text-[11px] font-mono font-bold flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-400">
                           {rule.num}
                         </span>
                         <div className="truncate">
@@ -927,7 +963,7 @@ export default function HomePage() {
                           <p className="text-[10px] font-mono text-slate-500">{rule.code}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 shrink-0">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shrink-0">
                         {rule.group}
                       </span>
                     </button>
@@ -937,11 +973,11 @@ export default function HomePage() {
 
               {/* Active Rule Details Banner */}
               {selectedRuleNum && (
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
                     Security Guarantee: Rule #{selectedRuleNum}
                   </span>
-                  <p className="text-slate-300">
+                  <p className="text-slate-700 dark:text-slate-300">
                     {ONCHAIN_RULES.find((r) => r.num === selectedRuleNum)?.checkDesc}
                   </p>
                 </div>
@@ -949,27 +985,27 @@ export default function HomePage() {
             </div>
 
             {/* Widget 2: Live NEAR FunctionCall Permission */}
-            <div className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-8 space-y-4 flex flex-col justify-between">
+            <div className="rounded-3xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-4 flex flex-col justify-between shadow-sm dark:shadow-2xl">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Code2 className="w-5 h-5 text-blue-400" />
-                  <h3 className="text-base font-bold text-white">Protocol Passkey</h3>
+                  <Code2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Protocol Passkey</h3>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Enforced natively by NEAR Protocol validators. The key cannot call other contracts or send NEAR.
                 </p>
               </div>
 
               {/* Code snippet */}
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] leading-relaxed text-slate-300 space-y-1">
-                <p className="text-slate-500">// Protocol AccessKey</p>
-                <p className="text-emerald-400">&quot;receiver_id&quot;: &quot;guard2.sergeo-guard.testnet&quot;,</p>
-                <p className="text-blue-400">&quot;method_names&quot;: [&quot;execute&quot;],</p>
-                <p className="text-amber-400">&quot;allowance&quot;: &quot;0.25 NEAR&quot;</p>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-[11px] leading-relaxed text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="text-slate-400 dark:text-slate-500">// Protocol AccessKey</p>
+                <p className="text-emerald-600 dark:text-emerald-400">&quot;receiver_id&quot;: &quot;guard2.sergeo-guard.testnet&quot;,</p>
+                <p className="text-blue-600 dark:text-blue-400">&quot;method_names&quot;: [&quot;execute&quot;],</p>
+                <p className="text-amber-600 dark:text-amber-400">&quot;allowance&quot;: &quot;0.25 NEAR&quot;</p>
               </div>
 
               <div className="pt-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <CheckCheck className="w-4 h-4" />
                   <span>Protocol-level isolation</span>
                 </span>
@@ -977,26 +1013,26 @@ export default function HomePage() {
             </div>
 
             {/* Widget 3: Strictly Isolated Vault Pot */}
-            <div className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-8 space-y-4">
+            <div className="rounded-3xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-4 shadow-sm dark:shadow-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-base font-bold text-white">Bounded Vault Pot</h3>
+                  <Coins className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Bounded Vault Pot</h3>
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-400">${vaultBalance}</span>
+                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">${vaultBalance}</span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 The agent only has access to its allocated working balance. The owner treasury remains completely air-gapped.
               </p>
               <div className="space-y-2">
-                <div className="flex justify-between text-xs font-mono text-slate-400">
+                <div className="flex justify-between text-xs font-mono text-slate-600 dark:text-slate-400">
                   <span>Vault Working Pot</span>
-                  <span className="text-emerald-400 font-bold">$350 / $350 mUSD</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">$350 / $350 mUSD</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-900 overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 w-full" />
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-500">
+                <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
                   <span>Worst case bound</span>
                   <span>Owner funds: 100% safe</span>
                 </div>
@@ -1004,31 +1040,31 @@ export default function HomePage() {
             </div>
 
             {/* Widget 4: Autonomous Circuit Breaker (Spans 2 columns) */}
-            <div className="lg:col-span-2 rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-8 space-y-4">
+            <div className="lg:col-span-2 rounded-3xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-4 shadow-sm dark:shadow-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-rose-400" />
-                  <h3 className="text-base font-bold text-white">Autonomous Circuit Breaker</h3>
+                  <Zap className="w-5 h-5 text-rose-500 dark:text-rose-400" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Autonomous Circuit Breaker</h3>
                 </div>
-                <span className="text-xs font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-mono text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full">
                   Auto-Freeze at 3 Strikes
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 If an agent encounters 3 rejections within 10 minutes, ScopeGuard immediately halts all actions in the same transaction. The owner can revoke the key or withdraw funds with one tap.
               </p>
               <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <span className="text-lg font-bold text-white">3</span>
-                  <p className="text-[11px] text-slate-400">Strike Limit</p>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+                  <span className="text-lg font-bold text-slate-900 dark:text-white">3</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Strike Limit</p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <span className="text-lg font-bold text-white">10m</span>
-                  <p className="text-[11px] text-slate-400">Sliding Window</p>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+                  <span className="text-lg font-bold text-slate-900 dark:text-white">10m</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Sliding Window</p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <span className="text-lg font-bold text-emerald-400">1 Tap</span>
-                  <p className="text-[11px] text-slate-400">Owner Revocation</p>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">1 Tap</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Owner Revocation</p>
                 </div>
               </div>
             </div>
@@ -1038,46 +1074,46 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 5: 3-STEP "HOW IT WORKS" */}
         {/* ========================================================= */}
-        <section id="how-it-works" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <section id="how-it-works" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400">
               Frictionless Setup
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
               How ScopeGuard Works in 3 Steps
             </h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               From an unprotected agent to protocol-enforced security in less than 60 seconds.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-              <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-sm">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-sm">
                 1
               </span>
-              <h3 className="text-base font-bold text-white">Create Sub-account &amp; Pot</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Create Sub-account &amp; Pot</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Your agent receives its own dedicated NEAR sub-account (e.g. trader.owner.near). You fund a small working pot of $350 mUSD.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-              <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
                 2
               </span>
-              <h3 className="text-base font-bold text-white">Draft Policy Rules</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Draft Policy Rules</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Describe the agent job in plain English. The AI drafter compiles approved smart contracts, daily spend limits, and speed throttles.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-              <span className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold text-sm">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl space-y-3">
+              <span className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold text-sm">
                 3
               </span>
-              <h3 className="text-base font-bold text-white">Issue Scoped Passkey</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Issue Scoped Passkey</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 The agent receives a restricted key that can only call the Guard contract. Every attempted action is validated onchain before funds move.
               </p>
             </div>
@@ -1087,41 +1123,41 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 6: INTERACTIVE LIVE ATTACK ARENA (#arena) */}
         {/* ========================================================= */}
-        <section id="arena" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 scroll-mt-20">
+        <section id="arena" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8 scroll-mt-20">
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-400">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-600 dark:text-rose-400">
               <Terminal className="w-3.5 h-3.5" />
               <span>Interactive Testnet Attack Arena</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white">
               Attack the Agent Live on NEAR Testnet
             </h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               Test how the naive demo agent blindly obeys your prompt, while ScopeGuard intercepts and kills the attack onchain with zero gas stolen.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-8 space-y-6 shadow-2xl">
+          <div className="rounded-3xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-sm dark:shadow-2xl">
             {/* Mode Switcher Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800/80">
               <div className="space-y-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
                   {arenaTab === "simulator" ? "Live Attack Simulator" : "Forensic Exploit Autopsy"}
                 </span>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {arenaTab === "simulator"
                     ? "Select an exploit scenario or customize parameters, then execute against NEAR Testnet."
                     : "Deep root-cause forensic breakdown of the blocked exploit and funds protected onchain."}
                 </p>
               </div>
-              <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-semibold shrink-0">
+              <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 text-xs font-semibold shrink-0">
                 <button
                   type="button"
                   onClick={() => setArenaTab("simulator")}
                   className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
                     arenaTab === "simulator"
-                      ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
                   <Terminal className="w-3.5 h-3.5" />
@@ -1132,8 +1168,8 @@ export default function HomePage() {
                   onClick={() => setArenaTab("autopsy")}
                   className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
                     arenaTab === "autopsy"
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
@@ -1144,7 +1180,7 @@ export default function HomePage() {
 
             {/* Quick Pick Scenarios Tabs */}
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
                 Select Attack Scenario:
               </span>
               <div className="flex flex-wrap gap-2">
@@ -1157,8 +1193,8 @@ export default function HomePage() {
                       onClick={() => selectScenario(scenario)}
                       className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-2 ${
                         isSelected
-                          ? "bg-slate-900 border-rose-500 text-white shadow-md shadow-rose-500/10"
-                          : "bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700"
+                          ? "bg-slate-100 dark:bg-slate-900 border-rose-500 text-slate-900 dark:text-white shadow-xs"
+                          : "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <span>{scenario.label}</span>
@@ -1178,36 +1214,36 @@ export default function HomePage() {
                   {/* Left Column: Natural Language Prompt */}
                   <div className="space-y-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                         <span>Malicious Prompt Payload (Injected into Agent)</span>
-                        <span className="text-[10px] text-slate-500 font-mono">Editable input</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Editable input</span>
                       </label>
                       <textarea
                         rows={4}
                         value={promptText}
                         onChange={(e) => setPromptText(e.target.value)}
-                        className="w-full rounded-xl bg-slate-900 border border-slate-800 p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-rose-500 transition resize-none"
+                        className="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3 text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-rose-500 transition resize-none"
                         placeholder="Type an attack prompt..."
                       />
                     </div>
 
                     {/* Parsed action parameters */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                      <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 truncate">
-                        <span className="text-[10px] text-slate-500 block">TARGET</span>
-                        <span className="text-slate-300 truncate block">{targetAccount}</span>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 truncate">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">TARGET</span>
+                        <span className="text-slate-800 dark:text-slate-300 truncate block">{targetAccount}</span>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 truncate">
-                        <span className="text-[10px] text-slate-500 block">METHOD</span>
-                        <span className="text-slate-300 truncate block">{methodName}()</span>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 truncate">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">METHOD</span>
+                        <span className="text-slate-800 dark:text-slate-300 truncate block">{methodName}()</span>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 truncate">
-                        <span className="text-[10px] text-slate-500 block">AMOUNT</span>
-                        <span className="text-emerald-400 truncate block">${amountVal}</span>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 truncate">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">AMOUNT</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 truncate block">${amountVal}</span>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 truncate">
-                        <span className="text-[10px] text-slate-500 block">RECIPIENT</span>
-                        <span className="text-rose-400 truncate block">{recipientVal || "None"}</span>
+                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 truncate">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">RECIPIENT</span>
+                        <span className="text-rose-600 dark:text-rose-400 truncate block">{recipientVal || "None"}</span>
                       </div>
                     </div>
 
@@ -1234,7 +1270,7 @@ export default function HomePage() {
                       <button
                         type="button"
                         onClick={() => selectScenario(ATTACK_SCENARIOS[5])}
-                        className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 text-xs font-bold border border-slate-800 transition flex items-center gap-1.5"
+                        className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-slate-200 dark:border-slate-800 transition flex items-center gap-1.5 shadow-xs"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Run Legit Swap</span>
@@ -1243,19 +1279,19 @@ export default function HomePage() {
                   </div>
 
                   {/* Right Column: Live Onchain Verdict Receipt */}
-                  <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 space-y-4 flex flex-col justify-between">
+                  <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 space-y-4 flex flex-col justify-between">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                           Onchain Verification Result
                         </span>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-bold ${
                             activeVerdict.status === "REJECTED"
-                              ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                              ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30"
                               : activeVerdict.status === "PENDING"
-                              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+                              : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                           }`}
                         >
                           {activeVerdict.status}
@@ -1264,36 +1300,36 @@ export default function HomePage() {
 
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">
                             {activeVerdict.ruleName}
                           </span>
                           {activeVerdict.ruleNumber > 0 && (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               Check #{activeVerdict.ruleNumber}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-mono text-rose-400">
+                        <p className="text-xs font-mono text-rose-600 dark:text-rose-400">
                           REASON_CODE: {activeVerdict.reasonCode}
                         </p>
-                        <p className="text-xs text-slate-400 pt-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
                           {activeVerdict.explanation}
                         </p>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-3">
                       <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-slate-400">Funds Protected:</span>
-                        <span className="text-emerald-400 font-bold">${activeVerdict.fundsSaved} mUSD</span>
+                        <span className="text-slate-500 dark:text-slate-400">Funds Protected:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">${activeVerdict.fundsSaved} mUSD</span>
                       </div>
                       <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-slate-400">NEAR Testnet Tx:</span>
+                        <span className="text-slate-500 dark:text-slate-400">NEAR Testnet Tx:</span>
                         <a
                           href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
+                          className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
                         >
                           <span>{activeVerdict.txHash.slice(0, 10)}...</span>
                           <ExternalLink className="w-3 h-3" />
@@ -1303,18 +1339,18 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => setInspectHash(activeVerdict.txHash)}
-                          className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                          className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-xs"
                         >
-                          <Shield className="w-3 h-3 text-blue-400" />
+                          <Shield className="w-3 h-3 text-blue-500" />
                           <span>Inspect Receipt</span>
                         </button>
                         {activeVerdict.status !== "ALLOWED" && (
                           <button
                             type="button"
                             onClick={() => setArenaTab("autopsy")}
-                            className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                            className="flex-1 py-1.5 px-3 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-xs"
                           >
-                            <ShieldAlert className="w-3 h-3 text-rose-400" />
+                            <ShieldAlert className="w-3 h-3 text-rose-500 dark:text-rose-400" />
                             <span>View Autopsy</span>
                           </button>
                         )}
@@ -1325,8 +1361,8 @@ export default function HomePage() {
 
                 {/* Live Status Feedback Banner */}
                 {statusMessage && (
-                  <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-900/60 text-xs text-blue-300 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{statusMessage}</span>
                   </div>
                 )}
@@ -1339,13 +1375,13 @@ export default function HomePage() {
                     onInspect={(hash) => setInspectHash(hash)}
                   />
                 ) : (
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center space-y-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-8 text-center space-y-4">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-base font-bold text-white">Legitimate Trade Executed Cleanly</h3>
-                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">Legitimate Trade Executed Cleanly</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                         No exploit or policy violation occurred during this testnet transaction. The 25 mUSD swap cleared all 10 onchain policy rules.
                       </p>
                     </div>
@@ -1356,7 +1392,7 @@ export default function HomePage() {
                           selectScenario(ATTACK_SCENARIOS[0]);
                           setArenaTab("autopsy");
                         }}
-                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition inline-flex items-center gap-2"
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition inline-flex items-center gap-2 shadow-xs"
                       >
                         <AlertTriangle className="w-3.5 h-3.5" />
                         <span>Load Wallet Sweep Exploit Autopsy</span>
@@ -1370,37 +1406,44 @@ export default function HomePage() {
         </section>
 
         {/* ========================================================= */}
-        {/* SECTION 7: TESTNET STATS BAR */}
+        {/* SECTION 7: EXACT ONCHAIN PARAMETERS & VERIFICATION STATS */}
         {/* ========================================================= */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-6 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+        <section className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-6 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 shadow-sm dark:shadow-xl">
             <div className="space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                ONCHAIN ENFORCEMENT
+                RULE ORDER
               </span>
-              <p className="text-lg font-bold text-white">100% Protocol Layer</p>
-              <p className="text-xs text-slate-400">Runs inside Rust WebAssembly Guard</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">10 Sequential Rules</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Immutable check order never reorders</p>
             </div>
             <div className="space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                VIEW VERIFICATION
+                TIMELOCK QUARANTINE
               </span>
-              <p className="text-lg font-bold text-emerald-400">$0.00 Gas Cost</p>
-              <p className="text-xs text-slate-400">Zero fee queries via NEAR RPC</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                POLICY CHECKS
-              </span>
-              <p className="text-lg font-bold text-white">10 Sequential Rules</p>
-              <p className="text-xs text-slate-400">Strict check order never reorders</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">60-Second Owner Veto</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Timelock for transfers &gt;= $250.00</p>
             </div>
             <div className="space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 CIRCUIT BREAKER
               </span>
-              <p className="text-lg font-bold text-rose-400">3 Strikes / 10 Min</p>
-              <p className="text-xs text-slate-400">Instant auto-pause on abuse</p>
+              <p className="text-lg font-bold text-rose-600 dark:text-rose-400">3-Strike Circuit Breaker</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Auto-pause on 3 consecutive refusals in 10 minutes</p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                FINANCIAL CEILING
+              </span>
+              <p className="text-lg font-bold text-amber-600 dark:text-amber-400">$500.00 Daily Spend Bound</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Rolling 24-hour financial ceiling</p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                VIEW VERIFICATION
+              </span>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">0 Gas Fee Verification</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Free onchain verification via standard NEAR RPC view queries</p>
             </div>
           </div>
         </section>
@@ -1408,21 +1451,21 @@ export default function HomePage() {
         {/* ========================================================= */}
         {/* SECTION 8: CLOSING CALL TO ACTION BANNER */}
         {/* ========================================================= */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="rounded-3xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/60 border border-blue-900/40 p-8 sm:p-12 text-center space-y-6">
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
+        <section className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 pb-12">
+          <div className="rounded-3xl bg-gradient-to-r from-blue-50 via-slate-50 to-indigo-50 dark:from-blue-950/60 dark:via-slate-900 dark:to-indigo-950/60 border border-blue-200 dark:border-blue-900/40 p-8 sm:p-12 text-center space-y-6 shadow-sm dark:shadow-2xl">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
               Ready to Give Your Agent Money Safely?
             </h2>
-            <p className="text-sm text-slate-300 max-w-xl mx-auto">
+            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto">
               Stop handing your autonomous agents master private keys. Issue a scoped FunctionCall passkey in 60 seconds and monitor every trade onchain.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-sm font-bold shadow-lg transition flex items-center gap-2"
+                  className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2"
                 >
-                  <Gauge className="w-4 h-4 text-emerald-600" />
+                  <Gauge className="w-4 h-4 text-emerald-400" />
                   <span>Open Security Console</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -1430,16 +1473,16 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={openAuthModal}
-                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-sm font-bold shadow-lg transition flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-sm font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
                 >
-                  <Lock className="w-4 h-4 text-emerald-600" />
+                  <Lock className="w-4 h-4 text-emerald-500" />
                   <span>Sign In to ScopeGuard</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               )}
               <Link
                 href="/create"
-                className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold border border-slate-700 transition flex items-center gap-2"
+                className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-slate-700 transition flex items-center gap-2 shadow-xs"
               >
                 <span>Issue Agent Passkey</span>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
