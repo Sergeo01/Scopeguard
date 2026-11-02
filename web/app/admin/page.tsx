@@ -372,7 +372,7 @@ export default function FleetConsolePage() {
               label="RPC latency"
               value={fleet ? `${fleet.rpcLatencyMs}ms` : "-"}
               note={fleet?.nodeUrl || "not measured"}
-              tone="purple"
+              tone="slate"
             />
             <Telemetry
               icon={<Clock className="w-3.5 h-3.5" />}
@@ -931,10 +931,10 @@ function Telemetry({
   label: string;
   value: string | number;
   note: string;
-  tone: "purple" | "orange" | "sky" | "emerald";
+  tone: "slate" | "orange" | "sky" | "emerald";
 }) {
   const toneMap = {
-    purple: "border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/70 text-slate-700 dark:text-slate-300",
+    slate: "border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/70 text-slate-700 dark:text-slate-300",
     orange: "border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300",
     sky: "border-blue-200/80 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300",
     emerald: "border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300",

@@ -29,7 +29,6 @@ import {
   Cpu,
   RefreshCw,
   Sliders,
-  Sparkles,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -336,7 +335,7 @@ const receipt = await act(cred, {
               </div>
 
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-mono font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-bold text-xs">
                   3
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Scoped Passkey</h3>
@@ -356,7 +355,7 @@ const receipt = await act(cred, {
               </div>
 
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2 sm:col-span-2">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-mono font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-mono font-bold text-xs">
                   5
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Owner Signed Rule Card</h3>
@@ -370,7 +369,7 @@ const receipt = await act(cred, {
           {/* SECTION 4: NEAR FUNCTIONCALL PASSKEYS */}
           <section id="passkeys" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-purple-500 uppercase tracking-wider">
+              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                 Protocol Advantage
               </span>
             </div>
@@ -517,7 +516,7 @@ if !is_promise_success() {
           {/* SECTION 8: TIMELOCK QUARANTINE */}
           <section id="timelock" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-cyan-500 uppercase tracking-wider">
+              <span className="text-xs font-mono font-bold text-amber-500 uppercase tracking-wider">
                 Quarantine Queue
               </span>
             </div>
@@ -630,7 +629,7 @@ if !is_promise_success() {
                 <p className="text-slate-600 dark:text-slate-400">Dispatches an action through guard execute. Returns structured onchain verdict (ALLOW or REJECT with exact reason code).</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
-                <span className="font-mono font-bold text-purple-500">budget(agentId)</span>
+                <span className="font-mono font-bold text-blue-500">budget(agentId)</span>
                 <p className="text-slate-600 dark:text-slate-400">Reads the remaining daily spending cap, velocity window quota, and strike count with zero gas fees via RPC view call.</p>
               </div>
             </div>
@@ -639,7 +638,7 @@ if !is_promise_success() {
           {/* SECTION 12: AGENT SYSTEM PROMPT HANDOFF */}
           <section id="agent-prompt" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-purple-500 uppercase tracking-wider">
+              <span className="text-xs font-mono font-bold text-blue-500 uppercase tracking-wider">
                 Conversational Handoff
               </span>
             </div>
@@ -789,8 +788,8 @@ if !is_promise_success() {
 
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-purple-500">Phase 3</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-500 border border-purple-500/20 font-bold">Vision</span>
+                  <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400">Phase 3</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold">Vision</span>
                 </div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">Multi-Agent Swarm Key Pools</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">

@@ -329,7 +329,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                 : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
             }`}
           >
-            <MessageSquareCode className="w-4 h-4 text-purple-500" />
+            <MessageSquareCode className="w-4 h-4 text-blue-500" />
             <span>AI Chat Prompt</span>
           </button>
 

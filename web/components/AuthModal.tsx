@@ -225,7 +225,7 @@ export const AuthModal: React.FC = () => {
       id: "here",
       name: "Here Wallet",
       badge: "Mobile QR / Web",
-      badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
       description: "Mobile app biometric verification and web connect",
       icon: "HERE",
       actionType: "injected",

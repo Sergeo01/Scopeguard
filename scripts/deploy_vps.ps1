@@ -1,24 +1,18 @@
 $key = "$HOME\.ssh\deploy_key"
 $hostip = "root@76.13.255.164"
 
-Write-Host "Transferring updated components to VPS..."
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\AppSidebar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/AppSidebar.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\TopStatusBar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/TopStatusBar.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\MarketingFooter.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/MarketingFooter.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\MarketingNavbar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/MarketingNavbar.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\AppShell.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/AppShell.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\ActivityFeed.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/ActivityFeed.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\BudgetVelocityGauge.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/BudgetVelocityGauge.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\PanicPanel.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/PanicPanel.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\PendingQueuePanel.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/PendingQueuePanel.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\WalletButton.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/WalletButton.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\context\DocsContext.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/context/DocsContext.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\app\page.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/app/page.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\app\dashboard\page.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/app/dashboard/page.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\app\create\page.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/app/create/page.tsx"
-Get-Content -Raw "d:\Hackathon\NEAR\web\app\admin\page.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/app/admin/page.tsx"
+Write-Host "Creating deployment archive..."
+Push-Location "d:\Hackathon\NEAR\web"
+tar -czf "..\deploy.tar.gz" app components context lib
+Pop-Location
 
-Write-Host "Running build and PM2 reload on VPS..."
-ssh -i $key -o StrictHostKeyChecking=no $hostip "cd /var/www/scopeguard/web && npm run build && pm2 reload scopeguard"
+Write-Host "Transferring archive to VPS via scp..."
+scp -i $key -o StrictHostKeyChecking=no "d:\Hackathon\NEAR\deploy.tar.gz" "${hostip}:/var/www/scopeguard/web/deploy.tar.gz"
+if (Test-Path "d:\Hackathon\NEAR\deploy.tar.gz") {
+    Remove-Item "d:\Hackathon\NEAR\deploy.tar.gz" -Force
+}
+
+Write-Host "Extracting, building, and reloading PM2 on VPS..."
+ssh -i $key -o StrictHostKeyChecking=no $hostip "cd /var/www/scopeguard/web && tar -xzf deploy.tar.gz && rm deploy.tar.gz && npm run build && pm2 reload scopeguard"
 
 Write-Host "Deployment completed successfully!"

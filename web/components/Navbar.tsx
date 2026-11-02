@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
+  Layers,
   LayoutDashboard,
   PlusCircle,
   ExternalLink,
@@ -35,7 +35,7 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = [
-    { href: "/", label: "Overview", icon: Sparkles },
+    { href: "/", label: "Overview", icon: Layers },
     { href: "/#arena", label: "Attack Arena", icon: Terminal },
     { href: "/dashboard", label: "Security Console", icon: LayoutDashboard },
     { href: "/create", label: "Issue Passkey", icon: PlusCircle },

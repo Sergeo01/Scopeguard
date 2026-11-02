@@ -17,7 +17,7 @@ import {
   Bell,
   ExternalLink,
   Layers,
-  Sparkles,
+  Wand2,
   ArrowUpRight,
   Zap,
 } from "lucide-react";
@@ -406,7 +406,7 @@ export default function CreateAgentPage() {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Wand2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   AI Scope Drafter (Optional)
                 </span>
@@ -443,7 +443,7 @@ export default function CreateAgentPage() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Wand2 className="w-3.5 h-3.5" />
                     <span>Draft with AI</span>
                   </>
                 )}

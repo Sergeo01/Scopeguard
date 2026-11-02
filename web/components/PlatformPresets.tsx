@@ -91,7 +91,7 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
                       preset.category === "DEX"
                         ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
                         : preset.category === "Lending"
-                        ? "bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300"
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                         : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
                     }`}
                   >

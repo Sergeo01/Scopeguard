@@ -8,7 +8,6 @@ import {
   ExternalLink,
   RefreshCw,
   LogOut,
-  Sparkles,
   Coins,
   ChevronDown,
   X,
@@ -337,7 +336,7 @@ export const WalletButton: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 dark:text-white" />
+                    <Coins className="w-3.5 h-3.5 text-emerald-400 dark:text-white" />
                     <span>Deposit ${fundAmount} mUSD into Agent Vault</span>
                   </>
                 )}

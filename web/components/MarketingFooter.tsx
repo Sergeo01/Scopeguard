@@ -10,7 +10,6 @@ import {
   Terminal,
   Activity,
   Layers,
-  Sparkles,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 

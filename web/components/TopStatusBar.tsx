@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
-  Sparkles,
   Lock,
   Copy,
   Check,
@@ -121,9 +120,8 @@ export const TopStatusBar: React.FC<{
               <span>Circuit Breaker Active (Paused)</span>
             </span>
           ) : (
-            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-blue-600 text-white flex items-center gap-1.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-              <Sparkles className="w-3 h-3 fill-white" />
+            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>Protocol Guard Active</span>
             </span>
           )}

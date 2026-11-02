@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
   LayoutDashboard,
   PlusCircle,
   ExternalLink,
@@ -60,7 +59,7 @@ export const AppSidebar: React.FC<{
     {
       href: "/",
       label: "Overview",
-      icon: Sparkles,
+      icon: Layers,
       badge: "Home",
       badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
     },
@@ -83,7 +82,7 @@ export const AppSidebar: React.FC<{
       label: "Issue Passkey",
       icon: PlusCircle,
       badge: "New",
-      badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+      badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
     },
   ];
 

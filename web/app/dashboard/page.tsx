@@ -31,7 +31,6 @@ import {
   Trash2,
   ArrowRight,
   ArrowUpRight,
-  Sparkles,
 } from "lucide-react";
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
@@ -329,7 +328,7 @@ export default function DashboardPage() {
       <div className="bg-white dark:bg-obsidian-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs transition-colors">
         <div className="flex items-start gap-3.5">
           <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 shrink-0">
-            <Sparkles className="w-5 h-5" />
+            <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -607,7 +606,7 @@ export default function DashboardPage() {
 
         <Link
           href="/#arena"
-          className="bg-slate-950 hover:bg-slate-800 text-white rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+          className="bg-slate-950 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-full px-5 py-2.5 text-xs font-bold shrink-0 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
         >
           <span>Simulate Attack on Testnet</span>
           <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
@@ -1053,59 +1052,59 @@ export default function DashboardPage() {
           </div>
 
         {/* Right Column (Col 5): Policy Status & Panic Controls */}
-        <div className="lg:col-span-5 bg-[#121316] text-white rounded-2xl p-6 border border-slate-800 shadow-xs space-y-6">
+        <div className="lg:col-span-5 bg-white dark:bg-obsidian-900 text-slate-900 dark:text-white rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
             <div className="space-y-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                 YOUR POLICY STATUS
               </span>
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                <h3 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Active Protection</span>
                 </h3>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Verified</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Every attempted transaction is intercepted by ScopeGuard. Even if the agent is prompt-injected or stolen, loss is bounded to approved limits.
               </p>
             </div>
 
-            {/* 4-Column Metric Row with Pastel Tint Accents */}
-            <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/20 space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300 block">
+            {/* 4-Column Metric Row with High-Craft Signals */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="p-3 bg-slate-50 dark:bg-obsidian-950/70 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                   BRAKE
                 </span>
-                <span className="font-mono text-sm font-bold text-white">3 strikes</span>
+                <span className="font-mono text-sm font-bold text-rose-600 dark:text-rose-400">3 strikes</span>
               </div>
 
-              <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300 block">
+              <div className="p-3 bg-slate-50 dark:bg-obsidian-950/70 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                   WINDOW
                 </span>
-                <span className="font-mono text-sm font-bold text-white">10 min</span>
+                <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">10 min</span>
               </div>
 
-              <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300 block">
+              <div className="p-3 bg-slate-50 dark:bg-obsidian-950/70 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                   TARGETS
                 </span>
-                <span className="font-mono text-sm font-bold text-emerald-400">1 DEX</span>
+                <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">1 DEX</span>
               </div>
 
-              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-300 block">
+              <div className="p-3 bg-slate-50 dark:bg-obsidian-950/70 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                   EXTERNAL
                 </span>
-                <span className="font-mono text-sm font-bold text-amber-400">Blocked</span>
+                <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">Blocked</span>
               </div>
             </div>
 
             {/* Owner Emergency Controls */}
-            <div className="pt-4 border-t border-white/10 space-y-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
                 OWNER PANIC CONTROLS
               </span>
               <div className="grid grid-cols-2 gap-2">
