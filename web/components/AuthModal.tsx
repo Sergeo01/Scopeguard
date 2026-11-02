@@ -5,12 +5,7 @@ import {
   X,
   Mail,
   Github,
-  ShieldCheck,
-  Check,
   ArrowRight,
-  Sparkles,
-  UserCheck,
-  Lock,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 
@@ -25,7 +20,7 @@ export const AuthModal: React.FC = () => {
 
   const [emailInput, setEmailInput] = useState("");
   const [showNearInput, setShowNearInput] = useState(false);
-  const [nearAccountInput, setNearAccountInput] = useState("sergeo-guard.testnet");
+  const [nearAccountInput, setNearAccountInput] = useState("");
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
   // Close modal on Escape key
@@ -44,8 +39,8 @@ export const AuthModal: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setLoadingProvider("google");
     try {
-      const email = emailInput.trim() || "sergeo@scopeguard.io";
-      await signInWithSocial("google", email);
+      const email = emailInput.trim();
+      await signInWithSocial("google", email || undefined);
     } finally {
       setLoadingProvider(null);
     }
@@ -54,8 +49,8 @@ export const AuthModal: React.FC = () => {
   const handleGithubSignIn = async () => {
     setLoadingProvider("github");
     try {
-      const email = emailInput.trim() || "sergeo@github.com";
-      await signInWithSocial("github", email);
+      const email = emailInput.trim();
+      await signInWithSocial("github", email || undefined);
     } finally {
       setLoadingProvider(null);
     }
@@ -65,7 +60,7 @@ export const AuthModal: React.FC = () => {
     if (e) e.preventDefault();
     setLoadingProvider("near");
     try {
-      await signInWithNear(nearAccountInput.trim() || "sergeo-guard.testnet");
+      await signInWithNear(nearAccountInput.trim() || "user.testnet");
     } finally {
       setLoadingProvider(null);
     }
@@ -78,19 +73,6 @@ export const AuthModal: React.FC = () => {
     try {
       await signInWithEmail(emailInput.trim());
       setEmailInput("");
-    } finally {
-      setLoadingProvider(null);
-    }
-  };
-
-  const handleDemoPreset = async (role: "admin" | "user") => {
-    setLoadingProvider(role);
-    try {
-      if (role === "admin") {
-        await signInWithSocial("google", "sergeo@scopeguard.io");
-      } else {
-        await signInWithEmail("alice.trader@example.com");
-      }
     } finally {
       setLoadingProvider(null);
     }
@@ -261,35 +243,6 @@ export const AuthModal: React.FC = () => {
             {emailInput.trim() && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>
-
-        {/* Quick Test Identities for Evaluation & Admin Detection */}
-        <div className="pt-3 border-t border-slate-800/80 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span className="font-semibold">Quick Switch Demo Roles:</span>
-            <span className="text-[10px] text-slate-500">1-click test</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleDemoPreset("admin")}
-              className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer text-left"
-              title="Sign in as Sergeo with Admin Cockpit permissions"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Admin (Sergeo)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoPreset("user")}
-              className="px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer text-left"
-              title="Sign in as a standard user with client-only permissions"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate">Client (Alice)</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

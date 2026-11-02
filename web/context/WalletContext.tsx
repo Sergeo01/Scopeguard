@@ -99,11 +99,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           return JSON.parse(savedUser);
         } catch {
-          // fallback to default admin profile
+          return null;
         }
       }
     }
-    return DEFAULT_ADMIN_USER;
+    // Normal visitors start unauthenticated by default
+    return null;
   });
 
   const [nearBalance, setNearBalance] = useState<string>(() => {
@@ -160,7 +161,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [user, fetchNearBalance]);
 
   const signInWithSocial = async (provider: "google" | "github", customEmail?: string) => {
-    const email = customEmail || (provider === "google" ? "sergeo@scopeguard.io" : "sergeo@github.com");
+    const email = customEmail || (provider === "google" ? "user@gmail.com" : "user@github.com");
     const name = email.split("@")[0];
     const isAdmin = checkIsAdmin(email, null, false);
     const defaultWallet = isAdmin ? DEFAULT_OWNER : `${name}.testnet`;
@@ -181,7 +182,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const signInWithNear = async (accId: string) => {
-    const cleanId = accId.trim() || DEFAULT_OWNER;
+    const cleanId = accId.trim() || "user.testnet";
     const name = cleanId.split(".")[0];
     const isAdmin = checkIsAdmin(null, cleanId, false);
 
