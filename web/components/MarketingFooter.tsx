@@ -13,11 +13,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
-import { useDocs } from "@/context/DocsContext";
 
 export const MarketingFooter: React.FC = () => {
-  const { openDocs } = useDocs();
-
   return (
     <footer className="w-full border-t border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#05070A] text-slate-600 dark:text-slate-400 py-16 px-6 sm:px-10 lg:px-16">
       <div className="max-w-[1440px] mx-auto space-y-12">
@@ -120,14 +117,13 @@ export const MarketingFooter: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <button
-                  type="button"
-                  onClick={openDocs}
+                <Link
+                  href="/docs"
                   className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1 text-left"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Technical Documentation</span>
-                </button>
+                </Link>
               </li>
               <li>
                 <a

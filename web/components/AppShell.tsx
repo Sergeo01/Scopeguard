@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopStatusBar } from "@/components/TopStatusBar";
 import { AuthModal } from "@/components/AuthModal";
-import { useDocs } from "@/context/DocsContext";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { openDocs } = useDocs();
 
   // Route Separation:
   // "/" is the Public Marketing Landing Page
@@ -36,7 +34,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <AppSidebar
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        onOpenDocs={openDocs}
       />
 
       {/* Fluid Main Body */}
@@ -44,7 +41,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Top Status Bar */}
         <TopStatusBar
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
-          onOpenDocs={openDocs}
         />
 
         {/* Scrollable Viewport Content */}

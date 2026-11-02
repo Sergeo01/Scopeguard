@@ -188,3 +188,17 @@ A judge who has never seen this project can open the repo, read the README, run 
 ### Zero-Fee Verification
 - Execution receipts and rule evaluations are verifiable onchain with zero gas fees via standard NEAR RPC view queries and public block explorer transactions.
 
+## 13. System Invariants & Documentation Routing Standards
+
+### Dedicated Documentation Routing Invariant
+- All documentation links across the entire application (Landing page, Marketing navbar, Marketing footer, Dashboard sidebar, Top status bar, Error banners) MUST route directly to the dedicated `/docs` GitBook-style page via semantic Next.js `<Link>` elements.
+- Under NO circumstance should documentation ever trigger a pop-up modal. Modals are strictly reserved for Authentication (`AuthModal`).
+- Whenever a component or page is introduced or modified, run comprehensive grep scans across all callers to guarantee zero regressions or leftover pop-up triggers.
+
+### EGM Quality & Architecture Verification Standard
+- Always invoke EGM auditor checks before concluding work:
+  - Verify layout symmetry, heading hierarchies, and theme contrast.
+  - Verify that navigation links are semantic Next.js `<Link>` elements rather than unlinked buttons where routing is intended.
+  - Test all routes end to end, verifying in-browser visual captures across both public marketing routes and authenticated dashboard states.
+
+

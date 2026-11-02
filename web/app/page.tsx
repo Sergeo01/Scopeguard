@@ -41,7 +41,6 @@ import { ReceiptModal } from "@/components/ReceiptModal";
 import { AuthModal } from "@/components/AuthModal";
 import { AttackAutopsy, AutopsyData } from "@/components/AttackAutopsy";
 import { useWallet } from "@/context/WalletContext";
-import { useDocs } from "@/context/DocsContext";
 
 interface AttackScenario {
   id: string;
@@ -185,7 +184,6 @@ const FRAMEWORKS = [
 
 export default function HomePage() {
   const { user, openAuthModal } = useWallet();
-  const { openDocs } = useDocs();
 
   // State
   const [vaultBalance, setVaultBalance] = useState("350.00");

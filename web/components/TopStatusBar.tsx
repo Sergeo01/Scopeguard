@@ -159,15 +159,14 @@ export const TopStatusBar: React.FC<{
           <span>GitHub</span>
         </a>
 
-        <button
-          type="button"
-          onClick={onOpenDocs}
+        <Link
+          href="/docs"
           className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 transition shadow-xs cursor-pointer"
           title="Open documentation and integration guide"
         >
           <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>Docs Guide</span>
-        </button>
+        </Link>
 
         <WalletButton />
       </div>

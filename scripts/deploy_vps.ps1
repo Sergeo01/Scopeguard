@@ -1,10 +1,16 @@
 $key = "$HOME\.ssh\deploy_key"
 $hostip = "root@76.13.255.164"
 
-Write-Host "Updating AuthModal.tsx on VPS..."
-Get-Content -Raw "d:\Hackathon\NEAR\web\components\AuthModal.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/AuthModal.tsx"
+Write-Host "Transferring updated components to VPS..."
+Get-Content -Raw "d:\Hackathon\NEAR\web\components\AppSidebar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/AppSidebar.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\components\TopStatusBar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/TopStatusBar.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\components\MarketingFooter.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/MarketingFooter.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\components\MarketingNavbar.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/MarketingNavbar.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\components\AppShell.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/components/AppShell.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\context\DocsContext.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/context/DocsContext.tsx"
+Get-Content -Raw "d:\Hackathon\NEAR\web\app\page.tsx" | ssh -i $key -o StrictHostKeyChecking=no $hostip "cat > /var/www/scopeguard/web/app/page.tsx"
 
-Write-Host "Building and reloading Next.js..."
+Write-Host "Running build and PM2 reload on VPS..."
 ssh -i $key -o StrictHostKeyChecking=no $hostip "cd /var/www/scopeguard/web && npm run build && pm2 reload scopeguard"
 
-Write-Host "Done!"
+Write-Host "Deployment completed successfully!"

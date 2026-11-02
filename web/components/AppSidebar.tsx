@@ -256,9 +256,9 @@ export const AppSidebar: React.FC<{
       {/* Bottom Pinned User Card & Theme Switcher */}
       <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
         {/* Docs Guide Option (Sidebar Bottom Left) */}
-        <button
-          type="button"
-          onClick={onOpenDocs}
+        <Link
+          href="/docs"
+          onClick={onClose}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/60 dark:border-blue-800/40 text-xs font-semibold transition cursor-pointer shadow-xs group"
           title="Open ScopeGuard documentation, rule codes, and integration guides"
         >
@@ -269,7 +269,7 @@ export const AppSidebar: React.FC<{
           <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-200/70 dark:bg-blue-900/70 text-blue-800 dark:text-blue-200">
             v0.2.0
           </span>
-        </button>
+        </Link>
 
         <div className="flex items-center justify-between">
           <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
-import { DocsModal } from "@/components/DocsModal";
+import React, { createContext, useContext } from "react";
+import { useRouter } from "next/navigation";
 
 interface DocsContextType {
   isDocsOpen: boolean;
@@ -16,18 +16,23 @@ const DocsContext = createContext<DocsContextType>({
 });
 
 export const DocsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDocsOpen, setIsDocsOpen] = useState(false);
+  const router = useRouter();
+
+  const handleOpenDocs = () => {
+    if (typeof window !== "undefined") {
+      router.push("/docs");
+    }
+  };
 
   return (
     <DocsContext.Provider
       value={{
-        isDocsOpen,
-        openDocs: () => setIsDocsOpen(true),
-        closeDocs: () => setIsDocsOpen(false),
+        isDocsOpen: false,
+        openDocs: handleOpenDocs,
+        closeDocs: () => {},
       }}
     >
       {children}
-      <DocsModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
     </DocsContext.Provider>
   );
 };

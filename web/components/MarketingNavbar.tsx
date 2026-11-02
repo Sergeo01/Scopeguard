@@ -18,11 +18,9 @@ import {
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useWallet } from "@/context/WalletContext";
-import { useDocs } from "@/context/DocsContext";
 
 export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
-  const { openDocs } = useDocs();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
