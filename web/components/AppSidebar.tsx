@@ -75,7 +75,7 @@ export const AppSidebar: React.FC<{
       href: "/dashboard",
       label: "Security Console",
       icon: LayoutDashboard,
-      badge: "7 Rules",
+      badge: "10 Rules",
       badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
     },
     {

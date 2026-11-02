@@ -319,7 +319,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>7 Rules Active</span>
+            <span>10 Rules Active</span>
           </span>
         </div>
       </div>

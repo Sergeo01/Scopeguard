@@ -165,7 +165,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Status</span>
             <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>{txData?.status || "SUCCESS"}</span>
             </span>
           </div>

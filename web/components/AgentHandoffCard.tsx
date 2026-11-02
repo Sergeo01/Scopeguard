@@ -167,7 +167,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
         {txHash && (
           <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
                   ONCHAIN POLICY REGISTRATION VERIFIED

@@ -105,7 +105,7 @@ export const TopStatusBar: React.FC<{
           {/* Pill 1: Verified Protection Pill */}
           <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>7 Rules Enforced</span>
+            <span>10 Rules Enforced</span>
           </span>
 
           {/* Pill 2: Protocol Guard Status with Live Indicator */}

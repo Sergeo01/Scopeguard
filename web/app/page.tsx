@@ -1409,7 +1409,7 @@ export default function HomePage() {
         {/* SECTION 7: EXACT ONCHAIN PARAMETERS & VERIFICATION STATS */}
         {/* ========================================================= */}
         <section className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-6 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 shadow-sm dark:shadow-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-6 rounded-2xl bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-2xl">
             <div className="space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 RULE ORDER
