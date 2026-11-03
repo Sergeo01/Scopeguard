@@ -88,7 +88,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   : isBreaker
                   ? "bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/60"
                   : isVeto
-                  ? "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60"
+                  ? "bg-slate-100 dark:bg-obsidian-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-obsidian-800"
                   : isPause
                   ? "bg-slate-100 dark:bg-obsidian-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                   : "bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/60";

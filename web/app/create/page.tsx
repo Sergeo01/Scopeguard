@@ -681,7 +681,7 @@ export default function CreateAgentPage() {
               </div>
             )}
             {hasDangerPolicyLint && (
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs space-y-1">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-800 dark:text-slate-200 text-xs space-y-1">
                 <div className="font-bold">Security Lint Warning:</div>
                 <ul className="list-disc list-inside space-y-0.5">
                   {policyLintWarnings
@@ -698,7 +698,7 @@ export default function CreateAgentPage() {
               type="button"
               disabled={isDeploying || !isPolicyValid}
               onClick={handleIssueCard}
-              className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-xl bg-brand-blue hover:bg-brand-blueHover text-white font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isDeploying ? (
                 <>
@@ -747,7 +747,7 @@ export default function CreateAgentPage() {
               {activeView === "visual" ? (
                 <div className="space-y-4">
                   {/* Physical Passkey Widget */}
-                  <div className="p-6 rounded-2xl bg-gradient-to-br from-obsidian-900 to-obsidian-950 text-white space-y-4 shadow-xl border border-slate-800">
+                  <div className="p-6 rounded-xl bg-obsidian-900 text-white space-y-4 border border-obsidian-800">
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-emerald-400" />

@@ -207,7 +207,7 @@ export const AuthModal: React.FC = () => {
       id: "mynearwallet",
       name: "MyNearWallet",
       badge: "Web Wallet",
-      badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
       description: "Direct web authentication, works on all browsers and mobile",
       icon: "MNW",
       actionType: "mynearwallet",
@@ -216,7 +216,7 @@ export const AuthModal: React.FC = () => {
       id: "meteor",
       name: "Meteor Wallet",
       badge: "Extension / Web",
-      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
       description: "Direct authorization for Meteor extension and web app",
       icon: "MET",
       actionType: "injected",
@@ -234,7 +234,7 @@ export const AuthModal: React.FC = () => {
       id: "sender",
       name: "Sender Wallet",
       badge: "Extension",
-      badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
       description: "Fast in-browser signing via Sender Chrome extension",
       icon: "SND",
       actionType: "injected",
@@ -438,8 +438,8 @@ export const AuthModal: React.FC = () => {
 
             {/* Connection Notice or Status Alert */}
             {connectionNotice && (
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-[11px] text-amber-300">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+              <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 flex items-start gap-2 text-[11px] text-slate-300">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-400" />
                 <span>{connectionNotice}</span>
               </div>
             )}

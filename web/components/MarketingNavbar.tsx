@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Shield,
   ArrowRight,
-  Terminal,
   Lock,
   Copy,
   Check,
@@ -13,7 +12,6 @@ import {
   X,
   BookOpen,
   LayoutDashboard,
-  ExternalLink,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,25 +31,24 @@ export const MarketingNavbar: React.FC = () => {
   const navLinks = [
     { label: "The Disease", href: "#problem" },
     { label: "How It Works", href: "#how-it-works" },
-    { label: "Bento Radar", href: "#bento" },
+    { label: "Policy Radar", href: "#bento" },
     { label: "Attack Arena", href: "#arena" },
     { label: "Ecosystem", href: "#ecosystem" },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      {/* Main Glassmorphism Navigation Bar */}
-      <nav className="w-full bg-white/85 dark:bg-[#080B11]/85 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 transition-colors">
+      <nav className="w-full bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-md border-b border-slate-200 dark:border-obsidian-800 transition-colors">
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 h-16 flex items-center justify-between gap-4">
-          {/* Brand Logo & Name */}
+          {/* Brand Logo and Title */}
           <div className="flex items-center gap-6 shrink-0">
             <Link href="/" className="flex items-center gap-3 group">
               <ScopeGuardLogo className="w-8 h-8 transition-transform group-hover:scale-105" size={32} />
               <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
-                  Scope<span className="text-blue-500">Guard</span>
+                <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                  Scope<span className="text-brand-blue">Guard</span>
                 </span>
-                <span className="hidden md:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-slate-600 dark:text-slate-400">
                   v0.2.0
                 </span>
               </div>
@@ -64,16 +61,16 @@ export const MarketingNavbar: React.FC = () => {
               <a
                 key={link.label}
                 href={link.href}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/60 transition"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition"
               >
                 {link.label}
               </a>
             ))}
             <Link
               href="/docs"
-              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/60 transition flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
             >
-              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+              <BookOpen className="w-3.5 h-3.5 text-brand-blue" />
               <span>Docs</span>
             </Link>
           </div>
@@ -85,12 +82,12 @@ export const MarketingNavbar: React.FC = () => {
               type="button"
               onClick={copyContract}
               title="Copy ScopeGuard Smart Contract on NEAR Testnet"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 transition"
             >
-              <Lock className="w-3 h-3 text-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-mint-green inline-block" />
               <span className="text-slate-500 dark:text-slate-400">guard2.sergeo...</span>
               {copied ? (
-                <Check className="w-3 h-3 text-emerald-500" />
+                <Check className="w-3 h-3 text-mint-green" />
               ) : (
                 <Copy className="w-3 h-3 text-slate-400" />
               )}
@@ -98,31 +95,28 @@ export const MarketingNavbar: React.FC = () => {
 
             <ThemeToggle />
 
-            {/* Auth / Console CTA */}
+            {/* Auth or Console CTA */}
             {user || isConnected ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Open Security Console</span>
+                <span>Console</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             ) : (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log("MarketingNavbar: Sign In button clicked!");
-                    openAuthModal();
-                  }}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/70 border border-slate-200 dark:border-slate-700 transition"
+                  onClick={() => openAuthModal()}
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 transition"
                 >
                   Sign In
                 </button>
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-bold shadow-md transition"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition"
                 >
                   <span>Launch Console</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -137,7 +131,7 @@ export const MarketingNavbar: React.FC = () => {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -147,14 +141,14 @@ export const MarketingNavbar: React.FC = () => {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080B11] px-4 pt-3 pb-6 space-y-3">
+          <div className="sm:hidden border-t border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-950 px-4 pt-3 pb-6 space-y-3">
             <div className="space-y-1">
               {navLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800"
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-900"
                 >
                   {link.label}
                 </a>
@@ -162,28 +156,28 @@ export const MarketingNavbar: React.FC = () => {
               <Link
                 href="/docs"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-900 flex items-center gap-2"
               >
-                <BookOpen className="w-4 h-4 text-blue-500" />
+                <BookOpen className="w-4 h-4 text-brand-blue" />
                 <span>Documentation</span>
               </Link>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+            <div className="pt-3 border-t border-slate-200 dark:border-obsidian-800 space-y-2">
               <button
                 type="button"
                 onClick={copyContract}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-900 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800"
               >
                 <span>guard2.sergeo-guard.testnet</span>
-                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                {copied ? <Check className="w-4 h-4 text-mint-green" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
 
               {user || isConnected ? (
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-bold"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Open Security Console</span>
@@ -196,14 +190,14 @@ export const MarketingNavbar: React.FC = () => {
                       setMobileMenuOpen(false);
                       openAuthModal();
                     }}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-bold text-center border border-slate-200 dark:border-slate-700"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 text-slate-900 dark:text-white text-xs font-semibold text-center border border-slate-200 dark:border-obsidian-800"
                   >
                     Sign In
                   </button>
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-bold text-center"
+                    className="w-full px-3 py-2 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold text-center"
                   >
                     Console
                   </Link>

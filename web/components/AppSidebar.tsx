@@ -32,7 +32,6 @@ interface NavItem {
   label: string;
   icon: any;
   badge?: string;
-  badgeColor?: string;
   isExternal?: boolean;
 }
 
@@ -48,11 +47,9 @@ export const AppSidebar: React.FC<{
 }> = ({
   isOpen = false,
   onClose,
-  onOpenDocs,
 }) => {
   const pathname = usePathname();
   const { user, accountId, isConnected, isAdmin, signOut, openAuthModal } = useWallet();
-  const { setShowSelector } = useLogo();
   const [searchTerm, setSearchTerm] = useState("");
 
   const operationItems: NavItem[] = [
@@ -60,29 +57,24 @@ export const AppSidebar: React.FC<{
       href: "/",
       label: "Overview",
       icon: Layers,
-      badge: "Home",
-      badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
     },
     {
       href: "/#arena",
       label: "Attack Arena",
       icon: Terminal,
       badge: "Live",
-      badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
     },
     {
       href: "/dashboard",
       label: "Security Console",
       icon: LayoutDashboard,
       badge: "10 Rules",
-      badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
     },
     {
       href: "/create",
       label: "Issue Passkey",
       icon: PlusCircle,
       badge: "New",
-      badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
     },
   ];
 
@@ -92,17 +84,16 @@ export const AppSidebar: React.FC<{
       label: "Platform Admin",
       icon: Sliders,
       badge: "Cockpit",
-      badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
     });
   }
 
   const navGroups: NavGroup[] = [
     {
-      label: "OPERATIONS",
+      label: "Operations",
       items: operationItems,
     },
     {
-      label: "ONCHAIN CONTRACTS",
+      label: "Contracts",
       items: [
         {
           href: "https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet",
@@ -110,7 +101,6 @@ export const AppSidebar: React.FC<{
           icon: Shield,
           isExternal: true,
           badge: "v0.2.0",
-          badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
         },
         {
           href: "https://testnet.nearblocks.io/address/sergeo-guard-token.testnet",
@@ -118,7 +108,6 @@ export const AppSidebar: React.FC<{
           icon: Coins,
           isExternal: true,
           badge: "NEP-141",
-          badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
         },
         {
           href: "https://testnet.nearblocks.io/address/sergeo-guard-dex.testnet",
@@ -126,12 +115,11 @@ export const AppSidebar: React.FC<{
           icon: Activity,
           isExternal: true,
           badge: "Swap",
-          badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
         },
       ],
     },
     {
-      label: "COMMUNITY & CODE",
+      label: "Community",
       items: [
         {
           href: "https://github.com/Sergeo01/Scopeguard",
@@ -139,35 +127,31 @@ export const AppSidebar: React.FC<{
           icon: Github,
           isExternal: true,
           badge: "Source",
-          badgeColor: "bg-slate-100 dark:bg-obsidian-800 text-slate-500",
         },
         {
           href: "https://x.com/scopeguard",
           label: "X (Twitter)",
           icon: Twitter,
           isExternal: true,
-          badge: "@scopeguard",
-          badgeColor: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
         },
       ],
     },
   ];
 
   const content = (
-    <aside className="w-64 h-full bg-white dark:bg-obsidian-950 border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between shrink-0 select-none shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-colors">
+    <aside className="w-64 h-full bg-white dark:bg-obsidian-950 border-r border-slate-200 dark:border-obsidian-800 flex flex-col justify-between shrink-0 select-none transition-colors">
       {/* Top Header */}
       <div className="p-5 space-y-4">
         {/* Brand */}
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group" onClick={onClose}>
-            <ScopeGuardLogo className="w-8 h-8 transition-transform group-hover:scale-105 shrink-0" size={32} />
+          <Link href="/" className="flex items-center gap-2.5 group" onClick={onClose}>
+            <ScopeGuardLogo className="w-7 h-7 transition-transform group-hover:scale-105 shrink-0" size={28} />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-base font-extrabold tracking-tight leading-none">
-                  <span className="text-slate-900 dark:text-white">Scope</span>
-                  <span className="text-blue-600 dark:text-blue-500">Guard</span>
+                <span className="text-base font-bold tracking-tight leading-none text-slate-900 dark:text-white">
+                  Scope<span className="text-brand-blue">Guard</span>
                 </span>
-                <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-obsidian-900 text-slate-500 border border-slate-200 dark:border-obsidian-800">
                   NEAR
                 </span>
               </div>
@@ -178,26 +162,23 @@ export const AppSidebar: React.FC<{
           </Link>
         </div>
 
-        {/* Quick Search with ⌘K */}
+        {/* Quick Search */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search console..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-10 py-1.5 bg-slate-50 dark:bg-obsidian-900 border border-slate-200/80 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-brand-blue"
           />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-obsidian-800 text-slate-500">
-            Ctrl+K
-          </span>
         </div>
 
         {/* Navigation Groups */}
-        <div className="space-y-5 pt-2">
+        <div className="space-y-4 pt-1">
           {navGroups.map((group) => (
             <div key={group.label} className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2.5 block">
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 px-2 block">
                 {group.label}
               </span>
               <div className="space-y-0.5">
@@ -212,10 +193,10 @@ export const AppSidebar: React.FC<{
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-obsidian-850 transition"
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-obsidian-850 transition"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <Icon className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-3.5 h-3.5 text-slate-400" />
                           <span>{item.label}</span>
                         </div>
                         <ExternalLink className="w-3 h-3 text-slate-400" />
@@ -228,18 +209,18 @@ export const AppSidebar: React.FC<{
                       key={item.label}
                       href={item.href}
                       onClick={onClose}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition ${
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
                         isActive
-                          ? "bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 shadow-xs"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-obsidian-850"
+                          ? "bg-brand-blue/10 text-brand-blue font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-obsidian-850"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                      <div className="flex items-center gap-2">
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? "text-brand-blue" : "text-slate-400"}`} />
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${item.badgeColor}`}>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-obsidian-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800">
                           {item.badge}
                         </span>
                       )}
@@ -253,50 +234,43 @@ export const AppSidebar: React.FC<{
       </div>
 
       {/* Bottom Pinned User Card & Theme Switcher */}
-      <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
-        {/* Docs Guide Option (Sidebar Bottom Left) */}
+      <div className="p-4 border-t border-slate-200 dark:border-obsidian-800 space-y-3">
+        {/* Direct Docs Link (Semantic Next.js Link) */}
         <Link
           href="/docs"
           onClick={onClose}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/60 dark:border-blue-800/40 text-xs font-semibold transition cursor-pointer shadow-xs group"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 dark:bg-obsidian-900 hover:bg-slate-100 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-xs font-medium text-slate-700 dark:text-slate-300 transition group"
           title="Open ScopeGuard documentation, rule codes, and integration guides"
         >
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-            <span>Docs & Guide</span>
+            <BookOpen className="w-4 h-4 text-brand-blue" />
+            <span>Docs & Guides</span>
           </div>
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-200/70 dark:bg-blue-900/70 text-blue-800 dark:text-blue-200">
+          <span className="text-[10px] font-mono text-slate-400">
             v0.2.0
           </span>
         </Link>
 
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
-            THEME & NETWORK
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+            Theme
           </span>
           <ThemeToggle />
         </div>
 
         {/* Profile Card */}
         {user ? (
-          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-900 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 text-xs font-bold shrink-0">
+          <div className="p-2.5 rounded-lg border border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-900 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-brand-blue text-white text-xs font-bold flex items-center justify-center shrink-0">
                 {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
-                    {user.displayName}
-                  </span>
-                  {isAdmin && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                      Admin
-                    </span>
-                  )}
-                </div>
-                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 block truncate">
-                  {accountId || "no wallet linked"}
+                <span className="text-xs font-semibold text-slate-900 dark:text-white truncate block">
+                  {user.displayName}
+                </span>
+                <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                  {accountId || "no wallet"}
                 </span>
               </div>
             </div>
@@ -304,7 +278,7 @@ export const AppSidebar: React.FC<{
             <button
               type="button"
               onClick={signOut}
-              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition rounded-lg hover:bg-slate-200/50 dark:hover:bg-obsidian-800 cursor-pointer"
+              className="p-1 text-slate-400 hover:text-rose-500 transition rounded"
               title="Sign out of ScopeGuard"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -314,7 +288,7 @@ export const AppSidebar: React.FC<{
           <button
             type="button"
             onClick={openAuthModal}
-            className="w-full p-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-obsidian-900 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full py-2 rounded-lg border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-brand-blue text-xs font-semibold flex items-center justify-center gap-2 transition"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>Sign in to ScopeGuard</span>
@@ -326,15 +300,12 @@ export const AppSidebar: React.FC<{
 
   return (
     <>
-      {/* Desktop Fixed Sidebar */}
       <div className="hidden lg:block shrink-0">{content}</div>
-
-      {/* Mobile Drawer */}
       {isOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="lg:hidden fixed inset-0 z-50 flex bg-slate-950/60 backdrop-blur-xs"
+          className="lg:hidden fixed inset-0 z-50 flex bg-black/60"
           onClick={(e) => {
             if (e.target === e.currentTarget && onClose) onClose();
           }}

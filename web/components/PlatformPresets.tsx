@@ -75,10 +75,10 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
               key={preset.id}
               type="button"
               onClick={() => onTogglePreset(preset)}
-              className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 text-xs ${
+              className={`p-3 rounded-lg border text-left transition flex items-start justify-between gap-2 text-xs ${
                 isSelected
-                  ? "bg-emerald-500/10 border-emerald-500/40 text-slate-900 dark:text-white ring-1 ring-emerald-500/20"
-                  : "bg-white dark:bg-obsidian-950 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300"
+                  ? "bg-brand-blue/5 border-brand-blue text-slate-900 dark:text-white ring-1 ring-brand-blue/30"
+                  : "bg-white dark:bg-obsidian-900 border-slate-200 dark:border-obsidian-800 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300"
               }`}
             >
               <div className="space-y-0.5 min-w-0">
@@ -86,15 +86,7 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {preset.name}
                   </span>
-                  <span
-                    className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                      preset.category === "DEX"
-                        ? "bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300"
-                        : preset.category === "Lending"
-                        ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                        : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
-                    }`}
-                  >
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-obsidian-950 text-slate-500 border border-slate-200 dark:border-obsidian-800">
                     {preset.category}
                   </span>
                 </div>

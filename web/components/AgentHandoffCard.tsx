@@ -199,8 +199,8 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
         {/* Manual registration: this server does not hold an owner key, so it
             hands back the exact `near call` the owner signs themselves. */}
         {registrationStatus === "manual" && !txHash && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl text-left space-y-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+          <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 rounded-xl text-left space-y-2.5">
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block">
               Not registered yet: one command to finish
             </span>
             <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -385,7 +385,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                       className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
                       title={revealKey ? "Hide passkey" : "Reveal plaintext passkey"}
                     >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
                       <span className="hidden sm:inline">{revealKey ? "Hide Key" : "Reveal"}</span>
                     </button>
                   )}
@@ -429,7 +429,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                       onClick={() => setRevealKey(!revealKey)}
                       className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
                     >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
                       <span>{revealKey ? "Mask Passkey" : "Reveal Passkey"}</span>
                     </button>
                   )}
@@ -522,7 +522,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                       onClick={() => setRevealKey(!revealKey)}
                       className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
                     >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-amber-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
                       <span>{revealKey ? "Mask in Preview" : "Reveal in Preview"}</span>
                     </button>
                   )}

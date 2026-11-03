@@ -9,7 +9,6 @@ import {
   Check,
   Menu,
   BookOpen,
-  AlertTriangle,
   Github,
   Sliders,
 } from "lucide-react";
@@ -22,7 +21,6 @@ export const TopStatusBar: React.FC<{
   onOpenDocs?: () => void;
 }> = ({
   onOpenMobileMenu,
-  onOpenDocs,
 }) => {
   const { user, accountId, isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
@@ -55,88 +53,79 @@ export const TopStatusBar: React.FC<{
   const displayName = user?.displayName || (accountId ? accountId.split(".")[0] : "");
 
   return (
-    <header className="w-full bg-white/80 dark:bg-obsidian-950/85 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md px-4 sm:px-8 h-14 sm:h-16 flex items-center justify-between transition-all sticky top-0 z-40 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-      {/* Left: Mobile Brand / Desktop Greeting */}
+    <header className="w-full bg-white dark:bg-obsidian-950 border-b border-slate-200 dark:border-obsidian-800 px-4 sm:px-8 h-14 sm:h-16 flex items-center justify-between transition-colors sticky top-0 z-40">
+      {/* Left: Mobile Brand or Desktop Greeting */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Mobile Hamburger Trigger */}
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 transition"
+          className="lg:hidden p-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
           aria-label="Open navigation menu"
         >
           <Menu className="w-4 h-4" />
         </button>
 
-        {/* Mobile Brand Identity (Hidden on Desktop where sidebar is pinned) */}
+        {/* Mobile Brand Identity */}
         <Link href="/" className="flex items-center gap-2 lg:hidden group">
           <ScopeGuardLogo size={24} className="w-6 h-6 transition-transform group-hover:scale-105" />
-          <span className="font-extrabold text-base tracking-tight leading-none">
-            <span className="text-slate-900 dark:text-white">Scope</span>
-            <span className="text-blue-600 dark:text-blue-500">Guard</span>
+          <span className="font-bold text-base tracking-tight leading-none text-slate-900 dark:text-white">
+            Scope<span className="text-brand-blue">Guard</span>
           </span>
         </Link>
 
-        {/* Desktop Greeting & Live Status Pills (Hidden on mobile to avoid cluttered multi-row wrap) */}
+        {/* Desktop Greeting & Live Status Pills */}
         <div className="hidden lg:flex items-center gap-3 min-w-0">
           {user ? (
-            <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
-              {getGreeting()}, <span className="text-blue-600 dark:text-blue-400 capitalize">{displayName}</span>
+            <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              {getGreeting()}, <span className="text-brand-blue capitalize">{displayName}</span>
             </h2>
           ) : (
-            <h2 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
-              Welcome to <span className="text-blue-600 dark:text-blue-400">ScopeGuard</span>
+            <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              Welcome to <span className="text-brand-blue">ScopeGuard</span>
             </h2>
           )}
 
-          {/* Pill 0: Admin Cockpit Pill (Only shown to detected platform administrator) */}
+          {/* Admin Cockpit Pill */}
           {isAdmin && (
             <Link
               href="/admin"
-              className="rounded-full px-3 py-0.5 text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+              className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800 flex items-center gap-1.5 transition"
               title="Open Platform Admin Cockpit"
             >
-              <Sliders className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <Sliders className="w-3 h-3 text-brand-blue" />
               <span>Admin Cockpit</span>
             </Link>
           )}
 
-          {/* Pill 1: Verified Protection Pill */}
-          <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>10 Rules Enforced</span>
-          </span>
-
-          {/* Pill 2: Protocol Guard Status with Live Indicator */}
+          {/* Protocol Guard Status with Live Indicator */}
           {isAgentPaused === null ? (
-            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 shadow-xs">
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-mono text-slate-500 bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-              <span>Syncing Status...</span>
+              <span>Syncing...</span>
             </span>
           ) : isAgentPaused ? (
-            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-amber-600 text-white flex items-center gap-1.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-200 animate-pulse" />
-              <AlertTriangle className="w-3 h-3" />
-              <span>Circuit Breaker Active (Paused)</span>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>Guard Paused</span>
             </span>
           ) : (
-            <span className="rounded-full px-3 py-0.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Protocol Guard Active</span>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-mint-green/10 text-mint-greenDark dark:text-mint-green border border-mint-green/20 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-mint-green" />
+              <span>10 Rules Active</span>
             </span>
           )}
 
-          {/* Pill 3: Network / Guard Contract Address */}
+          {/* Guard Contract Address */}
           <button
             type="button"
             onClick={copyGuard}
-            className="hidden xl:inline-flex rounded-full px-3 py-0.5 text-xs font-mono font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 items-center gap-1.5 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 transition"
+            className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
             title="Click to copy Guard contract address"
           >
-            <Lock className="w-3 h-3 text-slate-400" />
             <span>guard2.sergeo-guard.testnet</span>
             {copied ? (
-              <Check className="w-3 h-3 text-emerald-500" />
+              <Check className="w-3 h-3 text-mint-green" />
             ) : (
               <Copy className="w-3 h-3 text-slate-400" />
             )}
@@ -144,13 +133,13 @@ export const TopStatusBar: React.FC<{
         </div>
       </div>
 
-      {/* Right Actions: GitHub, Docs & Wallet Trigger (Single sleek row) */}
+      {/* Right Actions: GitHub, Docs & Wallet Trigger */}
       <div className="flex items-center gap-2 shrink-0">
         <a
           href="https://github.com/Sergeo01/Scopeguard"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200/70 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition shadow-xs"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800 transition"
           title="View ScopeGuard GitHub Repository"
         >
           <Github className="w-3.5 h-3.5" />
@@ -159,11 +148,11 @@ export const TopStatusBar: React.FC<{
 
         <Link
           href="/docs"
-          className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 transition shadow-xs cursor-pointer"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-obsidian-900 hover:bg-slate-200 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800 transition"
           title="Open documentation and integration guide"
         >
-          <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span>Docs Guide</span>
+          <BookOpen className="w-3.5 h-3.5 text-brand-blue" />
+          <span>Docs</span>
         </Link>
 
         <WalletButton />

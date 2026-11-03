@@ -37,32 +37,32 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
 
   return (
     <div
-      className={`rounded-2xl border p-5 transition-all shadow-sm ${
+      className={`rounded-xl border p-4 transition-all ${
         isTripped
-          ? "border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200"
+          ? "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
           : isPaused
-          ? "border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200"
-          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300"
+          ? "border-slate-300 dark:border-obsidian-800 bg-slate-100 dark:bg-obsidian-900 text-slate-800 dark:text-slate-200"
+          : "border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300"
       }`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span
-              className={`inline-block h-2.5 w-2.5 rounded-full ${
+              className={`inline-block h-2 w-2 rounded-full ${
                 isTripped
-                  ? "bg-rose-600 animate-pulse"
+                  ? "bg-rose-500 animate-pulse"
                   : isPaused
-                  ? "bg-amber-600"
-                  : "bg-emerald-600"
+                  ? "bg-slate-400"
+                  : "bg-mint-green"
               }`}
             />
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">
               {isTripped
                 ? "Emergency Circuit Breaker Tripped"
                 : isPaused
                 ? "Agent Execution Paused by Owner"
-                : `Suspicious Reject Counter: ${rejectCount} / ${maxRejects}`}
+                : `Reject Counter: ${rejectCount} / ${maxRejects}`}
             </h4>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
@@ -77,10 +77,10 @@ export const CircuitBreakerBanner: React.FC<CircuitBreakerBannerProps> = ({
         {isPaused && isOwner && (
           <button
             onClick={onUnpause}
-            className="inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white transition shadow-sm"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white transition"
           >
-            <Play className="w-4 h-4 fill-current" />
-            <span>Unpause & Resume Operations</span>
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Unpause & Resume</span>
           </button>
         )}
       </div>

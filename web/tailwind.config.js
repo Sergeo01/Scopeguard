@@ -9,33 +9,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        near: {
-          green: "#00EC97",
-          dark: "#0F172A",
-          card: "#1E293B",
-          border: "#334155",
-        },
-        charcoal: {
-          950: "#0d0e11",
-          900: "#121316",
-          850: "#18191e",
-          800: "#202228",
-        },
         obsidian: {
-          950: "#060911",
-          900: "#0b1120",
-          850: "#10182c",
-          800: "#162038",
-          700: "#1e2c4c",
-          600: "#2a3d68",
+          950: "#08090D", // Canvas base
+          900: "#0E1015", // Primary card surface
+          850: "#14171E", // Secondary / elevated surface
+          800: "#1C2029", // Structural 1px border
+          700: "#282E3B", // Active / hover border
+          600: "#3D4659", // Subtle divider
         },
+        brand: {
+          blue: "#2563EB",      // Primary Brand Cobalt Blue
+          blueHover: "#1D4ED8", // Active hover blue
+          blueLight: "#3B82F6", // Accessible link blue
+        },
+        mint: {
+          green: "#00EC97",     // NEAR Functional Security Green
+          greenDark: "#059669", // Dark mode accessible green text
+          greenBg: "rgba(0, 236, 151, 0.08)",
+        },
+      },
+      fontFamily: {
+        sans: ["DM Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        mono: ["DM Mono", "ui-monospace", "SF Mono", "Menlo", "monospace"],
       },
       boxShadow: {
-        xs: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-        ambient: "0 2px 8px -2px rgba(0, 0, 0, 0.05)",
-      },
-      backdropBlur: {
-        xs: "2px",
+        subtle: "0 1px 3px 0 rgba(0, 0, 0, 0.04)",
+        card: "0 2px 8px -2px rgba(0, 0, 0, 0.06)",
       },
     },
   },
