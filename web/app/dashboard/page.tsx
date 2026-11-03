@@ -31,6 +31,9 @@ import {
   Trash2,
   ArrowRight,
   ArrowUpRight,
+  TrendingDown,
+  Timer,
+  Crosshair,
 } from "lucide-react";
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
@@ -38,6 +41,7 @@ import { useWallet } from "@/context/WalletContext";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 import { IncidentExportModal } from "@/components/IncidentExportModal";
+import { BudgetVelocityGauge } from "@/components/BudgetVelocityGauge";
 
 interface ActivityItem {
   id: string;
@@ -79,6 +83,11 @@ export default function DashboardPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
   const [vaultBalance, setVaultBalance] = useState("350");
+  const [highWaterMark, setHighWaterMark] = useState<string>("350");
+  const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(1500);
+  const [leaseExpiresAt, setLeaseExpiresAt] = useState<number | string | null>(null);
+  const [canaryMethods, setCanaryMethods] = useState<string[]>(["drain_vault", "admin_transfer"]);
+  const [intentRecipients, setIntentRecipients] = useState<string[]>([]);
   const [dailyCapTotal, setDailyCapTotal] = useState(500);
   const [dailyCapSpent, setDailyCapSpent] = useState(0);
   const [velocityUsed, setVelocityUsed] = useState(0);
@@ -91,6 +100,11 @@ export default function DashboardPage() {
     5: true,
     6: true,
     7: true,
+    8: true,
+    9: true,
+    10: true,
+    11: true,
+    12: true,
   });
   const [loading, setLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -147,6 +161,18 @@ export default function DashboardPage() {
           if (data.policy.max_actions_per_10min) {
             setVelocityMax(Number(data.policy.max_actions_per_10min));
           }
+          if (data.policy.max_drawdown_bps !== undefined) {
+            setMaxDrawdownBps(data.policy.max_drawdown_bps);
+          }
+          if (data.policy.lease_expires_at !== undefined) {
+            setLeaseExpiresAt(data.policy.lease_expires_at);
+          }
+          if (Array.isArray(data.policy.canary_methods) && data.policy.canary_methods.length > 0) {
+            setCanaryMethods(data.policy.canary_methods);
+          }
+          if (Array.isArray(data.policy.intent_recipients)) {
+            setIntentRecipients(data.policy.intent_recipients);
+          }
         }
         if (data.budget) {
           const paused = Boolean(data.budget.paused);
@@ -154,7 +180,12 @@ export default function DashboardPage() {
           setRuleToggles((prev) => ({ ...prev, 2: !paused }));
           setDailyCapTotal(data.budget.cap !== undefined ? Number(data.budget.cap) : 500);
           setDailyCapSpent(data.budget.spent !== undefined ? Number(data.budget.spent) : 0);
-          setVaultBalance(data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "350");
+          const vBalance = data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "350";
+          setVaultBalance(vBalance);
+          setHighWaterMark(data.budget.high_water_mark !== undefined ? String(data.budget.high_water_mark) : vBalance);
+          if (data.budget.max_drawdown_bps !== undefined) {
+            setMaxDrawdownBps(data.budget.max_drawdown_bps);
+          }
           setVelocityUsed(data.budget.actions_in_window !== undefined ? Number(data.budget.actions_in_window) : 0);
         }
         setPendingActions(Array.isArray(data.pendingActions) ? data.pendingActions : []);
@@ -211,7 +242,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Evacuate Vault to Owner",
       description: "Empties 100% of the agent spending pot back into your owner wallet. The destination is forced to the verified owner account onchain.",
-      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":null}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -243,7 +274,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Settle Quarantined Action",
       description: `Authorizes and executes quarantined action #${pendingId} on NEAR Testnet. The 60-second review timelock has completed.`,
-      command: `near call ${guardId} settle_pending '{"pending_id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} settle_pending '{"agent":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: false,
     });
   };
@@ -252,7 +283,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Veto Quarantined Action",
       description: `Vetoes and deletes quarantined action #${pendingId} from the onchain queue. No funds will be transferred.`,
-      command: `near call ${guardId} cancel_pending '{"pending_id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -261,7 +292,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Cancel Staged Policy Change",
       description: "Cancels the pending policy change currently sitting in the timelock queue. The existing policy rules remain active.",
-      command: `near call ${guardId} cancel_staged_policy '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} cancel_policy_change '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       isDanger: true,
     });
   };
@@ -571,8 +602,107 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Spending Limits, Speed Throttles & Autonomous Risk Gauges */}
+      <BudgetVelocityGauge
+        gasBudgetNearTotal={0.25}
+        gasBudgetNearRemaining={0.23}
+        dailyCapTotal={dailyCapTotal}
+        dailyCapSpent={dailyCapSpent}
+        velocityUsed={velocityUsed}
+        velocityMax={velocityMax}
+        vaultBalance={vaultBalance}
+        highWaterMark={highWaterMark}
+        maxDrawdownBps={maxDrawdownBps}
+        leaseExpiresAt={leaseExpiresAt}
+        canaryMethodsCount={canaryMethods.length}
+        intentRecipientsCount={intentRecipients.length}
+      />
+
       {/* Worst-Case Loss Bound Indicator */}
       <WorstCaseBoundIndicator dailyCap={dailyCapTotal} vaultBalance={vaultBalance} />
+
+      {/* Autonomous Risk Panels: IntentShield & Canary Decoys */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* IntentShield Card */}
+        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-brand-blue" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                IntentShield: Cross-Chain Allowlist
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
+              {intentRecipients.length > 0 ? `${intentRecipients.length} Recipient(s)` : "Strict Mode"}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains.
+          </p>
+
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Allowlisted Destinations:
+            </span>
+            {intentRecipients.length > 0 ? (
+              <div className="space-y-1">
+                {intentRecipients.map((rec, i) => (
+                  <div
+                    key={i}
+                    className="p-2 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                  >
+                    <span className="truncate">{rec}</span>
+                    <span className="text-[10px] font-semibold text-mint-greenDark dark:text-mint-green px-1.5 py-0.5 rounded bg-mint-green/10">
+                      Permitted
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-xs font-mono text-slate-500">
+                No external recipients allowlisted. All cross-chain withdrawals are blocked onchain.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Canary Decoy Honeypot Card */}
+        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Canary Decoy Tripwires
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              {canaryMethods.length} Armed
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Honeypot functions deliberately advertised to catch prompt injection attacks. If an agent tries calling any of these methods, the contract triggers immediate auto-pause.
+          </p>
+
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Active Decoy Methods:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {canaryMethods.map((m, i) => (
+                <span
+                  key={i}
+                  className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>{m}()</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Enforced Policy Rules and Controls */}
       <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-obsidian-800 space-y-4">
@@ -616,13 +746,33 @@ export default function DashboardPage() {
               num: 2,
               name: "Execution State & Circuit Breaker",
               code: "PAUSED",
-              desc: "Refuses execution when paused by owner or tripped by 3 consecutive rejects in 10 minutes.",
+              desc: "Refuses execution when paused by owner or tripped by consecutive rejects in configured window.",
               config: isInitialLoading ? "Syncing..." : isPaused ? "Paused by Owner" : "Active (Unpaused)",
               badge: isInitialLoading ? "Syncing" : isPaused ? "Paused" : "Active",
               isLocked: false,
             },
             {
               num: 3,
+              name: "Task Lease Expiry",
+              code: "LEASE_EXPIRED",
+              desc: "Refuses execution if the task lease timestamp has expired. Prevents forgotten keys from executing indefinitely.",
+              config: leaseExpiresAt
+                ? `Expires: ${new Date(Number(leaseExpiresAt) / 1000000).toLocaleString()}`
+                : "Perpetual (No Expiry)",
+              badge: leaseExpiresAt ? "Timed" : "Perpetual",
+              isLocked: false,
+            },
+            {
+              num: 4,
+              name: "Canary Decoy Honeypot Tripwire",
+              code: "CANARY_TRIPPED",
+              desc: "Calling honeypot methods trips auto-pause immediately and emits an onchain CANARY_TRIPPED security event.",
+              config: canaryMethods.join(", "),
+              badge: `${canaryMethods.length} Armed`,
+              isLocked: true,
+            },
+            {
+              num: 5,
               name: "Velocity Anti-Spam Limit",
               code: "OVER_VELOCITY_CAP",
               desc: `Maximum ${velocityMax} transactions per 10-minute sliding window. Blocks runaway loops and automated burst draining.`,
@@ -631,7 +781,7 @@ export default function DashboardPage() {
               isLocked: false,
             },
             {
-              num: 4,
+              num: 6,
               name: "Target Contract Allowlist",
               code: "TARGET_NOT_ALLOWED",
               desc: "Agent calls are restricted exclusively to allowlisted contracts. Calls to unlisted contracts are blocked onchain.",
@@ -646,7 +796,7 @@ export default function DashboardPage() {
               isLocked: false,
             },
             {
-              num: 5,
+              num: 7,
               name: "Method Call Allowlist",
               code: "METHOD_NOT_ALLOWED",
               desc: "Only approved contract methods can be invoked. Key-management, admin, and upgrade functions are refused.",
@@ -661,7 +811,7 @@ export default function DashboardPage() {
               isLocked: false,
             },
             {
-              num: 6,
+              num: 8,
               name: "Daily Spending Cap",
               code: "OVER_DAILY_CAP",
               desc: `Cumulative value spent across rolling 24 hours cannot exceed $${dailyCapTotal} mUSD ($${dailyCapSpent} spent, $${Math.max(0, dailyCapTotal - dailyCapSpent)} remaining).`,
@@ -670,8 +820,8 @@ export default function DashboardPage() {
               isLocked: false,
             },
             {
-              num: 7,
-              name: "Recipient Transfer Allowlist",
+              num: 9,
+              name: "Direct Recipient Transfer Allowlist",
               code: "RECIPIENT_NOT_ALLOWED",
               desc: "Direct token payouts to personal wallets are refused unless explicitly allowlisted. Empty list = strict DEX isolation.",
               config: isInitialLoading
@@ -684,6 +834,41 @@ export default function DashboardPage() {
                 : policy?.recipients && policy.recipients.length > 0
                 ? `${policy.recipients.length} Recipient(s)`
                 : "Isolated",
+              isLocked: false,
+            },
+            {
+              num: 10,
+              name: "IntentShield Cross-Chain Allowlist",
+              code: "INTENT_RECIPIENT_NOT_ALLOWED",
+              desc: "Cross-chain Intent transfers are restricted to explicitly allowlisted destination recipient addresses.",
+              config: isInitialLoading
+                ? "Syncing..."
+                : intentRecipients.length > 0
+                ? intentRecipients.join(", ")
+                : "Strict Isolation (Transfers Refused)",
+              badge: isInitialLoading
+                ? "Syncing"
+                : intentRecipients.length > 0
+                ? `${intentRecipients.length} Recipient(s)`
+                : "Isolated",
+              isLocked: false,
+            },
+            {
+              num: 11,
+              name: "Vault Custody Balance Enforcement",
+              code: "INSUFFICIENT_VAULT_BALANCE",
+              desc: `Transfers cannot exceed internal custodied balance ($${vaultBalance} mUSD available in agent vault).`,
+              config: `$${vaultBalance} in Vault`,
+              badge: "Vault Bounded",
+              isLocked: false,
+            },
+            {
+              num: 12,
+              name: "Net Drawdown Floor Breaker",
+              code: "DRAWDOWN_EXCEEDED",
+              desc: `Halts execution if vault drops below ${((10000 - (maxDrawdownBps ?? 1500)) / 100).toFixed(0)}% of peak high-water mark ($${highWaterMark}).`,
+              config: `${((maxDrawdownBps ?? 1500) / 100).toFixed(1)}% Max Drop`,
+              badge: "Floor Protected",
               isLocked: false,
             },
           ].map((rule) => {

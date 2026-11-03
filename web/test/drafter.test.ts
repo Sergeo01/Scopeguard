@@ -48,6 +48,35 @@ test("drafter: validatePolicyShape accepts valid policies and rejects malformed 
   // Reject negative or invalid daily cap
   const badCap = { ...validPolicy, daily_cap: -50 };
   assert.ok(validatePolicyShape(badCap).some((e) => e.includes("daily_cap must be a positive integer")));
+
+  // Autonomous risk safeguards: test valid and invalid shapes
+  const validSafeguardsPolicy: DrafterPolicy = {
+    ...validPolicy,
+    max_drawdown_bps: 1500,
+    lease_expires_at: (Date.now() + 86400 * 1000) * 1_000_000, // nanosecond timestamp
+    intent_recipients: ["0x71C8363837381F025701262B4527964b071661A4"],
+    canary_methods: ["emergency_withdraw_all", "drain_vault"],
+  };
+  assert.deepStrictEqual(validatePolicyShape(validSafeguardsPolicy), []);
+
+  // String timestamp format
+  const validStringTimestampPolicy = {
+    ...validPolicy,
+    lease_expires_at: "1793742193647000000" as any,
+  };
+  assert.deepStrictEqual(validatePolicyShape(validStringTimestampPolicy), []);
+
+  // Invalid max_drawdown_bps > 10000
+  const badDrawdown = { ...validPolicy, max_drawdown_bps: 12000 };
+  assert.ok(validatePolicyShape(badDrawdown).some((e) => e.includes("max_drawdown_bps must be an integer between 0 and 10000")));
+
+  // Invalid canary_methods containing non-string
+  const badCanary = { ...validPolicy, canary_methods: [123 as any] };
+  assert.ok(validatePolicyShape(badCanary).some((e) => e.includes("canary_methods must be an array of method name strings")));
+
+  // Invalid intent_recipients containing non-string
+  const badIntent = { ...validPolicy, intent_recipients: [true as any] };
+  assert.ok(validatePolicyShape(badIntent).some((e) => e.includes("intent_recipients must be an array of strings")));
 });
 
 test("drafter: lintPolicy flags dangerous administrative methods, open recipients, and velocity anomalies", () => {

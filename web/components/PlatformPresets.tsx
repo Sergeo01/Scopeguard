@@ -82,13 +82,18 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
               }`}
             >
               <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {preset.name}
                   </span>
                   <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-obsidian-950 text-slate-500 border border-slate-200 dark:border-obsidian-800">
                     {preset.category}
                   </span>
+                  {preset.category === "Intents" && (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/30 flex items-center gap-1">
+                      <Shield className="w-2.5 h-2.5" /> IntentShield
+                    </span>
+                  )}
                 </div>
                 <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate">
                   {preset.contract}

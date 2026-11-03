@@ -17,12 +17,16 @@ use std::collections::HashMap;
 
 pub const REASON_NOT_AGENT: &str = "NOT_AGENT";
 pub const REASON_PAUSED: &str = "PAUSED";
+pub const REASON_LEASE_EXPIRED: &str = "LEASE_EXPIRED";
+pub const REASON_CANARY_TRIPPED: &str = "CANARY_TRIPPED";
 pub const REASON_OVER_VELOCITY: &str = "OVER_VELOCITY_CAP";
 pub const REASON_TARGET: &str = "TARGET_NOT_ALLOWED";
 pub const REASON_METHOD: &str = "METHOD_NOT_ALLOWED";
 pub const REASON_CAP: &str = "OVER_DAILY_CAP";
 pub const REASON_INSUFFICIENT_VAULT: &str = "INSUFFICIENT_VAULT_BALANCE";
+pub const REASON_DRAWDOWN_EXCEEDED: &str = "DRAWDOWN_EXCEEDED";
 pub const REASON_RECIPIENT: &str = "RECIPIENT_NOT_ALLOWED";
+pub const REASON_INTENT_RECIPIENT: &str = "INTENT_RECIPIENT_NOT_ALLOWED";
 pub const REASON_PENDING_QUEUE_FULL: &str = "PENDING_QUEUE_FULL";
 
 const DAY_NS: u64 = 24 * 60 * 60 * 1_000_000_000;
@@ -78,6 +82,76 @@ where
     deserializer.deserialize_any(FlexibleU128)
 }
 
+/// Accepts null, omitted, numeric integers (e.g. 1700000000000000000), or numeric strings
+/// (e.g. "1700000000000000000") for lease expiration timestamps to prevent precision loss.
+fn de_u64_opt_flexible<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: near_sdk::serde::Deserializer<'de>,
+{
+    use near_sdk::serde::de::{self, Visitor};
+
+    struct FlexibleOptU64;
+
+    impl<'de> Visitor<'de> for FlexibleOptU64 {
+        type Value = Option<u64>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("null, a non-negative integer or a numeric string")
+        }
+
+        fn visit_none<E: de::Error>(self) -> Result<Option<u64>, E> {
+            Ok(None)
+        }
+
+        fn visit_unit<E: de::Error>(self) -> Result<Option<u64>, E> {
+            Ok(None)
+        }
+
+        fn visit_some<D: near_sdk::serde::Deserializer<'de>>(
+            self,
+            deserializer: D,
+        ) -> Result<Option<u64>, D::Error> {
+            deserializer.deserialize_any(FlexibleOptU64)
+        }
+
+        fn visit_u64<E: de::Error>(self, value: u64) -> Result<Option<u64>, E> {
+            Ok(Some(value))
+        }
+
+        fn visit_u128<E: de::Error>(self, value: u128) -> Result<Option<u64>, E> {
+            u64::try_from(value).map(Some).map_err(|_| E::custom("u64 overflow"))
+        }
+
+        fn visit_i64<E: de::Error>(self, value: i64) -> Result<Option<u64>, E> {
+            if value < 0 {
+                Err(E::custom("expected a non-negative integer"))
+            } else {
+                Ok(Some(value as u64))
+            }
+        }
+
+        fn visit_str<E: de::Error>(self, value: &str) -> Result<Option<u64>, E> {
+            let s = value.trim();
+            if s.is_empty() || s == "null" {
+                Ok(None)
+            } else {
+                s.parse::<u64>().map(Some).map_err(|_| E::custom("invalid number"))
+            }
+        }
+    }
+
+    deserializer.deserialize_any(FlexibleOptU64)
+}
+
+/// Computes the drawdown floor: hwm * (10000 - max_drawdown_bps) / 10000.
+/// Avoids arithmetic overflow and premature saturation for large u128 values.
+pub(crate) fn compute_drawdown_floor(hwm: u128, max_drawdown_bps: u16) -> u128 {
+    let mult = 10000u128.saturating_sub(max_drawdown_bps as u128);
+    let q = hwm / 10000;
+    let r = hwm % 10000;
+    q.saturating_mul(mult).saturating_add((r * mult) / 10000)
+}
+
 #[near(serializers = [json, borsh])]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Policy {
@@ -103,6 +177,18 @@ pub struct Policy {
     pub high_value_delay_seconds: u64,
     /// delay in seconds for owner set_policy change to become effective
     pub policy_change_delay_seconds: u64,
+    /// optional maximum drawdown in basis points (e.g. 1500 = 15.00%)
+    #[serde(default)]
+    pub max_drawdown_bps: Option<u16>,
+    /// optional lease expiration timestamp in nanoseconds
+    #[serde(default, deserialize_with = "de_u64_opt_flexible")]
+    pub lease_expires_at: Option<u64>,
+    /// allowlisted cross-chain destination addresses (e.g. EVM 0x... or Solana)
+    #[serde(default)]
+    pub intent_recipients: Vec<String>,
+    /// decoy honeypot methods that trigger immediate auto-pause
+    #[serde(default)]
+    pub canary_methods: Vec<String>,
 }
 
 /// Strongly typed actions: the Guard constructs calldata from these variants,
@@ -126,6 +212,12 @@ pub enum GuardAction {
         target: AccountId,
         method: String,
         args: String,
+    },
+    IntentTransfer {
+        deposit_address: AccountId,
+        amount: U128,
+        destination_asset: String,
+        recipient: String,
     },
 }
 
@@ -170,6 +262,26 @@ impl GuardAction {
                 method,
                 args,
             } => (target.clone(), method.clone(), args.as_bytes().to_vec(), 0, None),
+            GuardAction::IntentTransfer {
+                deposit_address,
+                amount,
+                destination_asset,
+                recipient,
+            } => {
+                let call_args = serde_json::to_vec(&serde_json::json!({
+                    "recipient": recipient,
+                    "destination_asset": destination_asset,
+                    "amount": amount
+                }))
+                .unwrap_or_default();
+                (
+                    deposit_address.clone(),
+                    "execute_intent".to_string(),
+                    call_args,
+                    amount.0,
+                    None,
+                )
+            }
         }
     }
 }
@@ -217,6 +329,8 @@ pub struct AgentRecord {
     pub vault_balance: u128,
     /// recipients added via staged policy that have not yet had a settled transfer
     pub unconfirmed_recipients: Vec<AccountId>,
+    /// peak vault balance for Net Drawdown Breaker calculations
+    pub high_water_mark: U128,
 }
 
 #[near(serializers = [json])]
@@ -251,6 +365,8 @@ pub struct BudgetView {
     pub vault_balance: U128,
     /// true once the owner has permanently revoked this agent's allowlist
     pub revoked: bool,
+    pub high_water_mark: U128,
+    pub max_drawdown_bps: Option<u16>,
 }
 
 #[near(contract_state)]
@@ -314,6 +430,9 @@ impl Contract {
             policy.high_value_threshold <= policy.daily_cap,
             "high_value_threshold cannot exceed daily_cap"
         );
+        if let Some(bps) = policy.max_drawdown_bps {
+            assert!(bps <= 10000, "max_drawdown_bps cannot exceed 10000 (100%)");
+        }
         for (_target, methods) in &policy.targets {
             assert!(!methods.is_empty(), "methods list cannot be empty for target");
             for m in methods {
@@ -322,6 +441,12 @@ impl Contract {
                     "wildcard method '*' is forbidden: name every method explicitly"
                 );
             }
+        }
+        for canary in &policy.canary_methods {
+            assert!(!canary.trim().is_empty(), "canary method cannot be empty");
+        }
+        for ir in &policy.intent_recipients {
+            assert!(!ir.trim().is_empty(), "intent recipient cannot be empty");
         }
     }
 
@@ -358,6 +483,7 @@ impl Contract {
                 next_pending_id: 1,
                 vault_balance: 0,
                 unconfirmed_recipients: Vec::new(),
+                high_water_mark: U128(0),
             },
         );
         let mut list = self
@@ -394,6 +520,9 @@ impl Contract {
         assert_eq!(token_caller, rec.policy.token, "Unauthorized token contract");
 
         rec.vault_balance += amount.0;
+        if rec.vault_balance > rec.high_water_mark.0 {
+            rec.high_water_mark = U128(rec.vault_balance);
+        }
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
             "{{\"event\":\"DEPOSIT\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
@@ -462,6 +591,9 @@ impl Contract {
         let mut rec = self.load_owned(&agent_account);
         assert!(rec.vault_balance >= amount.0, "insufficient vault balance");
         rec.vault_balance -= amount.0;
+        if rec.vault_balance < rec.high_water_mark.0 {
+            rec.high_water_mark = U128(rec.vault_balance);
+        }
         let token = rec.policy.token.clone();
         self.agents.insert(agent_account.clone(), rec.clone());
         emit(&format!(
@@ -546,6 +678,7 @@ impl Contract {
         rec.velocity_window_start = now;
         rec.actions_in_window = 0;
         rec.reject_times.clear();
+        rec.high_water_mark = U128(rec.vault_balance);
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
             "{{\"event\":\"WINDOWS_RESET\",\"agent\":\"{}\"}}",
@@ -600,6 +733,23 @@ impl Contract {
         if rec.paused {
             return self.reject(&caller, &mut rec, REASON_PAUSED, now);
         }
+        if let Some(expires_at) = rec.policy.lease_expires_at {
+            if now >= expires_at {
+                return self.reject(&caller, &mut rec, REASON_LEASE_EXPIRED, now);
+            }
+        }
+        if rec.policy.canary_methods.iter().any(|m| m == &method) {
+            rec.paused = true;
+            emit(&format!(
+                "{{\"event\":\"CANARY_TRIPPED\",\"agent\":\"{}\",\"method\":\"{}\"}}",
+                caller, method
+            ));
+            emit(&format!(
+                "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"CANARY_TRIPPED\"}}",
+                caller
+            ));
+            return self.reject(&caller, &mut rec, REASON_CANARY_TRIPPED, now);
+        }
         if rec.actions_in_window >= rec.policy.max_actions_per_10min {
             return self.reject(&caller, &mut rec, REASON_OVER_VELOCITY, now);
         }
@@ -622,9 +772,9 @@ impl Contract {
         if !methods.iter().any(|m| m == &method) {
             return self.reject(&caller, &mut rec, REASON_METHOD, now);
         }
-        // Security check: ContractCall must NEVER invoke token transfer methods or swap
+        // Security check: ContractCall must NEVER invoke token transfer methods or swap or execute_intent
         if let GuardAction::ContractCall { method: ref cc_method, .. } = &action {
-            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" {
+            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" || cc_method == "execute_intent" {
                 return self.reject(&caller, &mut rec, REASON_METHOD, now);
             }
         }
@@ -641,9 +791,31 @@ impl Contract {
                 return self.reject(&caller, &mut rec, REASON_RECIPIENT, now);
             }
         }
+        if let GuardAction::IntentTransfer { ref recipient, .. } = &action {
+            if !rec.policy.intent_recipients.iter().any(|x| x == recipient) {
+                return self.reject(&caller, &mut rec, REASON_INTENT_RECIPIENT, now);
+            }
+        }
         // Bound transfers to agent's own recorded vault balance
-        if matches!(action, GuardAction::Transfer { .. }) && amount > rec.vault_balance {
+        let reduces_vault = matches!(action, GuardAction::Transfer { .. }) || matches!(action, GuardAction::IntentTransfer { .. });
+        if reduces_vault && amount > rec.vault_balance {
             return self.reject(&caller, &mut rec, REASON_INSUFFICIENT_VAULT, now);
+        }
+
+        // Net Drawdown Breaker check: calculate projected balance against high-water mark floor
+        if reduces_vault {
+            if let Some(max_bps) = rec.policy.max_drawdown_bps {
+                let projected_balance = rec.vault_balance.saturating_sub(amount);
+                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                if projected_balance < floor {
+                    rec.paused = true;
+                    emit(&format!(
+                        "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"DRAWDOWN_EXCEEDED\"}}",
+                        caller
+                    ));
+                    return self.reject(&caller, &mut rec, REASON_DRAWDOWN_EXCEEDED, now);
+                }
+            }
         }
 
         // Check if action should be quarantined into timelock lane:
@@ -688,7 +860,7 @@ impl Contract {
             rec.spent_in_window = new_spent;
             rec.actions_in_window += 1;
             // Debit custodied vault balance when real tokens are transferred
-            if matches!(action, GuardAction::Transfer { .. }) {
+            if reduces_vault {
                 rec.vault_balance -= amount;
             }
             self.agents.insert(caller.clone(), rec);
@@ -696,7 +868,7 @@ impl Contract {
                 "{{\"event\":\"ALLOW\",\"agent\":\"{}\",\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
                 caller, target, method, amount
             ));
-            let is_transfer = matches!(action, GuardAction::Transfer { .. });
+            let is_transfer = reduces_vault;
             self.perform_action(&caller, &target, &method, &args_bytes, amount, is_transfer);
             Outcome {
                 status: "ALLOWED".to_string(),
@@ -754,6 +926,32 @@ impl Contract {
                 pending_id: Some(id),
             };
         }
+        if let Some(expires_at) = rec.policy.lease_expires_at {
+            if now >= expires_at {
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_LEASE_EXPIRED.to_string()),
+                    pending_id: Some(id),
+                };
+            }
+        }
+        if rec.policy.canary_methods.iter().any(|m| m == &pending_action.method) {
+            rec.paused = true;
+            emit(&format!(
+                "{{\"event\":\"CANARY_TRIPPED\",\"agent\":\"{}\",\"method\":\"{}\"}}",
+                agent, pending_action.method
+            ));
+            emit(&format!(
+                "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"CANARY_TRIPPED\"}}",
+                agent
+            ));
+            self.agents.insert(agent.clone(), rec);
+            return Outcome {
+                status: "REJECTED".to_string(),
+                reason: Some(REASON_CANARY_TRIPPED.to_string()),
+                pending_id: Some(id),
+            };
+        }
         let methods = match rec.policy.targets.get(&pending_action.target) {
             Some(m) => m.clone(),
             None => {
@@ -797,13 +995,40 @@ impl Contract {
                 };
             }
         }
-        if matches!(pending_action.action, GuardAction::Transfer { .. }) {
+        if let GuardAction::IntentTransfer { ref recipient, .. } = pending_action.action {
+            if !rec.policy.intent_recipients.iter().any(|x| x == recipient) {
+                return Outcome {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_INTENT_RECIPIENT.to_string()),
+                    pending_id: Some(id),
+                };
+            }
+        }
+        let reduces_vault = matches!(pending_action.action, GuardAction::Transfer { .. }) || matches!(pending_action.action, GuardAction::IntentTransfer { .. });
+        if reduces_vault {
             if pending_action.amount > rec.vault_balance {
                 return Outcome {
                     status: "REJECTED".to_string(),
                     reason: Some(REASON_INSUFFICIENT_VAULT.to_string()),
                     pending_id: Some(id),
                 };
+            }
+            if let Some(max_bps) = rec.policy.max_drawdown_bps {
+                let projected_balance = rec.vault_balance.saturating_sub(pending_action.amount);
+                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                if projected_balance < floor {
+                    rec.paused = true;
+                    emit(&format!(
+                        "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"DRAWDOWN_EXCEEDED\"}}",
+                        agent
+                    ));
+                    self.agents.insert(agent.clone(), rec);
+                    return Outcome {
+                        status: "REJECTED".to_string(),
+                        reason: Some(REASON_DRAWDOWN_EXCEEDED.to_string()),
+                        pending_id: Some(id),
+                    };
+                }
             }
             rec.vault_balance -= pending_action.amount;
         }
@@ -831,7 +1056,7 @@ impl Contract {
             agent, id, pending_action.target, pending_action.method, pending_action.amount
         ));
         let (_, _, args_bytes, _, _) = pending_action.action.decompose();
-        let is_transfer = matches!(pending_action.action, GuardAction::Transfer { .. });
+        let is_transfer = reduces_vault;
         self.perform_action(
             &agent,
             &pending_action.target,
@@ -864,6 +1089,8 @@ impl Contract {
             paused: r.paused,
             vault_balance: U128(r.vault_balance),
             revoked: r.policy.targets.is_empty() && r.policy.recipients.is_empty(),
+            high_water_mark: r.high_water_mark,
+            max_drawdown_bps: r.policy.max_drawdown_bps,
         })
     }
 
@@ -946,6 +1173,8 @@ impl Contract {
             paused: rec.paused,
             vault_balance,
             revoked: rec.policy.targets.is_empty() && rec.policy.recipients.is_empty(),
+            high_water_mark: rec.high_water_mark,
+            max_drawdown_bps: rec.policy.max_drawdown_bps,
         };
 
         let reject = |reason: &str| PreflightResult {
@@ -964,12 +1193,23 @@ impl Contract {
         if rec.paused {
             return reject(REASON_PAUSED);
         }
+        if let Some(expires_at) = rec.policy.lease_expires_at {
+            if now >= expires_at {
+                return reject(REASON_LEASE_EXPIRED);
+            }
+        }
+
+        let (target, method, _args_bytes, amount, recipient) = action.decompose();
+
+        // Canary Decoy Tripwire
+        if rec.policy.canary_methods.iter().any(|m| m == &method) {
+            return reject(REASON_CANARY_TRIPPED);
+        }
+
         // Check 3: OVER_VELOCITY_CAP
         if rec.actions_in_window >= rec.policy.max_actions_per_10min {
             return reject(REASON_OVER_VELOCITY);
         }
-
-        let (target, method, _args_bytes, amount, recipient) = action.decompose();
 
         // Check 4: TARGET_NOT_ALLOWED
         if let GuardAction::Transfer { ref token, .. } = action {
@@ -992,7 +1232,7 @@ impl Contract {
             return reject(REASON_METHOD);
         }
         if let GuardAction::ContractCall { method: ref cc_method, .. } = action {
-            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" {
+            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" || cc_method == "execute_intent" {
                 return reject(REASON_METHOD);
             }
         }
@@ -1012,10 +1252,27 @@ impl Contract {
                 return reject(REASON_RECIPIENT);
             }
         }
+        if let GuardAction::IntentTransfer { ref recipient, .. } = action {
+            if !rec.policy.intent_recipients.iter().any(|x| x == recipient) {
+                return reject(REASON_INTENT_RECIPIENT);
+            }
+        }
 
         // Check 8: INSUFFICIENT_VAULT_BALANCE
-        if matches!(action, GuardAction::Transfer { .. }) && amount > rec.vault_balance {
+        let reduces_vault = matches!(action, GuardAction::Transfer { .. }) || matches!(action, GuardAction::IntentTransfer { .. });
+        if reduces_vault && amount > rec.vault_balance {
             return reject(REASON_INSUFFICIENT_VAULT);
+        }
+
+        // Net Drawdown Breaker check: calculate projected balance against high-water mark floor
+        if reduces_vault {
+            if let Some(max_bps) = rec.policy.max_drawdown_bps {
+                let projected_balance = rec.vault_balance.saturating_sub(amount);
+                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                if projected_balance < floor {
+                    return reject(REASON_DRAWDOWN_EXCEEDED);
+                }
+            }
         }
 
         // Check 9: Timelock quarantine vs PENDING_QUEUE_FULL
@@ -1143,6 +1400,9 @@ impl Contract {
             if let Some(mut rec) = self.agents.get(&agent).cloned() {
                 if is_transfer {
                     rec.vault_balance = rec.vault_balance.saturating_add(amount.0);
+                    if rec.vault_balance > rec.high_water_mark.0 {
+                        rec.high_water_mark = U128(rec.vault_balance);
+                    }
                 }
                 rec.spent_in_window = rec.spent_in_window.saturating_sub(amount.0);
                 self.agents.insert(agent.clone(), rec);
@@ -1168,6 +1428,9 @@ impl Contract {
         if !success {
             if let Some(mut rec) = self.agents.get(&agent).cloned() {
                 rec.vault_balance = rec.vault_balance.saturating_add(amount.0);
+                if rec.vault_balance > rec.high_water_mark.0 {
+                    rec.high_water_mark = U128(rec.vault_balance);
+                }
                 self.agents.insert(agent.clone(), rec);
                 emit(&format!(
                     "{{\"event\":\"WITHDRAW_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
@@ -1264,6 +1527,10 @@ mod tests {
             high_value_threshold: 0,
             high_value_delay_seconds: 3600,
             policy_change_delay_seconds: 600,
+            max_drawdown_bps: None,
+            lease_expires_at: None,
+            intent_recipients: Vec::new(),
+            canary_methods: Vec::new(),
         }
     }
 
@@ -1303,6 +1570,17 @@ mod tests {
         let mut contract = Contract::new();
         contract.register_agent(agent(), sample_policy());
         (contract, builder)
+    }
+
+    fn setup_fresh_contract(now: u64) -> (Contract, VMContextBuilder) {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id(owner())
+            .prepaid_gas(Gas::from_tgas(300))
+            .block_timestamp(now);
+        testing_env!(builder.build());
+        (Contract::new(), builder)
     }
 
     #[test]
@@ -2126,11 +2404,13 @@ mod tests {
             "auto_pause_window_minutes": 10,
             "high_value_threshold": 250,
             "high_value_delay_seconds": 60,
-            "policy_change_delay_seconds": 600
+            "policy_change_delay_seconds": 600,
+            "lease_expires_at": 1793742193647000000
         }"#;
         let policy_num: Policy = near_sdk::serde_json::from_str(json_num).unwrap();
         assert_eq!(policy_num.daily_cap, 500);
         assert_eq!(policy_num.high_value_threshold, 250);
+        assert_eq!(policy_num.lease_expires_at, Some(1793742193647000000));
 
         // Test string format
         let json_str = r#"{
@@ -2143,11 +2423,13 @@ mod tests {
             "auto_pause_window_minutes": 10,
             "high_value_threshold": "250",
             "high_value_delay_seconds": 60,
-            "policy_change_delay_seconds": 600
+            "policy_change_delay_seconds": 600,
+            "lease_expires_at": "1793742193647000000"
         }"#;
         let policy_str: Policy = near_sdk::serde_json::from_str(json_str).unwrap();
         assert_eq!(policy_str.daily_cap, 500);
         assert_eq!(policy_str.high_value_threshold, 250);
+        assert_eq!(policy_str.lease_expires_at, Some(1793742193647000000));
     }
 
     // ---------------------------------------------------------------
@@ -2476,4 +2758,335 @@ mod tests {
         assert_eq!(second_outcome.status, "ALLOWED");
         assert!(second_outcome.pending_id.is_none());
     }
+
+    #[test]
+    fn test_drawdown_allowance_vs_rejection_at_threshold() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        // 1500 bps = 15.00% max drawdown
+        let mut policy = sample_policy();
+        policy.max_drawdown_bps = Some(1500);
+        policy.daily_cap = 2000;
+        contract.register_agent(agent(), policy);
+
+        // Deposit 1000 tokens into vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(1000), agent().to_string());
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget.vault_balance, U128(1000));
+        assert_eq!(budget.high_water_mark, U128(1000));
+        assert_eq!(budget.max_drawdown_bps, Some(1500));
+
+        // Transfer 150 tokens: projected balance is 850 (exactly 85.00% of 1000 HWM), floor is 850
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let action_allow = transfer_action(150, recipient());
+
+        let pf_allow = contract.preflight(agent(), action_allow.clone());
+        assert_eq!(pf_allow.status, "ALLOWED");
+
+        let outcome_allow = contract.execute(action_allow);
+        assert_eq!(outcome_allow.status, "ALLOWED");
+
+        // Next transfer of 1 token: projected balance would be 849 (< 850 floor)
+        // Must reject with DRAWDOWN_EXCEEDED and trip auto-pause
+        let action_breach = transfer_action(1, recipient());
+        let pf_breach = contract.preflight(agent(), action_breach.clone());
+        assert_eq!(pf_breach.status, "REJECTED");
+        assert_eq!(pf_breach.reason, Some("DRAWDOWN_EXCEEDED".to_string()));
+
+        let outcome_breach = contract.execute(action_breach);
+        assert_eq!(outcome_breach.status, "REJECTED");
+        assert_eq!(outcome_breach.reason, Some("DRAWDOWN_EXCEEDED".to_string()));
+
+        // Verify contract is now auto-paused
+        let budget_after = contract.get_budget(agent()).unwrap();
+        assert!(budget_after.paused);
+
+        // Subsequent calls reject on PAUSED
+        let outcome_paused = contract.execute(swap_action(10));
+        assert_eq!(outcome_paused.status, "REJECTED");
+        assert_eq!(outcome_paused.reason, Some("PAUSED".to_string()));
+    }
+
+    #[test]
+    fn test_high_water_mark_updating_on_profit_or_deposit() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        // 2000 bps = 20.00% max drawdown
+        let mut policy = sample_policy();
+        policy.max_drawdown_bps = Some(2000);
+        policy.daily_cap = 5000;
+        contract.register_agent(agent(), policy);
+
+        // Initial deposit of 500 tokens
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        let budget1 = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget1.high_water_mark, U128(500));
+
+        // Spend 50 tokens: balance becomes 450, HWM stays at 500
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let out1 = contract.execute(transfer_action(50, recipient()));
+        assert_eq!(out1.status, "ALLOWED");
+
+        let budget2 = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget2.vault_balance, U128(450));
+        assert_eq!(budget2.high_water_mark, U128(500));
+
+        // Deposit 550 tokens: balance reaches 1000, HWM increases to 1000
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(550), agent().to_string());
+
+        let budget3 = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget3.vault_balance, U128(1000));
+        assert_eq!(budget3.high_water_mark, U128(1000));
+
+        // New floor is 1000 * 8000 / 10000 = 800
+        // Transfer 150: projected is 850 >= 800 -> ALLOWED
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let out2 = contract.execute(transfer_action(150, recipient()));
+        assert_eq!(out2.status, "ALLOWED");
+
+        // Transfer 60: projected is 790 < 800 -> DRAWDOWN_EXCEEDED
+        let out3 = contract.execute(transfer_action(60, recipient()));
+        assert_eq!(out3.status, "REJECTED");
+        assert_eq!(out3.reason, Some("DRAWDOWN_EXCEEDED".to_string()));
+    }
+
+    #[test]
+    fn test_task_lease_active_vs_expired() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        let mut policy = sample_policy();
+        let lease_expiry = now + 5_000_000_000; // 5 seconds in future
+        policy.lease_expires_at = Some(lease_expiry);
+        contract.register_agent(agent(), policy);
+
+        // While lease is active: action is allowed
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let pf_active = contract.preflight(agent(), swap_action(50));
+        assert_eq!(pf_active.status, "ALLOWED");
+
+        let out_active = contract.execute(swap_action(50));
+        assert_eq!(out_active.status, "ALLOWED");
+
+        // Advance past lease expiry
+        builder.block_timestamp(lease_expiry + 1);
+        testing_env!(builder.clone().build());
+
+        let pf_expired = contract.preflight(agent(), swap_action(50));
+        assert_eq!(pf_expired.status, "REJECTED");
+        assert_eq!(pf_expired.reason, Some("LEASE_EXPIRED".to_string()));
+
+        let out_expired = contract.execute(swap_action(50));
+        assert_eq!(out_expired.status, "REJECTED");
+        assert_eq!(out_expired.reason, Some("LEASE_EXPIRED".to_string()));
+    }
+
+    #[test]
+    fn test_intent_shield_cross_chain_allowlist() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        let mut policy = sample_policy();
+        let intents_contract: AccountId = "intents.near".parse().unwrap();
+        policy.targets.insert(intents_contract.clone(), vec!["execute_intent".to_string()]);
+        policy.intent_recipients = vec![
+            "0x71C8363837381F025701262B4527964b071661A4".to_string(),
+            "solana_safe_treasury_address".to_string(),
+        ];
+        contract.register_agent(agent(), policy);
+
+        // Deposit 500 tokens into vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+
+        // Allowed cross-chain transfer to allowlisted EVM recipient
+        let allow_action = GuardAction::IntentTransfer {
+            deposit_address: intents_contract.clone(),
+            amount: U128(100),
+            destination_asset: "ETH".to_string(),
+            recipient: "0x71C8363837381F025701262B4527964b071661A4".to_string(),
+        };
+
+        let pf_allow = contract.preflight(agent(), allow_action.clone());
+        assert_eq!(pf_allow.status, "ALLOWED");
+
+        let out_allow = contract.execute(allow_action);
+        assert_eq!(out_allow.status, "ALLOWED");
+
+        let budget_after_allow = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget_after_allow.vault_balance, U128(400));
+
+        // Blocked cross-chain transfer to unlisted attacker recipient
+        let block_action = GuardAction::IntentTransfer {
+            deposit_address: intents_contract.clone(),
+            amount: U128(100),
+            destination_asset: "ETH".to_string(),
+            recipient: "0xEvilAttackerAddress1234567890".to_string(),
+        };
+
+        let pf_block = contract.preflight(agent(), block_action.clone());
+        assert_eq!(pf_block.status, "REJECTED");
+        assert_eq!(pf_block.reason, Some("INTENT_RECIPIENT_NOT_ALLOWED".to_string()));
+
+        let out_block = contract.execute(block_action);
+        assert_eq!(out_block.status, "REJECTED");
+        assert_eq!(out_block.reason, Some("INTENT_RECIPIENT_NOT_ALLOWED".to_string()));
+
+        // Vault balance remains untouched at 400
+        let budget_after_block = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget_after_block.vault_balance, U128(400));
+    }
+
+    #[test]
+    fn test_canary_decoy_tripwire() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        let mut policy = sample_policy();
+        policy.canary_methods = vec![
+            "emergency_withdraw_all".to_string(),
+            "drain_vault".to_string(),
+        ];
+        contract.register_agent(agent(), policy);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+
+        // Attacker attempts to call honeypot decoy method
+        let canary_action = GuardAction::ContractCall {
+            target: target(),
+            method: "drain_vault".to_string(),
+            args: "{}".to_string(),
+        };
+
+        let pf_canary = contract.preflight(agent(), canary_action.clone());
+        assert_eq!(pf_canary.status, "REJECTED");
+        assert_eq!(pf_canary.reason, Some("CANARY_TRIPPED".to_string()));
+
+        let out_canary = contract.execute(canary_action);
+        assert_eq!(out_canary.status, "REJECTED");
+        assert_eq!(out_canary.reason, Some("CANARY_TRIPPED".to_string()));
+
+        // Verify agent is immediately paused onchain
+        let budget = contract.get_budget(agent()).unwrap();
+        assert!(budget.paused);
+
+        // Next legitimate action is immediately rejected due to PAUSED
+        let legit_action = swap_action(50);
+        let out_paused = contract.execute(legit_action);
+        assert_eq!(out_paused.status, "REJECTED");
+        assert_eq!(out_paused.reason, Some("PAUSED".to_string()));
+    }
+
+    #[test]
+    fn test_safe_drawdown_floor_computation_no_overflow() {
+        // Edge case: 0 bps = 0% drawdown (floor must equal hwm)
+        assert_eq!(compute_drawdown_floor(1000, 0), 1000);
+
+        // Edge case: 10000 bps = 100% drawdown (floor must be 0)
+        assert_eq!(compute_drawdown_floor(1000, 10000), 0);
+
+        // Standard case: 1500 bps = 15% drawdown (floor must be 85% = 850)
+        assert_eq!(compute_drawdown_floor(1000, 1500), 850);
+
+        // Extreme u128 value: verify no overflow or saturation panic
+        let max_val = u128::MAX;
+        let floor = compute_drawdown_floor(max_val, 1500);
+        assert!(floor > 0);
+        assert!(floor < max_val);
+    }
+
+    #[test]
+    fn test_contract_call_cannot_invoke_execute_intent() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        let mut policy = sample_policy();
+        let intents: AccountId = "intents.near".parse().unwrap();
+        policy.targets.insert(intents.clone(), vec!["execute_intent".to_string()]);
+        contract.register_agent(agent(), policy);
+
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+
+        // Attacker attempts generic ContractCall to bypass IntentTransfer validation
+        let bypass_call = GuardAction::ContractCall {
+            target: intents,
+            method: "execute_intent".to_string(),
+            args: "{}".to_string(),
+        };
+
+        let pf = contract.preflight(agent(), bypass_call.clone());
+        assert_eq!(pf.status, "REJECTED");
+        assert_eq!(pf.reason, Some("METHOD_NOT_ALLOWED".to_string()));
+
+        let out = contract.execute(bypass_call);
+        assert_eq!(out.status, "REJECTED");
+        assert_eq!(out.reason, Some("METHOD_NOT_ALLOWED".to_string()));
+    }
+
+    #[test]
+    fn test_settle_pending_checks_drawdown_and_canary() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+
+        // Setup policy with drawdown, canary methods, and timelock
+        let mut policy = sample_policy();
+        policy.max_drawdown_bps = Some(1500); // 15% max drawdown (floor = 850)
+        policy.high_value_threshold = 100;
+        policy.high_value_delay_seconds = 60;
+        contract.register_agent(agent(), policy);
+
+        // Deposit 1000 tokens into vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(1000), agent().to_string());
+
+        // Agent submits high-value transfer of 120 (quarantined to pending: 120 >= 100, projected 880 >= 850)
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let action = transfer_action(120, recipient());
+        let out_pending = contract.execute(action);
+        assert_eq!(out_pending.status, "PENDING");
+        let id = out_pending.pending_id.unwrap();
+
+        // While pending action sits in timelock, agent executes an immediate transfer of 40 (projected 960 >= 850)
+        let intermediate_action = transfer_action(40, recipient());
+        let out_inter = contract.execute(intermediate_action);
+        assert_eq!(out_inter.status, "ALLOWED");
+        assert_eq!(contract.get_budget(agent()).unwrap().vault_balance, U128(960));
+
+        // Advance time past delay (65 seconds)
+        builder.block_timestamp(now + 65 * 1_000_000_000);
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+
+        // Owner attempts to settle, but settling 120 from remaining 960 leaves 840 (< 850 floor)
+        // Must reject with DRAWDOWN_EXCEEDED and pause
+        let settle_out = contract.settle_pending(agent(), id);
+        assert_eq!(settle_out.status, "REJECTED");
+        assert_eq!(settle_out.reason, Some("DRAWDOWN_EXCEEDED".to_string()));
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert!(budget.paused);
+    }
 }
+

@@ -130,6 +130,10 @@ async function runSetup() {
     high_value_threshold: Math.max(1, Math.floor(dailyCap / 2)),
     high_value_delay_seconds: 60,
     policy_change_delay_seconds: 3600,
+    max_drawdown_bps: 1500,
+    lease_expires_at: null,
+    intent_recipients: [],
+    canary_methods: ["emergency_drain_vault", "admin_sweep"],
   };
 
   // MANDATORY ADMIN / OWNER APPROVAL GATE

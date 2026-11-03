@@ -9,6 +9,10 @@ export interface DrafterPolicy {
   high_value_threshold: number;
   high_value_delay_seconds: number;
   policy_change_delay_seconds: number;
+  max_drawdown_bps?: number | null;
+  lease_expires_at?: number | null;
+  intent_recipients?: string[];
+  canary_methods?: string[];
 }
 
 export interface LintWarning {
@@ -78,6 +82,29 @@ export function validatePolicyShape(p: any): string[] {
   if (!isInt(p.policy_change_delay_seconds, 1, Number.MAX_SAFE_INTEGER)) {
     errors.push("policy_change_delay_seconds must be a positive integer (> 0)");
   }
+  if (p.max_drawdown_bps !== undefined && p.max_drawdown_bps !== null) {
+    if (!isInt(p.max_drawdown_bps, 0, 10000)) {
+      errors.push("max_drawdown_bps must be an integer between 0 and 10000");
+    }
+  }
+  if (p.lease_expires_at !== undefined && p.lease_expires_at !== null) {
+    const isNum = typeof p.lease_expires_at === "number" && Number.isFinite(p.lease_expires_at) && p.lease_expires_at > 0;
+    const isStr = typeof p.lease_expires_at === "string" && /^\d+$/.test(p.lease_expires_at.trim()) && BigInt(p.lease_expires_at.trim()) > BigInt(0);
+    const isBig = typeof p.lease_expires_at === "bigint" && p.lease_expires_at > BigInt(0);
+    if (!isNum && !isStr && !isBig) {
+      errors.push("lease_expires_at must be a positive integer timestamp");
+    }
+  }
+  if (p.intent_recipients !== undefined && p.intent_recipients !== null) {
+    if (!Array.isArray(p.intent_recipients) || p.intent_recipients.some((r: unknown) => typeof r !== "string")) {
+      errors.push("intent_recipients must be an array of strings");
+    }
+  }
+  if (p.canary_methods !== undefined && p.canary_methods !== null) {
+    if (!Array.isArray(p.canary_methods) || p.canary_methods.some((m: unknown) => typeof m !== "string")) {
+      errors.push("canary_methods must be an array of method name strings");
+    }
+  }
 
   return errors;
 }
@@ -98,6 +125,10 @@ export function getSafeDefaultPolicy(dailyCap: number | string = 100): DrafterPo
     high_value_threshold: threshold,
     high_value_delay_seconds: 3600,
     policy_change_delay_seconds: 600,
+    max_drawdown_bps: 1500,
+    lease_expires_at: null,
+    intent_recipients: [],
+    canary_methods: ["emergency_withdraw_all", "drain_vault"],
   };
 }
 
@@ -176,6 +207,19 @@ export function generatePlainEnglish(
 
   const policyDelayDesc = `Policy updates require a ${policy.policy_change_delay_seconds} second timelock delay before becoming effective.`;
 
+  const drawdownDesc = policy.max_drawdown_bps
+    ? `Net drawdown breaker limits cumulative loss to ${(policy.max_drawdown_bps / 100).toFixed(1)}% from high-water mark.`
+    : "";
+  const leaseDesc = policy.lease_expires_at
+    ? `Task lease expires at block timestamp ${policy.lease_expires_at}.`
+    : "";
+  const intentDesc = policy.intent_recipients && policy.intent_recipients.length > 0
+    ? `IntentShield protects cross-chain transfers to: ${policy.intent_recipients.join(", ")}.`
+    : "";
+  const canaryDesc = policy.canary_methods && policy.canary_methods.length > 0
+    ? `Canary tripwires active on: ${policy.canary_methods.join(", ")}.`
+    : "";
+
   return [
     `This agent is authorized to interact strictly with: ${
       targetDescriptions || "no external contracts"
@@ -183,10 +227,16 @@ export function generatePlainEnglish(
     `Maximum daily spending is capped at ${policy.daily_cap} mUSD${capNote}, resetting every 24 hours.`,
     `Velocity is limited to ${policy.max_actions_per_10min} actions per 10 minutes${velNote}.`,
     `The emergency circuit breaker trips if ${policy.auto_pause_rejects} rejected attempts occur within ${policy.auto_pause_window_minutes} minutes.`,
+    drawdownDesc,
+    leaseDesc,
+    intentDesc,
+    canaryDesc,
     timelockDesc,
     policyDelayDesc,
     recipientDesc,
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export async function draftPolicyFromText(

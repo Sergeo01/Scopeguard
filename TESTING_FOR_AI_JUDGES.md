@@ -110,7 +110,7 @@ These hashes identify transactions broadcast during live testnet execution.
 
 > As of 2026-11-03, the public testnet RPC returns `UNKNOWN_TRANSACTION` for every hash tried here, including the contract deploy. NearBlocks API returns empty results. The contract view methods still work, confirming state persists, but no public endpoint serves receipts today.
 >
-> For fresh evidence: run `node scripts/testnet-demo-agent-e2e.js` — it prints transaction receipts and exits non-zero on any failure. Do not use these hashes as proof of anything.
+> For fresh evidence: run `node scripts/testnet-demo-agent-e2e.js`, it prints transaction receipts and exits non-zero on any failure. Do not use these hashes as proof of anything.
 
 **Latest live execution proofs (2026-11-01):**
 1. **Allowed Swap (10 mUSD):** `3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi`

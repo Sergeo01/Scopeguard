@@ -20,6 +20,10 @@ import {
   Wand2,
   ArrowUpRight,
   Zap,
+  TrendingDown,
+  Timer,
+  Crosshair,
+  Shield,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
@@ -53,6 +57,15 @@ export default function CreateAgentPage() {
   const [autoPauseWindowMinutes, setAutoPauseWindowMinutes] = useState<number>(10);
   const [timelockThreshold, setTimelockThreshold] = useState<number>(250);
   const [telegramChatId, setTelegramChatId] = useState<string>("@sergeo");
+
+  // Autonomous Risk Protocol Primitives
+  const [maxDrawdownPercent, setMaxDrawdownPercent] = useState<number>(15);
+  const [enableLeaseExpiry, setEnableLeaseExpiry] = useState<boolean>(false);
+  const [taskLeaseHours, setTaskLeaseHours] = useState<number>(24);
+  const [intentRecipientsInput, setIntentRecipientsInput] = useState<string>("");
+  const [canaryMethodsInput, setCanaryMethodsInput] = useState<string>(
+    "drain_vault, admin_transfer, emergency_withdraw"
+  );
 
   const [activeView, setActiveView] = useState<"visual" | "json">("visual");
   const [isDeploying, setIsDeploying] = useState(false);
@@ -161,6 +174,18 @@ export default function CreateAgentPage() {
     high_value_threshold: Number(timelockThreshold),
     high_value_delay_seconds: 60,
     policy_change_delay_seconds: 60,
+    max_drawdown_bps: Math.round(Number(maxDrawdownPercent) * 100),
+    lease_expires_at: enableLeaseExpiry
+      ? (Date.now() + Number(taskLeaseHours) * 3600 * 1000) * 1_000_000
+      : null,
+    intent_recipients: intentRecipientsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+    canary_methods: canaryMethodsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
   };
 
   const policyValidationErrors = validatePolicyShape(compiledPolicyJson);
@@ -203,6 +228,24 @@ export default function CreateAgentPage() {
         } else {
           setAllowExternalTransfers(false);
           setExternalRecipient("");
+        }
+
+        if (p.max_drawdown_bps !== undefined && p.max_drawdown_bps !== null) {
+          setMaxDrawdownPercent(Math.round(p.max_drawdown_bps / 100));
+        }
+        if (p.lease_expires_at) {
+          setEnableLeaseExpiry(true);
+          const hours = Math.max(
+            1,
+            Math.round((Number(p.lease_expires_at) - Date.now() * 1_000_000) / (3600 * 1_000_000_000))
+          );
+          setTaskLeaseHours(hours);
+        }
+        if (p.intent_recipients && p.intent_recipients.length > 0) {
+          setIntentRecipientsInput(p.intent_recipients.join(", "));
+        }
+        if (p.canary_methods && p.canary_methods.length > 0) {
+          setCanaryMethodsInput(p.canary_methods.join(", "));
         }
 
         setDraftResult(data.draft);
@@ -684,6 +727,152 @@ export default function CreateAgentPage() {
               )}
             </div>
 
+            {/* Autonomous Risk Protocol Primitives */}
+            <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <div>
+                <label className="font-semibold text-slate-900 dark:text-white block">
+                  Autonomous Risk Protocol Safeguards
+                </label>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Onchain circuit breakers, cross-chain allowlists, and decoy honeypots.
+                </span>
+              </div>
+
+              {/* 1. Net Drawdown Breaker */}
+              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      Net Drawdown Breaker
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
+                    {maxDrawdownPercent}% Max Drawdown
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={maxDrawdownPercent}
+                    onChange={(e) => setMaxDrawdownPercent(Number(e.target.value))}
+                    className="flex-1 accent-emerald-500 cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={maxDrawdownPercent}
+                    onChange={(e) => setMaxDrawdownPercent(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
+                    className="w-16 px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-center font-bold text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  Trips auto-pause immediately if vault drops more than {maxDrawdownPercent}% below its high-water mark.
+                </span>
+              </div>
+
+              {/* 2. Task Lease Expiry */}
+              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-3.5 h-3.5 text-brand-blue" />
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white block">
+                        Task Lease Expiry
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Automatically expire passkey after a designated operational window.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEnableLeaseExpiry(!enableLeaseExpiry)}
+                    className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
+                      enableLeaseExpiry ? "bg-emerald-600" : "bg-slate-300 dark:bg-obsidian-800"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                        enableLeaseExpiry ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {enableLeaseExpiry && (
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <label htmlFor="task-lease-hours-input" className="text-slate-700 dark:text-slate-300">
+                      Lease Duration (Hours)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="task-lease-hours-input"
+                        name="task-lease-hours"
+                        type="number"
+                        min="1"
+                        max="720"
+                        value={taskLeaseHours}
+                        onChange={(e) => setTaskLeaseHours(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-20 px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-center font-bold text-slate-900 dark:text-white text-xs"
+                      />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                        ({Math.round(taskLeaseHours / 24)}d {taskLeaseHours % 24}h)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. IntentShield (Cross-Chain Recipient Allowlist) */}
+              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-brand-blue" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    IntentShield: Cross-Chain Destination Allowlist
+                  </span>
+                </div>
+                <input
+                  id="intent-recipients-input"
+                  name="intent-recipients"
+                  type="text"
+                  value={intentRecipientsInput}
+                  onChange={(e) => setIntentRecipientsInput(e.target.value)}
+                  placeholder="e.g. 0x71C...3972, cosmos1...8q2, solana...4k9"
+                  className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  Comma-separated destination addresses for NEAR Intents transfers. Unlisted destinations are rejected onchain.
+                </span>
+              </div>
+
+              {/* 4. Canary Decoy Tripwires */}
+              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2">
+                  <Crosshair className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    Canary Decoy Tripwires (Honeypot Methods)
+                  </span>
+                </div>
+                <input
+                  id="canary-methods-input"
+                  name="canary-methods"
+                  type="text"
+                  value={canaryMethodsInput}
+                  onChange={(e) => setCanaryMethodsInput(e.target.value)}
+                  placeholder="drain_vault, admin_transfer, emergency_withdraw"
+                  className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  Honeypot method names advertised to bait rogue agents or prompt attackers. Calling these trips auto-pause immediately.
+                </span>
+              </div>
+            </div>
+
             {/* Validation & Security Feedback */}
             {policyValidationErrors.length > 0 && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
@@ -821,6 +1010,32 @@ export default function CreateAgentPage() {
                       <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                       <span>
                         Auto-freeze after {autoPauseAfter} rejects in {autoPauseWindowMinutes}m
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>
+                        Max {maxDrawdownPercent}% portfolio drawdown breaker
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>
+                        Task lease: {enableLeaseExpiry ? `${taskLeaseHours}h fixed duration` : "Perpetual lease"}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>
+                        {canaryMethodsInput.split(',').filter((s) => s.trim().length > 0).length} armed canary decoy tripwires
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>
+                        {intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length > 0
+                          ? `${intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length} allowlisted cross-chain destination(s)`
+                          : "Cross-chain payouts restricted"}
                       </span>
                     </div>
                     <div className="flex items-start gap-2">

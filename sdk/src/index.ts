@@ -33,6 +33,14 @@ export type GuardAction =
         method: string;
         args: string;
       };
+    }
+  | {
+      IntentTransfer: {
+        deposit_address: string;
+        amount: string;
+        destination_asset: string;
+        recipient: string;
+      };
     };
 
 export interface ActParams {
@@ -44,6 +52,8 @@ export interface ActParams {
   token?: string;
   min_out?: string;
   memo?: string | null;
+  deposit_address?: string;
+  destination_asset?: string;
 }
 
 export interface Outcome {
@@ -64,13 +74,27 @@ export interface PreflightResult {
 }
 
 export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAction {
-  if ("Transfer" in paramsOrAction || "Swap" in paramsOrAction || "ContractCall" in paramsOrAction) {
+  if (
+    "Transfer" in paramsOrAction ||
+    "Swap" in paramsOrAction ||
+    "ContractCall" in paramsOrAction ||
+    "IntentTransfer" in paramsOrAction
+  ) {
     return paramsOrAction;
   }
   const p = paramsOrAction as ActParams;
   const argsString = typeof p.args === "string" ? p.args : JSON.stringify(p.args || {});
 
-  if (p.method === "swap") {
+  if (p.method === "execute_intent" || p.destination_asset) {
+    return {
+      IntentTransfer: {
+        deposit_address: p.deposit_address || p.target,
+        amount: p.amount || "0",
+        destination_asset: p.destination_asset || "USDC",
+        recipient: p.recipient || "",
+      },
+    };
+  } else if (p.method === "swap") {
     return {
       Swap: {
         dex: p.target,
@@ -110,11 +134,32 @@ export interface BudgetView {
   remaining: string;
   actions_in_window: number;
   paused: boolean;
+  revoked?: boolean;
   vault_balance: string;
+  high_water_mark?: string;
+  max_drawdown_bps?: number | null;
+}
+
+export interface Policy {
+  token: string;
+  targets: Record<string, string[]>;
+  daily_cap: number | string;
+  recipients: string[];
+  max_actions_per_10min: number;
+  auto_pause_rejects: number;
+  auto_pause_window_minutes: number;
+  high_value_threshold: number | string;
+  high_value_delay_seconds: number;
+  policy_change_delay_seconds: number;
+  max_drawdown_bps?: number | null;
+  lease_expires_at?: number | string | null;
+  intent_recipients?: string[];
+  canary_methods?: string[];
 }
 
 export interface PendingAction {
   id: number;
+  action?: GuardAction;
   target: string;
   method: string;
   args: string;
@@ -419,6 +464,18 @@ export function formatNearError(err: any): string {
   }
   if (msg.includes("agent is revoked")) {
     return "Agent is revoked: allowlist is empty and actions are permanently blocked";
+  }
+  if (msg.includes("DRAWDOWN_EXCEEDED")) {
+    return "Net drawdown cap exceeded: action would drop balance below safety threshold";
+  }
+  if (msg.includes("LEASE_EXPIRED")) {
+    return "Task lease expired: execution window for this agent has passed";
+  }
+  if (msg.includes("CANARY_TRIPPED")) {
+    return "Canary decoy method called: emergency circuit breaker activated";
+  }
+  if (msg.includes("INTENT_RECIPIENT_NOT_ALLOWED")) {
+    return "Intent recipient blocked: destination address not allowlisted onchain";
   }
   if (msg.includes("Smart contract panicked: ")) {
     const match = msg.match(/Smart contract panicked:\s*([^,\n\r]+)/);
