@@ -10,13 +10,11 @@ console.log('Deploying updated web files to VPS...');
 
 // 1. Upload updated files
 const filesToUpload = [
-  { local: path.join(__dirname, '..', 'web', 'app', 'layout.tsx'), remote: '/var/www/scopeguard/web/app/layout.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'page.tsx'), remote: '/var/www/scopeguard/web/app/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'docs', 'page.tsx'), remote: '/var/www/scopeguard/web/app/docs/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'create', 'page.tsx'), remote: '/var/www/scopeguard/web/app/create/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'package.json'), remote: '/var/www/scopeguard/web/package.json' },
+  { local: path.join(__dirname, '..', 'web', 'package-lock.json'), remote: '/var/www/scopeguard/web/package-lock.json' },
+  { local: path.join(__dirname, '..', 'web', 'lib', 'wallet-selector.ts'), remote: '/var/www/scopeguard/web/lib/wallet-selector.ts' },
+  { local: path.join(__dirname, '..', 'web', 'context', 'WalletContext.tsx'), remote: '/var/www/scopeguard/web/context/WalletContext.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'AuthModal.tsx'), remote: '/var/www/scopeguard/web/components/AuthModal.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'IncidentExportModal.tsx'), remote: '/var/www/scopeguard/web/components/IncidentExportModal.tsx' },
 ];
 
 for (const f of filesToUpload) {
@@ -24,8 +22,8 @@ for (const f of filesToUpload) {
   execSync(`scp -i "${key}" -o StrictHostKeyChecking=no "${f.local}" ${host}:${f.remote}`);
 }
 
-// 2. Run build and pm2 reload on VPS
-console.log('Rebuilding web on VPS and reloading PM2...');
-const out = execSync(`ssh -i "${key}" -o StrictHostKeyChecking=no ${host} "cd /var/www/scopeguard/web && npm run build && pm2 reload scopeguard"`, { stdio: 'pipe' }).toString();
+// 2. Run install, build and pm2 reload on VPS
+console.log('Installing dependencies, rebuilding web on VPS and reloading PM2...');
+const out = execSync(`ssh -i "${key}" -o StrictHostKeyChecking=no ${host} "cd /var/www/scopeguard/web && npm install && npm run build && pm2 reload scopeguard"`, { stdio: 'pipe' }).toString();
 console.log(out);
 console.log('VPS production deployment updated successfully!');

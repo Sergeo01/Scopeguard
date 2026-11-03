@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { connect, keyStores, utils } from "near-api-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getNearWalletSelector } from "@/lib/wallet-selector";
 
 export interface ScopeGuardUser {
   id: string;
@@ -24,6 +25,7 @@ export interface WalletContextType {
   signInWithNear: (accId: string) => Promise<void>;
   signInWithEmail: (email: string) => Promise<void>;
   signOut: () => void;
+  openNearWalletModal: () => Promise<void>;
 
   // Sub-accounts and Multi-wallet management
   connectedWallets: string[];
@@ -367,6 +369,27 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const accountId = user?.activeAccountId || "";
+  const openNearWalletModal = async () => {
+    setIsAuthModalOpen(false);
+    if (typeof window === "undefined") return;
+    try {
+      const nws = await getNearWalletSelector();
+      if (!nws) return;
+      nws.modal.show();
+
+      const subscription = nws.selector.store.observable.subscribe((state) => {
+        const accounts = state.accounts;
+        if (accounts && accounts.length > 0) {
+          const accId = accounts[0].accountId;
+          signInWithNear(accId);
+          subscription.unsubscribe();
+        }
+      });
+    } catch (err) {
+      console.error("Failed to open NEAR wallet selector:", err);
+    }
+  };
+
   const isConnected = !!user && !!user.activeAccountId;
   const isAuthenticated = !!user;
   const isAdmin = !!user && user.isAdmin;
@@ -382,6 +405,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         signInWithNear,
         signInWithEmail,
         signOut,
+        openNearWalletModal,
         connectedWallets,
         linkSubAccount,
         unlinkSubAccount,
