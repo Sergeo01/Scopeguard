@@ -21,7 +21,8 @@ if (!token) {
 const pushUrl = `https://${token}@github.com/Sergeo01/Scopeguard.git`;
 console.log('Pushing to GitHub main...');
 try {
-  const out = execSync(`git push ${pushUrl} main`, { stdio: 'pipe' }).toString();
+  execSync(`git remote set-url origin ${pushUrl}`);
+  const out = execSync(`git push origin main`, { stdio: 'pipe' }).toString();
   console.log(out);
   console.log('Push successful.');
 } catch (err) {
