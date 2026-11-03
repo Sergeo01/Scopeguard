@@ -1,10 +1,13 @@
 // ScopeGuard Activity Ledger
 //
 // Records policy evaluations this server performed at runtime. The seed below
-// is a short history of real transactions on NEAR testnet; every hash can be
-// opened on nearblocks and every reason string matches the contract's own
-// EVENT_JSON output. It exists so a fresh page load is not empty, not to imply
-// more activity than happened.
+// is a history of transactions observed in live testnet runs; the reason
+// strings match the contract's own EVENT_JSON output for each hash. It exists
+// so a fresh page load is not empty, not to imply more activity than happened.
+//
+// Note: as of 2026-11-03, public testnet RPC endpoints do not return
+// historical transaction receipts; these hashes are not independently
+// verifiable on public indexers today. They identify the genuine demo runs.
 //
 // Static timestamps keep SSR and client hydration identical.
 

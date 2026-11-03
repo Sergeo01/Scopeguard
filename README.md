@@ -188,7 +188,7 @@ Even under continuous malicious prompt injection while the owner is away, the ag
 
 ## 7. Live Testnet Deployments & Verified Transactions
 
-ScopeGuard is deployed on NEAR Testnet with active contract instances and verifiable execution receipts.
+ScopeGuard is deployed on NEAR Testnet with active contract instances.
 
 ### Deployed Testnet Accounts & Contracts
 - **Policy Guard Contract (v0.2.0):** [`guard2.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet)
@@ -197,9 +197,11 @@ ScopeGuard is deployed on NEAR Testnet with active contract instances and verifi
 - **Agent Sub-Account:** [`agent.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/agent.sergeo-guard.testnet)
 - **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
 
-### Verified Onchain Execution Proofs
+### Demo Transaction Hashes (Observed Live; Not Independently Verifiable Today)
 
-Every hash below was verified against testnet consensus.
+The hashes below identify transactions observed in live run logs at the time they were broadcast. They are not a promise that you can look them up now.
+
+> As of 2026-11-03, the public testnet RPC no longer serves transaction receipts: every hash tried here returns `UNKNOWN_TRANSACTION` on `test.rpc.fastnear.com`, `rpc.testnet.near.org` and NearBlocks returns `{}`. The contract state persists; only transaction indexers are unavailable. For fresh evidence, run `node scripts/testnet-demo-agent-e2e.js` and require exit 0, or `node scripts/reset-demo.js`. Do not rely on these hashes for independent verification.
 
 1. **Contract deployment (v0.2.0, state preserved):**
    - [`B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev`](https://testnet.nearblocks.io/txns/B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev), signed by `guard2.sergeo-guard.testnet`, redeployed over live state.
@@ -370,13 +372,12 @@ ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js --credentia
 
 For trading bots whose internal source code cannot be refactored to call the ScopeGuard SDK directly, ScopeGuard provides an authenticated translation proxy in `proxy/`:
 - Holds strictly an agent scoped passkey restricted to `guard.execute` (never an owner master key).
-- Authenticates inbound bot requests via Bearer token (`PROXY_API_KEY`).
+- Authenticates inbound bot requests via Bearer token (`PROXY_API_KEY`). There is **no default token**: the proxy refuses to start unless you set a unique, high-entropy `PROXY_API_KEY` (16+ characters), and compares it in constant time. The token is never embedded in a URL and never committed.
 - Translates direct-style trades to typed `GuardAction` without widening scope.
 - Every translation logs the resulting onchain Guard receipt hash.
 
-Run the proxy:
 ```bash
-node proxy/dist/server.js
+PROXY_API_KEY=$(openssl rand -hex 24) node proxy/dist/server.js
 ```
 
 ---

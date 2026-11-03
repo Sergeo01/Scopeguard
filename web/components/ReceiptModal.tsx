@@ -56,16 +56,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         setTxData(data);
       })
       .catch(() => {
+        // Never fabricate data on a failed fetch: say we could not look it up.
         setTxData({
-          success: true,
+          success: false,
           found: false,
           hash: txHash,
-          signerId: accountId,
-          receiverId: "guard2.sergeo-guard.testnet",
-          status: "FINALIZED",
-          logs: [
-            `EVENT_JSON:{"standard":"scopeguard","version":"0.2.0","event":"execute"}`,
-          ],
+          status: "UNVERIFIED",
+          logs: [],
+          note: "Lookup failed. Open NearBlocks or retry once the RPC has indexed the transaction.",
         });
       })
       .finally(() => setLoading(false));
@@ -102,14 +100,24 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                NEAR Testnet Verified
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                  txData?.found
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25"
+                }`}
+              >
+                {txData?.found === undefined
+                  ? "Looking up receipt…"
+                  : txData.found
+                  ? "Testnet Receipt Found"
+                  : "Awaiting index"}
               </span>
-              <span className="text-xs font-mono text-slate-400">Zero-Fee Verification</span>
+              <span className="text-xs font-mono text-slate-400">Read-only lookup</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-500" />
-              <span>Onchain Execution Receipt</span>
+              <span>{txData?.found ? "Onchain Execution Receipt" : "Transaction Not Yet Verified"}</span>
             </h3>
           </div>
 
@@ -151,29 +159,45 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Signer</span>
             <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white truncate block">
-              {txData?.signerId || accountId}
+              {txData?.signerId || (txData?.found === false ? "—" : accountId)}
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Guard</span>
             <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white truncate block">
-              {txData?.receiverId || "guard2.sergeo-guard.testnet"}
+              {txData?.receiverId || (txData?.found === false ? "—" : "guard2.sergeo-guard.testnet")}
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Status</span>
-            <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>{txData?.status || "SUCCESS"}</span>
+            <span className="text-xs font-mono font-bold flex items-center gap-1">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  txData?.status === "SUCCESS"
+                    ? "bg-emerald-500"
+                    : txData?.status === "FAILED" || txData?.status === "UNVERIFIED"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
+                }`}
+              />
+              <span
+                className={
+                  txData?.status === "SUCCESS"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-amber-700 dark:text-amber-400"
+                }
+              >
+                {txData?.status || "UNVERIFIED"}
+              </span>
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Gas Burnt</span>
             <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white">
-              {txData?.gasBurnt || "2.845 Tgas"}
+              {txData?.gasBurnt || "—"}
             </span>
           </div>
         </div>
@@ -197,8 +221,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 </div>
               ))
             ) : (
-              <div className="text-slate-400">
-                EVENT_JSON:{"{"}&quot;standard&quot;:&quot;scopeguard&quot;,&quot;version&quot;:&quot;0.2.0&quot;,&quot;event&quot;:&quot;execute&quot;,&quot;data&quot;:[&#123;&quot;status&quot;:&quot;FINALIZED&quot;&#125;]&#125;
+              <div className="text-amber-300">
+                {txData?.found
+                  ? "Receipt found, but it contained no EVENT_JSON log."
+                  : "No receipt logs returned. Wait a few blocks and re-open, or use NearBlocks."}
               </div>
             )}
           </div>

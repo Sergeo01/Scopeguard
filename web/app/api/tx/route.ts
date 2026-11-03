@@ -27,7 +27,11 @@ export async function GET(req: NextRequest) {
           jsonrpc: "2.0",
           id: "scopeguard-tx-query",
           method: "tx",
-          params: [hash, accountId],
+          params: {
+            tx_hash: hash,
+            sender_account_id: accountId,
+            wait_until: "NONE",
+          },
         }),
         signal: AbortSignal.timeout(4000),
         cache: "no-store",
@@ -85,6 +89,7 @@ export async function GET(req: NextRequest) {
     const isSuccess = Boolean(
       statusObj.SuccessValue !== undefined || statusObj.SuccessReceiptId !== undefined
     );
+    const isFailure = Boolean(statusObj.Failure !== undefined);
 
     return NextResponse.json({
       success: true,
@@ -93,7 +98,7 @@ export async function GET(req: NextRequest) {
       blockHash: rpcResult.transaction_outcome?.block_hash,
       signerId: rpcResult.transaction?.signer_id || accountId,
       receiverId: rpcResult.transaction?.receiver_id || "guard2.sergeo-guard.testnet",
-      status: isSuccess ? "SUCCESS" : "FINALIZED",
+      status: isSuccess ? "SUCCESS" : isFailure ? "FAILED" : "UNKNOWN",
       gasBurnt: `${(gasBurnt / 1e12).toFixed(3)} Tgas`,
       tokensBurnt,
       logs: allLogs,
@@ -102,18 +107,15 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Fallback: If RPC did not index hash yet (or archival pruned), return structured receipt metadata
+  // The RPC could not index this hash yet (or it does not exist). Return an
+  // honest not-found response: never invent logs, gas or a success verdict.
   return NextResponse.json({
     success: true,
     found: false,
     hash,
     signerId: accountId,
-    receiverId: "guard2.sergeo-guard.testnet",
-    status: "FINALIZED",
-    gasBurnt: "2.845 Tgas",
-    logs: [
-      `EVENT_JSON:{"standard":"scopeguard","version":"0.2.0","event":"execute","data":[{"agent":"${accountId}","status":"FINALIZED"}]}`,
-    ],
-    note: "Transaction confirmed on NEAR Testnet. Indexed via block receipts.",
+    status: "UNVERIFIED",
+    logs: [],
+    note: "Transaction not indexed by this RPC yet (or the hash is unknown). Open NearBlocks or retry after a few blocks. No claim is made about the outcome.",
   });
 }

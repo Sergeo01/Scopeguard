@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert";
-import { checkIsAdmin, ScopeGuardUser } from "../context/WalletContext.tsx";
+import { checkIsAdmin, ScopeGuardUser } from "../lib/admin";
 
 test("auth: checkIsAdmin accurately identifies administrator identities", () => {
   // Admin emails

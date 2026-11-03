@@ -1,31 +1,57 @@
-const fs = require('fs');
-const { execSync } = require('child_process');
+/**
+ * Push main to GitHub without ever writing the token into .git/config.
+ *
+ * The old version called `git remote set-url origin <token>@github.com/...` and
+ * left it there, permanently persisting a password-equivalent credential in a
+ * local config file. This version:
+ *
+ *   1. leaves the remote URL clean forever,
+ *   2. passes the credential as a single per-invocation HTTP header,
+ *   3. never prints the token.
+ *
+ * The user and password come from .env:
+ *   GITHUB_PAT=ghp_...          (preferred)
+ *   or GITHUB_TOKEN=ghp_...
+ *
+ * A fine-grained PAT scoped to this repository is sufficient.
+ */
+const fs = require("fs");
+const { execSync } = require("child_process");
 
-const content = fs.readFileSync('.env', 'utf8');
-let token = '';
-content.split('\n').forEach(line => {
-  const trimmed = line.trim();
-  if (trimmed.toLowerCase().includes('github token') || trimmed.startsWith('GITHUB_PAT')) {
-    const parts = trimmed.split(/[:=]/);
-    if (parts.length >= 2) {
-      token = parts.slice(1).join(':').trim().replace(/^["']|["']$/g, '');
+const REMOTE = "https://github.com/Sergeo01/Scopeguard.git";
+
+function loadToken() {
+  const content = fs.existsSync(".env") ? fs.readFileSync(".env", "utf8") : "";
+  let token = "";
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^(GITHUB_PAT|GITHUB_TOKEN)\s*[=:]\s*(.+)$/i);
+    if (match) {
+      token = match[2].trim().replace(/^["']|["']$/g, "");
     }
   }
-});
+  return token || process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || "";
+}
 
+const token = loadToken();
 if (!token) {
-  console.error('No token found in .env');
+  console.error("No GitHub token found. Set GITHUB_PAT=<token> in .env.");
   process.exit(1);
 }
 
-const pushUrl = `https://${token}@github.com/Sergeo01/Scopeguard.git`;
-console.log('Pushing to GitHub main...');
+// Never print the token, never embed it in a remote URL.
+const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+
 try {
-  execSync(`git remote set-url origin ${pushUrl}`);
-  const out = execSync(`git push origin main`, { stdio: 'pipe' }).toString();
-  console.log(out);
-  console.log('Push successful.');
+  execSync(`git remote set-url origin ${REMOTE}`);
+  const out = execSync(
+    `git -c http.extraHeader="Authorization: Basic ${auth}" push origin main`,
+    { stdio: ["pipe", "pipe", "pipe"] }
+  ).toString();
+  console.log("Push successful.");
 } catch (err) {
-  console.error('Git push error:', err.stderr ? err.stderr.toString() : err.message);
+  const stderr = err.stderr ? err.stderr.toString() : err.message;
+  // Redact any accidental token echoes before printing.
+  console.error("Git push failed:", stderr.replace(new RegExp(token, "g"), "***"));
   process.exit(1);
 }

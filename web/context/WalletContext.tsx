@@ -4,17 +4,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { connect, keyStores, utils } from "near-api-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { getNearWalletSelector } from "@/lib/wallet-selector";
+import { ScopeGuardUser, checkIsAdmin } from "@/lib/admin";
 
-export interface ScopeGuardUser {
-  id: string;
-  email: string | null;
-  displayName: string;
-  provider: "google" | "near" | "github" | "email";
-  avatar?: string;
-  isAdmin: boolean;
-  connectedWallets: string[];
-  activeAccountId: string;
-}
+export type { ScopeGuardUser };
+export { checkIsAdmin };
 
 export interface WalletContextType {
   // ScopeGuard User Account
@@ -52,43 +45,6 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 const DEFAULT_OWNER = process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sergeo@scopeguard.io";
-
-export const checkIsAdmin = (
-  email?: string | null,
-  accountId?: string | null,
-  explicitAdmin?: boolean
-): boolean => {
-  if (explicitAdmin) return true;
-  const cleanEmail = (email || "").toLowerCase().trim();
-  const cleanAccount = (accountId || "").toLowerCase().trim();
-
-  if (cleanEmail === ADMIN_EMAIL.toLowerCase()) return true;
-  const localPart = cleanEmail.split("@")[0] || "";
-  if (
-    localPart === "sergeo" ||
-    localPart.startsWith("sergeo.") ||
-    localPart.startsWith("sergeo-") ||
-    localPart === "admin" ||
-    localPart.startsWith("admin.")
-  ) {
-    return true;
-  }
-
-  if (cleanAccount === DEFAULT_OWNER.toLowerCase()) return true;
-  if (cleanAccount.endsWith("sergeo-guard.testnet")) return true;
-  return false;
-};
-
-const DEFAULT_ADMIN_USER: ScopeGuardUser = {
-  id: "usr_sergeo_admin",
-  email: "sergeo@scopeguard.io",
-  displayName: "Sergeo",
-  provider: "google",
-  isAdmin: true,
-  connectedWallets: [DEFAULT_OWNER, "trader." + DEFAULT_OWNER],
-  activeAccountId: DEFAULT_OWNER,
-};
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<ScopeGuardUser | null>(() => {

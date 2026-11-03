@@ -8,6 +8,27 @@ The format is based on Keep a Changelog, adhering to the Ponytail senior develop
 
 ## [Unreleased]
 
+### Fixed - 2026-11-03 (Public RPC Honesty, Credential Leak Cleanup, CI Green)
+
+- **Historical transaction proofs no longer claim independent verifiability**
+  - As of 2026-11-03, all public NEAR testnet RPC endpoints return `UNKNOWN_TRANSACTION` for every hash tried, including the deploy transaction; NearBlocks returns empty results. Contract view methods persist.
+  - README, TESTING guide, ledger comments and this changelog no longer say these hashes "resolve" anywhere; they identify live testnet runs observed at the time. Fresh evidence comes from re-running `node scripts/testnet-demo-agent-e2e.js`.
+
+- **Removed fabricated transaction receipt fallback**
+  - `/api/tx` no longer prints fake receipts (invented `EVENT_JSON`, hardcoded `2.845 Tgas`, invented FINALIZED status) when the RPC doesn't index a hash. It now returns `found: false` and `status: UNVERIFIED`.
+  - Fixed its RPC call body to object `params` and updated the test to not require an indexed receipt.
+  - `ReceiptModal` no longer defaults to SUCCESS, `2.845 Tgas` or a fake EVENT_JSON line. It renders `UNVERIFIED` / em-dashes and a real NearBlocks link when the RPC cannot verify the hash.
+
+- **Proxy no longer ships a public default token**
+  - `proxy/` refuses to start unless `PROXY_API_KEY` is set (min 16 chars) and compares presented tokens in constant time. `scripts/push_git.js` no longer embeds tokens in the git remote; it passes credentials as a one-shot HTTP header and keeps `origin` clean.
+
+- **CI failure root cause fixed**
+  - GitHub Actions reported failure in "Run Web automated unit tests" on the last two pushes. `auth.test.ts` imported a browser-only module with CSS; the check is now extracted to `web/lib/admin.ts` and unit-tested without browser dependencies. The tx route test no longer requires a live indexer reply. 17 tests pass.
+
+- **Cleanup**
+  - Deleted browser-debug artifacts under `scratch/`.
+  - Removed proof claims that were actually stale text from earlier template guides.
+
 ### Changed - 2026-10-30 (Agent Rotation, Custody Honesty, and Verifiable Proofs)
 
 This pass removed four classes of claim that did not survive contact with the chain, and added the two owner controls the contract was missing.

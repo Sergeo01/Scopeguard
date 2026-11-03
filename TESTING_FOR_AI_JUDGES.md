@@ -105,8 +105,12 @@ node scripts/testnet-demo-agent-e2e.js
 - **Agent Sub-Account:** [`agent.sergeo-guard.testnet`](https://testnet.nearblocks.io/address/agent.sergeo-guard.testnet)
 - **Owner Account:** [`sergeo-guard.testnet`](https://testnet.nearblocks.io/address/sergeo-guard.testnet)
 
-### Live Onchain Verified Transactions:
-Every hash below resolves on FastNear RPC (`https://test.rpc.fastnear.com`) and block explorers.
+### Testnet Transaction Hashes (Observed Live; Not Independently Verifiable Today)
+These hashes identify transactions broadcast during live testnet execution.
+
+> As of 2026-11-03, the public testnet RPC returns `UNKNOWN_TRANSACTION` for every hash tried here, including the contract deploy. NearBlocks API returns empty results. The contract view methods still work, confirming state persists, but no public endpoint serves receipts today.
+>
+> For fresh evidence: run `node scripts/testnet-demo-agent-e2e.js` — it prints transaction receipts and exits non-zero on any failure. Do not use these hashes as proof of anything.
 
 **Latest live execution proofs (2026-11-01):**
 1. **Allowed Swap (10 mUSD):** `3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi`
@@ -117,7 +121,7 @@ Every hash below resolves on FastNear RPC (`https://test.rpc.fastnear.com`) and 
 6. **High-Value Quarantine (Swap 300 mUSD -> Intent #10):** `9Yg1B5kWZEJc3rACtaHPMSM8zunRdc9Sh7t3abiHhK8E`
 7. **Owner Unpause Transaction:** `7VcGQbkcHiz27yCnsXVybBNTXNYCXTM9s7zyGPqiddNo`
 
-**Historical baseline verification receipts (2026-10-30):**
+**Historical baseline receipts (2026-10-30):**
 1. **Contract Deployment (v0.2.0, state preserved):** `B8bb7pQSUNpf4a6f7uBNcrXJx7xiJxJDXdJKXFumAFev`
 2. **Agent Retirement (`revoke_agent`, allowlist erased):** `CA9mZuRp1TDFu7hb3Ro6wXnLiD2ft2nUeCd7fpWpkuX9`
 3. **High-Value Quarantine (swap 300 -> intent #1):** `2kvqn2ZP6qefuoZxj5aEe93pDx7A52QtVbWX4v9MPUF5`

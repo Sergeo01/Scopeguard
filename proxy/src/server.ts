@@ -1,6 +1,7 @@
 import * as http from "http";
 import * as fs from "fs";
 import * as path from "path";
+import { timingSafeEqual } from "crypto";
 import {
   ScopeGuardAgentClient,
   ScopeGuardCredential,
@@ -13,7 +14,27 @@ import {
 // Configuration
 // ---------------------------------------------------------------------------
 const PORT = parseInt(process.env.PROXY_PORT || "8787", 10);
-const PROXY_API_KEY = process.env.PROXY_API_KEY || "scopeguard-bot-proxy-token";
+
+// There is no default bot token. Shipping a well-known default would let any
+// caller who has read the source spend the agent's spend lane. The operator
+// must set PROXY_API_KEY to a unique, high-entropy value before start.
+const PROXY_API_KEY = process.env.PROXY_API_KEY || "";
+
+if (!PROXY_API_KEY || PROXY_API_KEY.length < 16) {
+  console.error(
+    "[Proxy] FATAL: PROXY_API_KEY is not set (or shorter than 16 characters). " +
+      "Refusing to start: the proxy would otherwise accept the public default token."
+  );
+  process.exit(1);
+}
+
+/** Constant-time token comparison to avoid timing oracles. */
+function tokenMatches(presented: string): boolean {
+  const a = Buffer.from(presented);
+  const b = Buffer.from(PROXY_API_KEY);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 function loadAgentCredential(): ScopeGuardCredential {
   const customPath = process.env.SCOPEGUARD_CREDENTIAL_PATH;
@@ -173,7 +194,7 @@ export function createProxyServer(): http.Server {
     const authHeader = req.headers["authorization"] || req.headers["x-bot-key"];
     const token = typeof authHeader === "string" ? authHeader.replace(/^Bearer\s+/i, "").trim() : "";
 
-    if (token !== PROXY_API_KEY) {
+    if (!tokenMatches(token)) {
       console.warn(`[Proxy Warning] Unauthorized bot attempt rejected from ${req.socket.remoteAddress}`);
       return sendJson(401, {
         error: "UNAUTHORIZED_BOT_REQUEST",
