@@ -235,7 +235,7 @@ export function IncidentExportModal({
               onClick={handleCopy}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-neutral-200 text-xs font-medium rounded-lg border border-white/10 transition-colors"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-mint-green" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Copied" : "Copy JSON"}
             </button>
             <button
@@ -269,7 +269,7 @@ export function IncidentExportModal({
                 </div>
                 <div className="p-3.5 bg-white/[0.02] border border-white/10 rounded-xl">
                   <span className="text-xs text-neutral-400 block mb-1">Allowed Operations</span>
-                  <span className="text-lg font-mono font-semibold text-emerald-400">
+                  <span className="text-lg font-mono font-semibold text-mint-green">
                     {approvals.length}
                   </span>
                 </div>
@@ -291,7 +291,7 @@ export function IncidentExportModal({
               <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <ShieldCheck className="w-4 h-4 text-mint-green" />
                     <span className="font-semibold text-white text-xs uppercase tracking-wider">
                       Policy Provenance Record
                     </span>
@@ -314,7 +314,7 @@ export function IncidentExportModal({
                     </div>
                     <div className="flex justify-between text-neutral-300">
                       <span>Remaining Allowance:</span>
-                      <span className="font-mono text-emerald-400">
+                      <span className="font-mono text-mint-green">
                         {Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD
                       </span>
                     </div>
@@ -393,7 +393,7 @@ export function IncidentExportModal({
                               </span>
                             </td>
                             <td className="p-2.5 text-neutral-300">{r.amount ? `${r.amount} mUSD` : "-"}</td>
-                            <td className="p-2.5 text-emerald-400 font-medium">0 mUSD (protected)</td>
+                            <td className="p-2.5 text-mint-green font-medium">0 mUSD (protected)</td>
                             <td className="p-2.5 text-neutral-400">
                               {r.txHash ? (
                                 <a

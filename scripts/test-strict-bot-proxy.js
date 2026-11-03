@@ -111,11 +111,14 @@ async function main() {
         },
       }
     );
-    console.log("      Out-of-policy trade response:", JSON.stringify(outOfPolicyTrade.data));
+    console.log("      Out-of-policy trade response:", JSON.stringify(outOfPolicyTrade.data), "HTTP status:", outOfPolicyTrade.statusCode);
+    if (outOfPolicyTrade.statusCode !== 403) {
+      throw new Error(`Expected HTTP 403 Forbidden for policy rejection, got: ${outOfPolicyTrade.statusCode}`);
+    }
     if (outOfPolicyTrade.data.status !== "REJECTED" || outOfPolicyTrade.data.reason !== "RECIPIENT_NOT_ALLOWED") {
       throw new Error(`Expected REJECTED with RECIPIENT_NOT_ALLOWED, got: ${JSON.stringify(outOfPolicyTrade.data)}`);
     }
-    console.log("      PASS: Out-of-policy trade blocked onchain with RECIPIENT_NOT_ALLOWED!");
+    console.log("      PASS: Out-of-policy trade returned HTTP 403 and blocked onchain with RECIPIENT_NOT_ALLOWED!");
 
     console.log("\n==================================================================");
     console.log(" SUCCESS: Strict Bot Proxy verified with full architectural proof!");

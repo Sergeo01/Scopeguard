@@ -414,7 +414,7 @@ const receipt = await act(cred, {
                 { num: "07", name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", desc: "If funds transfer to an account, recipient must be on the allowlist. Empty list forbids transfers." },
                 { num: "08", name: "Timelock Quarantine", code: "PENDING", desc: "Transfers at or above high_value_threshold wait in timelock queue for owner settlement. Not a rejection." },
                 { num: "09", name: "Vault Balance Solvency", code: "INSUFFICIENT_VAULT_BALANCE", desc: "Transfer amount cannot exceed the agent active working vault balance." },
-                { num: "10", name: "Queue Boundary", code: "PENDING_QUEUE_FULL", desc: "Timelock queue is bounded at MAX_PENDING_ACTIONS (16). Prevents unapproved action buildup." },
+                { num: "10", name: "Queue Boundary", code: "PENDING_QUEUE_FULL", desc: "Timelock queue is bounded at MAX_PENDING_ACTIONS (8). Prevents unapproved action buildup." },
               ].map((r) => (
                 <div
                   key={r.num}
@@ -530,7 +530,7 @@ if !is_promise_success() {
               <li>Status code returns PENDING (this is an outcome, not a rejection; does not count against strikes).</li>
               <li>A mandatory quarantine window (e.g. 60 seconds) must elapse before settlement is allowed.</li>
               <li>The owner can review the pending intent in the dashboard and either click Settle or Cancel.</li>
-              <li>The queue is strictly bounded at 16 slots; if full, requests are refused with PENDING_QUEUE_FULL.</li>
+              <li>The queue is strictly bounded at 8 slots; if full, requests are refused with PENDING_QUEUE_FULL.</li>
             </ul>
           </section>
 

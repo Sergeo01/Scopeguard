@@ -76,18 +76,27 @@ export class StrictBotProxy {
       }
     }
 
+    const sanitizeAmount = (val: any): string => {
+      if (val === undefined || val === null) return "0";
+      const s = String(val).trim();
+      if (s.includes(".")) {
+        return s.split(".")[0] || "0";
+      }
+      return s;
+    };
+
     // Direct swap translation
     if (method === "swap") {
-      const amount = parsedArgs.amount || parsedArgs.amount_in || body.amount || "0";
-      const min_out = parsedArgs.min_out || body.min_out || "0";
+      const amount = sanitizeAmount(parsedArgs.amount || parsedArgs.amount_in || body.amount || "0");
+      const min_out = sanitizeAmount(parsedArgs.min_out || body.min_out || "0");
       const token_in = parsedArgs.token_in || body.token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet";
 
       return {
         Swap: {
           dex: target,
           token_in,
-          amount_in: String(amount),
-          min_out: String(min_out),
+          amount_in: amount,
+          min_out: min_out,
         },
       };
     }
@@ -95,7 +104,7 @@ export class StrictBotProxy {
     // Direct NEP-141 transfer translation
     if (method === "ft_transfer" || method === "ft_transfer_call") {
       const recipient = parsedArgs.receiver_id || parsedArgs.to || body.recipient;
-      const amount = parsedArgs.amount || body.amount || "0";
+      const amount = sanitizeAmount(parsedArgs.amount || body.amount || "0");
       const memo = parsedArgs.memo || body.memo || null;
 
       if (!recipient) {
@@ -106,7 +115,7 @@ export class StrictBotProxy {
         Transfer: {
           token: target,
           to: recipient,
-          amount: String(amount),
+          amount: amount,
           memo,
         },
       };
@@ -193,7 +202,10 @@ export function createProxyServer(): http.Server {
           console.log(`  Guard Action:   ${JSON.stringify(translatedAction)}`);
           console.log(`  Onchain Outcome: status=${outcome.status}, reason=${outcome.reason || "none"}`);
 
-          sendJson(200, {
+          const isSuccess = outcome.status === "ALLOWED" || outcome.status === "PENDING";
+          const httpStatus = isSuccess ? 200 : 403;
+
+          sendJson(httpStatus, {
             success: outcome.status === "ALLOWED",
             status: outcome.status,
             reason: outcome.reason || null,
