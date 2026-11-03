@@ -418,6 +418,9 @@ export default function CreateAgentPage() {
 
             <div className="flex flex-col sm:flex-row gap-2.5">
               <input
+                id="ai-prompt-input"
+                name="ai-prompt"
+                aria-label="AI Prompt for scope draft"
                 type="text"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
@@ -487,10 +490,12 @@ export default function CreateAgentPage() {
           <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
               {/* Agent Sub-Account */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-900 dark:text-white block">
+                <label htmlFor="agent-subaccount-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
                   Agent Sub-Account
                 </label>
                 <input
+                  id="agent-subaccount-input"
+                  name="agent-subaccount"
                   type="text"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
@@ -518,7 +523,7 @@ export default function CreateAgentPage() {
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-semibold text-slate-900 dark:text-white block">
+                  <label htmlFor="daily-spending-cap-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
                     Daily Spending Cap (mUSD / day)
                   </label>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -534,6 +539,8 @@ export default function CreateAgentPage() {
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">$</span>
                   <input
+                    id="daily-spending-cap-input"
+                    name="daily-spending-cap"
                     type="number"
                     min="1"
                     step="1"
@@ -589,8 +596,10 @@ export default function CreateAgentPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Auto-Brake Strikes</span>
+                  <label htmlFor="auto-pause-after-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Auto-Brake Strikes</label>
                   <input
+                    id="auto-pause-after-input"
+                    name="auto-pause-after"
                     type="number"
                     min="1"
                     max="20"
@@ -602,8 +611,10 @@ export default function CreateAgentPage() {
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Check Window (Min)</span>
+                  <label htmlFor="auto-pause-window-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Check Window (Min)</label>
                   <input
+                    id="auto-pause-window-input"
+                    name="auto-pause-window"
                     type="number"
                     min="1"
                     max="120"
@@ -615,8 +626,10 @@ export default function CreateAgentPage() {
                 </div>
 
                 <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Speed Throttle</span>
+                  <label htmlFor="speed-limit-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Speed Throttle</label>
                   <input
+                    id="speed-limit-input"
+                    name="speed-limit"
                     type="number"
                     min="1"
                     max="100"
@@ -657,8 +670,10 @@ export default function CreateAgentPage() {
 
               {allowExternalTransfers && (
                 <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
-                  <label className="text-slate-700 dark:text-slate-300">Designated Allowed Recipient</label>
+                  <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300">Designated Allowed Recipient</label>
                   <input
+                    id="external-recipient-input"
+                    name="external-recipient"
                     type="text"
                     value={externalRecipient}
                     onChange={(e) => setExternalRecipient(e.target.value)}

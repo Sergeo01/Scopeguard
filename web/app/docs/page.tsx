@@ -644,9 +644,52 @@ if !is_promise_success() {
                 <span className="font-mono font-bold text-blue-400">IronClaw MCP Server (packages/ironclaw-mcp)</span>
                 <p className="text-slate-600 dark:text-slate-400">Standard stdio Model Context Protocol (MCP) server wrapping ScopeGuard SDK. Exposes strictly agent execution tools (scopeguard_budget, scopeguard_preflight, scopeguard_act) and zero owner powers. Registered via: ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js.</p>
               </div>
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
-                <span className="font-mono font-bold text-emerald-400">Strict Bot Proxy (proxy/)</span>
-                <p className="text-slate-600 dark:text-slate-400">Adapter for bots whose code cannot be modified. Holds strictly an agent sub-account scoped key (never an owner key), enforces inbound Bearer token authentication, translates direct-style trades without widening scope, and logs every translation with the resulting Guard consensus receipt hash.</p>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-3">
+                <div>
+                  <span className="font-mono font-bold text-mint-green">Strict Bot Proxy (proxy/)</span>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">Adapter for trading bots whose code cannot be modified. Holds strictly an agent sub-account scoped key (never an owner key), enforces inbound Bearer token authentication, translates direct-style trades without widening scope, and logs every translation with the resulting Guard consensus receipt hash.</p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 block">
+                    Example 1: Authorized Trade Request (HTTP 200 OK)
+                  </span>
+                  <pre className="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
+{`curl -X POST http://localhost:8788/rpc \\
+  -H "Authorization: Bearer <BOT_PROXY_API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "receiver_id": "sergeo-guard-dex.testnet",
+    "method_name": "swap",
+    "args_json": { "amount": "10", "min_out": "8" }
+  }'`}
+                  </pre>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 block">
+                    Example 2: Out-of-Policy Trade Blocked Onchain (HTTP 403 Forbidden)
+                  </span>
+                  <pre className="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
+{`curl -X POST http://localhost:8788/rpc \\
+  -H "Authorization: Bearer <BOT_PROXY_API_KEY>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "receiver_id": "sergeo-guard-token.testnet",
+    "method_name": "ft_transfer",
+    "args_json": { "receiver_id": "attacker.testnet", "amount": "100" }
+  }'
+
+# Response Body (HTTP 403):
+# {
+#   "success": false,
+#   "status": "REJECTED",
+#   "reason": "RECIPIENT_NOT_ALLOWED",
+#   "agent": "agent.sergeo-guard.testnet",
+#   "guard": "guard2.sergeo-guard.testnet"
+# }`}
+                  </pre>
+                </div>
               </div>
             </div>
           </section>

@@ -10,8 +10,12 @@ console.log('Deploying updated web files to VPS...');
 
 // 1. Upload updated files
 const filesToUpload = [
-  { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'layout.tsx'), remote: '/var/www/scopeguard/web/app/layout.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'page.tsx'), remote: '/var/www/scopeguard/web/app/page.tsx' },
   { local: path.join(__dirname, '..', 'web', 'app', 'docs', 'page.tsx'), remote: '/var/www/scopeguard/web/app/docs/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'create', 'page.tsx'), remote: '/var/www/scopeguard/web/app/create/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'components', 'AuthModal.tsx'), remote: '/var/www/scopeguard/web/components/AuthModal.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'IncidentExportModal.tsx'), remote: '/var/www/scopeguard/web/components/IncidentExportModal.tsx' },
 ];
 

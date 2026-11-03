@@ -96,6 +96,8 @@ export const AuthModal: React.FC = () => {
     try {
       const email = emailInput.trim();
       await signInWithSocial("google", email || undefined);
+      closeAuthModal();
+      setIsOpenLocal(false);
       router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
@@ -107,6 +109,8 @@ export const AuthModal: React.FC = () => {
     try {
       const email = emailInput.trim();
       await signInWithSocial("github", email || undefined);
+      closeAuthModal();
+      setIsOpenLocal(false);
       router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
@@ -120,6 +124,8 @@ export const AuthModal: React.FC = () => {
     try {
       await signInWithEmail(emailInput.trim());
       setEmailInput("");
+      closeAuthModal();
+      setIsOpenLocal(false);
       router.push("/dashboard");
     } finally {
       setLoadingProvider(null);
@@ -152,6 +158,11 @@ export const AuthModal: React.FC = () => {
         injectedProvider = anyWin.hereWallet;
       } else if (walletId === "sender" && anyWin?.near?.isSender) {
         injectedProvider = anyWin.near;
+      } else if (walletId === "nightly" && (anyWin?.nightly?.near || anyWin?.nightly)) {
+        injectedProvider = anyWin.nightly.near || anyWin.nightly;
+      } else if (walletId === "ledger") {
+        setConnectionNotice("Connect your Ledger hardware device via USB, open NEAR App, and approve the connection.");
+        return;
       } else if (anyWin?.near) {
         injectedProvider = anyWin.near;
       }
@@ -163,6 +174,8 @@ export const AuthModal: React.FC = () => {
         const accId = res?.accountId || anyWin?.near?.accountId;
         if (accId) {
           await signInWithNear(accId);
+          closeAuthModal();
+          setIsOpenLocal(false);
           setShowNearStep(false);
           router.push("/dashboard");
           return;
@@ -182,6 +195,8 @@ export const AuthModal: React.FC = () => {
     setLoadingProvider(accId);
     try {
       await signInWithNear(accId);
+      closeAuthModal();
+      setIsOpenLocal(false);
       setShowNearStep(false);
       router.push("/dashboard");
     } finally {
@@ -195,6 +210,8 @@ export const AuthModal: React.FC = () => {
     setLoadingProvider("manual");
     try {
       await signInWithNear(nearAccountInput.trim());
+      closeAuthModal();
+      setIsOpenLocal(false);
       setShowNearStep(false);
       router.push("/dashboard");
     } finally {
@@ -237,6 +254,24 @@ export const AuthModal: React.FC = () => {
       badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
       description: "Fast in-browser signing via Sender Chrome extension",
       icon: "SND",
+      actionType: "injected",
+    },
+    {
+      id: "nightly",
+      name: "Nightly Wallet",
+      badge: "Extension / Mobile",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
+      description: "Multi-chain wallet supporting NEAR protocol signing",
+      icon: "NIT",
+      actionType: "injected",
+    },
+    {
+      id: "ledger",
+      name: "Ledger Hardware",
+      badge: "Hardware Wallet",
+      badgeColor: "bg-slate-500/10 text-slate-300 border-slate-500/20",
+      description: "Direct hardware-secured key signing via WebUSB",
+      icon: "LED",
       actionType: "injected",
     },
   ];

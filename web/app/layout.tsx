@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark bg-[#F8F9FA] dark:bg-obsidian-950">
-      <body className="bg-[#F8F9FA] dark:bg-obsidian-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-600/20 selection:text-blue-600">
+    <html lang="en" suppressHydrationWarning className="dark bg-[#F8F9FA] dark:bg-obsidian-950">
+      <body suppressHydrationWarning className="bg-[#F8F9FA] dark:bg-obsidian-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans antialiased selection:bg-blue-600/20 selection:text-blue-600">
         <ThemeProvider>
           <WalletProvider>
             <LogoProvider>
