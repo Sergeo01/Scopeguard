@@ -357,6 +357,28 @@ Local compute sandboxing alone cannot protect funds once a valid transaction is 
 
 Together, IronClaw isolates the execution environment while ScopeGuard bounds financial exposure. Even if an attacker achieves complete model manipulation inside the local WASM sandbox, the attack dies onchain at the ScopeGuard contract.
 
+### Connecting the IronClaw MCP Server
+
+ScopeGuard includes a native Model Context Protocol (MCP) stdio server in `packages/ironclaw-mcp`. The server exposes strictly agent execution tools (`scopeguard_budget`, `scopeguard_preflight`, `scopeguard_act`) and zero owner powers. No `agent.toml` is required.
+
+To register ScopeGuard with IronClaw:
+```bash
+ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js --credential demo-agent/credentials/agent.json
+```
+
+### Strict Bot Proxy for Unmodified Bots
+
+For trading bots whose internal source code cannot be refactored to call the ScopeGuard SDK directly, ScopeGuard provides an authenticated translation proxy in `proxy/`:
+- Holds strictly an agent scoped passkey restricted to `guard.execute` (never an owner master key).
+- Authenticates inbound bot requests via Bearer token (`PROXY_API_KEY`).
+- Translates direct-style trades to typed `GuardAction` without widening scope.
+- Every translation logs the resulting onchain Guard receipt hash.
+
+Run the proxy:
+```bash
+node proxy/dist/server.js
+```
+
 ---
 
 ## 12. Honest Limits, Known Gaps, and Security Invariants

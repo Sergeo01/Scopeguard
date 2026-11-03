@@ -1,0 +1,17 @@
+{
+  "name": "@scopeguard/bot-proxy",
+  "version": "0.1.0",
+  "description": "Strict bot translation proxy for ScopeGuard policy enforcement",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@scopeguard/sdk": "file:../sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.7"
+  }
+}

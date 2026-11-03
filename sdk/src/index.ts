@@ -52,6 +52,58 @@ export interface Outcome {
   pending_id?: number;
 }
 
+export interface PreflightResult {
+  status: "ALLOWED" | "REJECTED" | "PENDING";
+  reason?: string | null;
+  delay_seconds?: number | null;
+  budget?: BudgetView | null;
+  velocity_used: number;
+  velocity_max: number;
+  velocity_remaining: number;
+  vault_balance: string;
+}
+
+export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAction {
+  if ("Transfer" in paramsOrAction || "Swap" in paramsOrAction || "ContractCall" in paramsOrAction) {
+    return paramsOrAction;
+  }
+  const p = paramsOrAction as ActParams;
+  const argsString = typeof p.args === "string" ? p.args : JSON.stringify(p.args || {});
+
+  if (p.method === "swap") {
+    return {
+      Swap: {
+        dex: p.target,
+        token_in: p.token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet",
+        amount_in: p.amount || "0",
+        min_out: p.min_out || "0",
+      },
+    };
+  } else if (p.method === "ft_transfer" || p.method === "ft_transfer_call") {
+    if (!p.recipient) {
+      throw new Error(
+        `${p.method} requires a recipient account id; refusing to build a transfer without one`
+      );
+    }
+    return {
+      Transfer: {
+        token: p.token || p.target,
+        to: p.recipient,
+        amount: p.amount || "0",
+        memo: p.memo || null,
+      },
+    };
+  } else {
+    return {
+      ContractCall: {
+        target: p.target,
+        method: p.method,
+        args: argsString,
+      },
+    };
+  }
+}
+
 export interface BudgetView {
   cap: string;
   spent: string;
@@ -120,52 +172,7 @@ export class ScopeGuardAgentClient {
 
   async act(paramsOrAction: ActParams | GuardAction): Promise<Outcome> {
     const account = await this.getAccount();
-    let action: GuardAction;
-
-    if ("Transfer" in paramsOrAction || "Swap" in paramsOrAction || "ContractCall" in paramsOrAction) {
-      action = paramsOrAction;
-    } else {
-      const p = paramsOrAction as ActParams;
-      const argsString =
-        typeof p.args === "string" ? p.args : JSON.stringify(p.args || {});
-
-      if (p.method === "swap") {
-        action = {
-          Swap: {
-            dex: p.target,
-            token_in: p.token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet",
-            amount_in: p.amount || "0",
-            min_out: p.min_out || "0",
-          },
-        };
-      } else if (p.method === "ft_transfer" || p.method === "ft_transfer_call") {
-        // A transfer without a recipient is not a transfer. Sending
-        // `to: ""` used to produce an invalid AccountId, which made the
-        // contract panic during deserialization instead of returning a
-        // reason code. Fail here, where the mistake is legible.
-        if (!p.recipient) {
-          throw new Error(
-            `${p.method} requires a recipient account id; refusing to build a transfer without one`
-          );
-        }
-        action = {
-          Transfer: {
-            token: p.token || p.target,
-            to: p.recipient,
-            amount: p.amount || "0",
-            memo: p.memo || null,
-          },
-        };
-      } else {
-        action = {
-          ContractCall: {
-            target: p.target,
-            method: p.method,
-            args: argsString,
-          },
-        };
-      }
-    }
+    const action = toGuardAction(paramsOrAction);
 
     const outcome = await account.functionCall({
       contractId: this.credential.policyContractId,
@@ -179,6 +186,20 @@ export class ScopeGuardAgentClient {
       Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
     ) as Outcome;
     return parsed;
+  }
+
+  async preflight(paramsOrAction: ActParams | GuardAction): Promise<PreflightResult> {
+    const account = await this.getAccount();
+    const action = toGuardAction(paramsOrAction);
+
+    return account.viewFunction({
+      contractId: this.credential.policyContractId,
+      methodName: "preflight",
+      args: {
+        agent_account: this.credential.agentAccountId,
+        action,
+      },
+    });
   }
 
   async budget(): Promise<BudgetView | null> {
@@ -204,6 +225,15 @@ export class ScopeGuardAgentClient {
     return account.viewFunction({
       contractId: this.credential.policyContractId,
       methodName: "get_staged_policy",
+      args: { agent_account: this.credential.agentAccountId },
+    });
+  }
+
+  async getUnconfirmedRecipients(): Promise<string[]> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.credential.policyContractId,
+      methodName: "get_unconfirmed_recipients",
       args: { agent_account: this.credential.agentAccountId },
     });
   }
@@ -342,6 +372,29 @@ export class ScopeGuardOwnerClient {
     } catch (err) {
       throw new Error(formatNearError(err));
     }
+  }
+
+  async preflight(agentAccount: string, paramsOrAction: ActParams | GuardAction): Promise<PreflightResult> {
+    const account = await this.getAccount();
+    const action = toGuardAction(paramsOrAction);
+
+    return account.viewFunction({
+      contractId: this.policyContractId,
+      methodName: "preflight",
+      args: {
+        agent_account: agentAccount,
+        action,
+      },
+    });
+  }
+
+  async getUnconfirmedRecipients(agentAccount: string): Promise<string[]> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.policyContractId,
+      methodName: "get_unconfirmed_recipients",
+      args: { agent_account: agentAccount },
+    });
   }
 }
 

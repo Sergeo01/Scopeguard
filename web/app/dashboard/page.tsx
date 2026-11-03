@@ -37,6 +37,7 @@ import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyB
 import { useWallet } from "@/context/WalletContext";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
+import { IncidentExportModal } from "@/components/IncidentExportModal";
 
 interface ActivityItem {
   id: string;
@@ -98,6 +99,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedAgent, setCopiedAgent] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [stagedPolicy, setStagedPolicy] = useState<StagedPolicyItem | null>(null);
   const [pendingActions, setPendingActions] = useState<PendingActionItem[]>([]);
@@ -829,8 +831,19 @@ export default function DashboardPage() {
               </h3>
             </div>
 
-            {/* Smart Filter Pills */}
-            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-xs">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 border border-blue-500/20 text-xs font-semibold transition"
+                title="Export Provenance & Security Incidents"
+              >
+                <DownloadCloud className="w-3.5 h-3.5" />
+                Export Report
+              </button>
+
+              {/* Smart Filter Pills */}
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-xs">
               <button
                 type="button"
                 onClick={() => setLedgerFilter("all")}
@@ -866,6 +879,7 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+        </div>
 
           {/* Search Box */}
           <div className="relative">
@@ -1120,6 +1134,21 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Policy Provenance & Incident Export Modal */}
+      <IncidentExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        agentId={agentId}
+        guardId={guardId}
+        ownerId={ownerId}
+        policy={policy}
+        stagedPolicy={stagedPolicy}
+        vaultBalance={vaultBalance}
+        dailyCapTotal={dailyCapTotal}
+        dailyCapSpent={dailyCapSpent}
+        activities={activities}
+      />
 
       {/* Direct In-App Onchain Receipt Inspector */}
       <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />

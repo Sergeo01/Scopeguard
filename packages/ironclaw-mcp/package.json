@@ -1,0 +1,20 @@
+{
+  "name": "@scopeguard/ironclaw-mcp",
+  "version": "0.2.0",
+  "description": "IronClaw Model Context Protocol (MCP) server for ScopeGuard onchain spend control",
+  "main": "dist/index.js",
+  "bin": {
+    "scopeguard-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@scopeguard/sdk": "file:../../sdk"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.7"
+  }
+}

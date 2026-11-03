@@ -617,7 +617,7 @@ if !is_promise_success() {
               TypeScript SDK Guide
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              The @scopeguard/sdk package exports three zero-dependency functions:
+              The @scopeguard/sdk package exports core functions for agent passkeys:
             </p>
             <div className="space-y-3 text-xs">
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
@@ -626,11 +626,27 @@ if !is_promise_success() {
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-emerald-500">act(credential, action)</span>
-                <p className="text-slate-600 dark:text-slate-400">Dispatches an action through guard execute. Returns structured onchain verdict (ALLOW or REJECT with exact reason code).</p>
+                <p className="text-slate-600 dark:text-slate-400">Dispatches an action through guard execute. Returns structured onchain verdict (ALLOW, PENDING, or REJECT with exact reason code).</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
-                <span className="font-mono font-bold text-blue-500">budget(agentId)</span>
-                <p className="text-slate-600 dark:text-slate-400">Reads the remaining daily spending cap, velocity window quota, and strike count with zero gas fees via RPC view call.</p>
+                <span className="font-mono font-bold text-blue-500">budget()</span>
+                <p className="text-slate-600 dark:text-slate-400">Reads the remaining daily spending cap, velocity window quota, vault balance, and strike count with zero gas fees via RPC view call.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-amber-500">preflight(action)</span>
+                <p className="text-slate-600 dark:text-slate-400">Read-only dry-run view executing the exact same 10 checks in the exact same order as execute without writing state or recording strikes. Returns ALLOWED, PENDING with timelock delay, or REJECTED with exact reason code.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-purple-400">First-Use Quarantine for New Recipients</span>
+                <p className="text-slate-600 dark:text-slate-400">When a staged policy applies, any recipient present in the new policy but absent from the old one is flagged unconfirmed. Any transfer to an unconfirmed recipient is quarantined to PENDING regardless of amount (even below the high-value threshold). When the owner settles that action, the recipient is confirmed, and subsequent transfers behave normally.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-blue-400">IronClaw MCP Server (packages/ironclaw-mcp)</span>
+                <p className="text-slate-600 dark:text-slate-400">Standard stdio Model Context Protocol (MCP) server wrapping ScopeGuard SDK. Exposes strictly agent execution tools (scopeguard_budget, scopeguard_preflight, scopeguard_act) and zero owner powers. Registered via: ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-emerald-400">Strict Bot Proxy (proxy/)</span>
+                <p className="text-slate-600 dark:text-slate-400">Adapter for bots whose code cannot be modified. Holds strictly an agent sub-account scoped key (never an owner key), enforces inbound Bearer token authentication, translates direct-style trades without widening scope, and logs every translation with the resulting Guard consensus receipt hash.</p>
               </div>
             </div>
           </section>
@@ -818,11 +834,11 @@ if !is_promise_success() {
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-500" />
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    1. EVM Intents via NEAR MPC Chain Signatures (Deferred to Phase 2)
+                    1. EVM Intent Gateway via NEAR MPC &amp; x402 Micro-Allowances (Deferred / Future Roadmap)
                   </h4>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Deferred. We discussed cross-chain EVM signing via testnet MPC signer v2.multichain-mpc.testnet. As agreed, this is a future roadmap capability and is not active in the current live smart contract, which strictly controls NEAR native operations and NEP-141 tokens.
+                  Status: Deferred (Future, Not Active). We discussed cross-chain EVM signing via testnet MPC signer v2.multichain-mpc.testnet and HTTP x402 micro-allowances. Neither feature is active or present in the current production release. They are explicitly future roadmap features. ScopeGuard v1 strictly governs NEAR native operations and NEP-141 token custody.
                 </p>
               </div>
 

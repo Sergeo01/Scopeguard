@@ -158,9 +158,9 @@ A tiny Node service with no keys and no signing power. It tails the policy contr
 - MockDex: a toy swap contract with a fixed rate between mUSD and a second mock token (mETH). Method swap(amount) is the demo agent's legit job target.
 - The judge address: any testnet account a judge controls or names. The demo invites them to name it live.
 
-## 6. Cross-chain Architecture (Chain Signatures: Phase 2 Roadmap)
+## 6. Cross-chain Architecture (Intent Gateway MPC & x402: Future Roadmap, Not Active)
 
-Multi-chain signature delegation via NEAR Chain Signatures MPC (v1.signer on mainnet; testnet id v2.multichain-mpc.testnet) is scoped as a Phase 2 stretch in the project roadmap (see Antigravity Build Pack.md FAQ). The core hackathon v1 release focuses strictly on NEAR native and NEP-141 token policy enforcement and vault governance. Cross-chain transactions in Phase 2 will plug into the same strict onchain policy sequence: target allowlist, method allowlist, and recipient allowlist.
+Multi-chain signature delegation via NEAR Chain Signatures MPC (v1.signer on mainnet; testnet id v2.multichain-mpc.testnet) and HTTP x402 micro-allowances are scoped as future roadmap features (Phase 2 stretch). Neither feature is active or working in the present release. The core hackathon release focuses strictly on NEAR native and NEP-141 token policy enforcement and vault governance. Cross-chain transactions in Phase 2 will plug into the same strict onchain policy sequence: target allowlist, method allowlist, and recipient allowlist.
 
 ## 7. Demo script (target 2 minutes 30 seconds, recorded plus live attack page)
 

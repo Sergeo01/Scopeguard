@@ -215,6 +215,21 @@ pub struct AgentRecord {
     pub next_pending_id: u64,
     /// real NEP-141 token vault balance custody by the Guard
     pub vault_balance: u128,
+    /// recipients added via staged policy that have not yet had a settled transfer
+    pub unconfirmed_recipients: Vec<AccountId>,
+}
+
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreflightResult {
+    pub status: String, // "ALLOWED", "PENDING", "REJECTED"
+    pub reason: Option<String>,
+    pub delay_seconds: Option<u64>,
+    pub budget: Option<BudgetView>,
+    pub velocity_used: u32,
+    pub velocity_max: u32,
+    pub velocity_remaining: u32,
+    pub vault_balance: U128,
 }
 
 #[near(serializers = [json])]
@@ -226,7 +241,7 @@ pub struct Outcome {
 }
 
 #[near(serializers = [json])]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BudgetView {
     pub cap: U128,
     pub spent: U128,
@@ -252,9 +267,21 @@ impl Contract {
     #[init]
     pub fn new() -> Self {
         Self {
-            agents: LookupMap::new(b"a"),
-            agents_by_owner: LookupMap::new(b"o"),
+            agents: LookupMap::new(b"ag".as_slice()),
+            agents_by_owner: LookupMap::new(b"ow".as_slice()),
         }
+    }
+
+    /// Migration initializer to cleanly bind upgraded contract state
+    #[init(ignore_state)]
+    pub fn clean_init() -> Self {
+        Self::new()
+    }
+
+    /// Alias for contract migration
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        Self::new()
     }
 
     // ---------------------------------------------------------------
@@ -330,6 +357,7 @@ impl Contract {
                 staged_policy: None,
                 next_pending_id: 1,
                 vault_balance: 0,
+                unconfirmed_recipients: Vec::new(),
             },
         );
         let mut list = self
@@ -491,6 +519,7 @@ impl Contract {
         rec.pending_actions.clear();
         rec.policy.targets.clear();
         rec.policy.recipients.clear();
+        rec.unconfirmed_recipients.clear();
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
             "{{\"event\":\"REVOKE\",\"agent\":\"{}\"}}",
@@ -617,8 +646,15 @@ impl Contract {
             return self.reject(&caller, &mut rec, REASON_INSUFFICIENT_VAULT, now);
         }
 
-        // Check if high-value action should be queued into timelock lane.
-        if rec.policy.high_value_threshold > 0 && amount >= rec.policy.high_value_threshold {
+        // Check if action should be quarantined into timelock lane:
+        // High-value threshold OR first-use unconfirmed recipient.
+        let is_unconfirmed = match &recipient {
+            Some(r) => rec.unconfirmed_recipients.contains(r),
+            None => false,
+        };
+        let is_high_value = rec.policy.high_value_threshold > 0 && amount >= rec.policy.high_value_threshold;
+
+        if is_high_value || is_unconfirmed {
             rec.actions_in_window += 1;
             if rec.pending_actions.len() >= MAX_PENDING_ACTIONS {
                 return self.reject(&caller, &mut rec, REASON_PENDING_QUEUE_FULL, now);
@@ -775,6 +811,17 @@ impl Contract {
         // All checks passed. Now remove the pending action from the queue.
         rec.pending_actions.retain(|a| a.id != id);
 
+        // If this action was quarantined for an unconfirmed recipient, mark confirmed.
+        if let Some(ref r) = pending_action.recipient {
+            if let Some(pos) = rec.unconfirmed_recipients.iter().position(|x| x == r) {
+                rec.unconfirmed_recipients.remove(pos);
+                emit(&format!(
+                    "{{\"event\":\"RECIPIENT_CONFIRMED\",\"agent\":\"{}\",\"recipient\":\"{}\"}}",
+                    agent, r
+                ));
+            }
+        }
+
         // All checks passed. Record spend, persist, emit SETTLED, perform action.
         // ponytail: Do not increment actions_in_window again; it was already counted when queued.
         rec.spent_in_window = new_spent;
@@ -844,6 +891,169 @@ impl Contract {
         env!("CARGO_PKG_VERSION").to_string()
     }
 
+    pub fn get_unconfirmed_recipients(&self, agent_account: AccountId) -> Vec<AccountId> {
+        self.agents
+            .get(&agent_account)
+            .map(|r| r.unconfirmed_recipients.clone())
+            .unwrap_or_default()
+    }
+
+    /// Read-only preflight simulation of Guard execution.
+    /// Evaluates the exact same 10 checks in the exact same order as execute.
+    /// Never mutates state, never records reject strikes, returns NOT_AGENT as a value.
+    pub fn preflight(&self, agent_account: AccountId, action: GuardAction) -> PreflightResult {
+        let mut rec = match self.agents.get(&agent_account) {
+            Some(r) => r.clone(),
+            None => {
+                return PreflightResult {
+                    status: "REJECTED".to_string(),
+                    reason: Some(REASON_NOT_AGENT.to_string()),
+                    delay_seconds: None,
+                    budget: None,
+                    velocity_used: 0,
+                    velocity_max: 0,
+                    velocity_remaining: 0,
+                    vault_balance: U128(0),
+                };
+            }
+        };
+
+        let now = env::block_timestamp();
+        let now_sec = now / 1_000_000_000;
+
+        // Lazy apply staged policy if effective_at has arrived (simulated read-only)
+        Self::apply_staged_policy_if_due(&mut rec, now_sec, &agent_account);
+
+        // Lazy window resets (simulated read-only)
+        if now >= rec.day_window_start + DAY_NS {
+            rec.day_window_start = now;
+            rec.spent_in_window = 0;
+        }
+        if now >= rec.velocity_window_start + TEN_MIN_NS {
+            rec.velocity_window_start = now;
+            rec.actions_in_window = 0;
+        }
+
+        let velocity_used = rec.actions_in_window;
+        let velocity_max = rec.policy.max_actions_per_10min;
+        let velocity_remaining = velocity_max.saturating_sub(velocity_used);
+        let vault_balance = U128(rec.vault_balance);
+        let budget = BudgetView {
+            cap: U128(rec.policy.daily_cap),
+            spent: U128(rec.spent_in_window),
+            remaining: U128(rec.policy.daily_cap.saturating_sub(rec.spent_in_window)),
+            actions_in_window: rec.actions_in_window,
+            paused: rec.paused,
+            vault_balance,
+            revoked: rec.policy.targets.is_empty() && rec.policy.recipients.is_empty(),
+        };
+
+        let reject = |reason: &str| PreflightResult {
+            status: "REJECTED".to_string(),
+            reason: Some(reason.to_string()),
+            delay_seconds: None,
+            budget: Some(budget.clone()),
+            velocity_used,
+            velocity_max,
+            velocity_remaining,
+            vault_balance,
+        };
+
+        // Check 1: NOT_AGENT (handled above)
+        // Check 2: PAUSED
+        if rec.paused {
+            return reject(REASON_PAUSED);
+        }
+        // Check 3: OVER_VELOCITY_CAP
+        if rec.actions_in_window >= rec.policy.max_actions_per_10min {
+            return reject(REASON_OVER_VELOCITY);
+        }
+
+        let (target, method, _args_bytes, amount, recipient) = action.decompose();
+
+        // Check 4: TARGET_NOT_ALLOWED
+        if let GuardAction::Transfer { ref token, .. } = action {
+            if token != &rec.policy.token {
+                return reject(REASON_TARGET);
+            }
+        }
+        if let GuardAction::ContractCall { target: ref cc_target, .. } = action {
+            if cc_target == &rec.policy.token {
+                return reject(REASON_TARGET);
+            }
+        }
+        let methods = match rec.policy.targets.get(&target) {
+            Some(m) => m,
+            None => return reject(REASON_TARGET),
+        };
+
+        // Check 5: METHOD_NOT_ALLOWED
+        if !methods.iter().any(|m| m == &method) {
+            return reject(REASON_METHOD);
+        }
+        if let GuardAction::ContractCall { method: ref cc_method, .. } = action {
+            if cc_method == "ft_transfer" || cc_method == "ft_transfer_call" || cc_method == "swap" {
+                return reject(REASON_METHOD);
+            }
+        }
+
+        // Check 6: OVER_DAILY_CAP
+        let new_spent = match rec.spent_in_window.checked_add(amount) {
+            Some(val) => val,
+            None => return reject(REASON_CAP),
+        };
+        if new_spent > rec.policy.daily_cap {
+            return reject(REASON_CAP);
+        }
+
+        // Check 7: RECIPIENT_NOT_ALLOWED
+        if let Some(ref r) = recipient {
+            if !rec.policy.recipients.iter().any(|x| x == r) {
+                return reject(REASON_RECIPIENT);
+            }
+        }
+
+        // Check 8: INSUFFICIENT_VAULT_BALANCE
+        if matches!(action, GuardAction::Transfer { .. }) && amount > rec.vault_balance {
+            return reject(REASON_INSUFFICIENT_VAULT);
+        }
+
+        // Check 9: Timelock quarantine vs PENDING_QUEUE_FULL
+        let is_unconfirmed = match &recipient {
+            Some(r) => rec.unconfirmed_recipients.contains(r),
+            None => false,
+        };
+        let is_high_value = rec.policy.high_value_threshold > 0 && amount >= rec.policy.high_value_threshold;
+
+        if is_high_value || is_unconfirmed {
+            if rec.pending_actions.len() >= MAX_PENDING_ACTIONS {
+                return reject(REASON_PENDING_QUEUE_FULL);
+            }
+            return PreflightResult {
+                status: "PENDING".to_string(),
+                reason: None,
+                delay_seconds: Some(rec.policy.high_value_delay_seconds),
+                budget: Some(budget),
+                velocity_used,
+                velocity_max,
+                velocity_remaining,
+                vault_balance,
+            };
+        }
+
+        // Check 10: ALLOWED
+        PreflightResult {
+            status: "ALLOWED".to_string(),
+            reason: None,
+            delay_seconds: None,
+            budget: Some(budget),
+            velocity_used,
+            velocity_max,
+            velocity_remaining,
+            vault_balance,
+        }
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
@@ -864,6 +1074,14 @@ impl Contract {
     fn apply_staged_policy_if_due(rec: &mut AgentRecord, now_sec: u64, agent_account: &AccountId) {
         if let Some(ref staged) = rec.staged_policy {
             if now_sec >= staged.effective_at {
+                // First-use quarantine: any recipient present in the new policy
+                // but absent from the old one is flagged unconfirmed.
+                for r in &staged.policy.recipients {
+                    if !rec.policy.recipients.contains(r) && !rec.unconfirmed_recipients.contains(r) {
+                        rec.unconfirmed_recipients.push(r.clone());
+                    }
+                }
+                rec.unconfirmed_recipients.retain(|r| staged.policy.recipients.contains(r));
                 rec.policy = staged.policy.clone();
                 rec.staged_policy = None;
                 emit(&format!(
@@ -2088,5 +2306,174 @@ mod tests {
         contract.revoke_agent(agent());
         let _ = builder;
         contract.reset_windows(agent());
+    }
+
+    // ---------------------------------------------------------------
+    // Preflight View & First-Use Quarantine
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_preflight_view_simulation_and_checks() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Preflight on unknown agent returns NOT_AGENT as a value (no panic)
+        let unknown_agent: AccountId = "stranger.near".parse().unwrap();
+        let pf_not_agent = contract.preflight(unknown_agent, swap_action(50));
+        assert_eq!(pf_not_agent.status, "REJECTED");
+        assert_eq!(pf_not_agent.reason.as_deref(), Some(REASON_NOT_AGENT));
+        assert!(pf_not_agent.budget.is_none());
+
+        // Deposit 200 into vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(200), agent().to_string());
+
+        // Preflight on valid swap
+        let pf_allowed = contract.preflight(agent(), swap_action(50));
+        assert_eq!(pf_allowed.status, "ALLOWED");
+        assert!(pf_allowed.reason.is_none());
+        assert!(pf_allowed.delay_seconds.is_none());
+        assert_eq!(pf_allowed.velocity_used, 0);
+        assert_eq!(pf_allowed.velocity_max, 3);
+        assert_eq!(pf_allowed.velocity_remaining, 3);
+        assert_eq!(pf_allowed.vault_balance, U128(200));
+        let b = pf_allowed.budget.unwrap();
+        assert_eq!(b.cap, U128(1000));
+        assert_eq!(b.spent, U128(0));
+        assert_eq!(b.remaining, U128(1000));
+
+        // Preflight does NOT write state or spend budget
+        let live_budget = contract.get_budget(agent()).unwrap();
+        assert_eq!(live_budget.spent, U128(0));
+        assert_eq!(live_budget.actions_in_window, 0);
+
+        // Preflight for target not allowed
+        let pf_bad_target = contract.preflight(
+            agent(),
+            GuardAction::Swap {
+                dex: bad_target(),
+                token_in: "token.near".parse().unwrap(),
+                amount_in: U128(10),
+                min_out: U128(1),
+            },
+        );
+        assert_eq!(pf_bad_target.status, "REJECTED");
+        assert_eq!(pf_bad_target.reason.as_deref(), Some(REASON_TARGET));
+
+        // Preflight for recipient not allowed
+        let pf_bad_recipient = contract.preflight(
+            agent(),
+            GuardAction::Transfer {
+                token: "token.near".parse().unwrap(),
+                to: bad_recipient(),
+                amount: U128(10),
+                memo: None,
+            },
+        );
+        assert_eq!(pf_bad_recipient.status, "REJECTED");
+        assert_eq!(pf_bad_recipient.reason.as_deref(), Some(REASON_RECIPIENT));
+
+        // Preflight for over daily cap
+        let pf_over_cap = contract.preflight(agent(), swap_action(1500));
+        assert_eq!(pf_over_cap.status, "REJECTED");
+        assert_eq!(pf_over_cap.reason.as_deref(), Some(REASON_CAP));
+
+        // Preflight for transfer exceeding vault balance (vault has 200, requesting 300)
+        let pf_insufficient_vault = contract.preflight(
+            agent(),
+            GuardAction::Transfer {
+                token: "token.near".parse().unwrap(),
+                to: recipient(),
+                amount: U128(300),
+                memo: None,
+            },
+        );
+        assert_eq!(pf_insufficient_vault.status, "REJECTED");
+        assert_eq!(
+            pf_insufficient_vault.reason.as_deref(),
+            Some(REASON_INSUFFICIENT_VAULT)
+        );
+
+        // Preflight does not add strikes: auto_pause is not tripped
+        assert!(!contract.get_budget(agent()).unwrap().paused);
+
+        // Preflight when paused
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        contract.pause(agent());
+        let pf_paused = contract.preflight(agent(), swap_action(10));
+        assert_eq!(pf_paused.status, "REJECTED");
+        assert_eq!(pf_paused.reason.as_deref(), Some(REASON_PAUSED));
+    }
+
+    #[test]
+    fn test_first_use_quarantine_lifecycle() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Deposit 500 tokens in vault
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        // Stage policy change adding charlie.near as a new recipient
+        let charlie: AccountId = "charlie.near".parse().unwrap();
+        let mut new_policy = sample_policy();
+        new_policy.recipients = vec![recipient(), charlie.clone()];
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        contract.set_policy(agent(), new_policy);
+
+        // Advance past policy change delay (600s)
+        let policy_effective_time = now + 601 * 1_000_000_000;
+        builder.block_timestamp(policy_effective_time);
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+
+        // Preflight: transfer of 20 tokens to charlie should return PENDING due to first-use quarantine
+        let transfer_to_charlie = GuardAction::Transfer {
+            token: "token.near".parse().unwrap(),
+            to: charlie.clone(),
+            amount: U128(20),
+            memo: Some("first transfer to charlie".to_string()),
+        };
+        let pf = contract.preflight(agent(), transfer_to_charlie.clone());
+        assert_eq!(pf.status, "PENDING");
+        assert_eq!(pf.delay_seconds, Some(3600));
+
+        // Agent executes the transfer: quarantined to PENDING
+        let outcome = contract.execute(transfer_to_charlie.clone());
+        assert_eq!(outcome.status, "PENDING");
+        let pending_id = outcome.pending_id.unwrap();
+        assert_eq!(pending_id, 1);
+
+        // Verify charlie is in unconfirmed_recipients
+        let unconfirmed = contract.get_unconfirmed_recipients(agent());
+        assert_eq!(unconfirmed, vec![charlie.clone()]);
+
+        // Advance time past high_value_delay_seconds (3600s)
+        let settle_time = policy_effective_time + 3601 * 1_000_000_000;
+        builder.block_timestamp(settle_time);
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+
+        // Owner settles the pending action
+        let settle_outcome = contract.settle_pending(agent(), pending_id);
+        assert_eq!(settle_outcome.status, "SETTLED");
+
+        // Verify charlie is now confirmed and removed from unconfirmed_recipients
+        let unconfirmed_after = contract.get_unconfirmed_recipients(agent());
+        assert!(unconfirmed_after.is_empty());
+
+        // Next transfer to charlie (below high-value threshold) is ALLOWED immediately
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let pf_second = contract.preflight(agent(), transfer_to_charlie.clone());
+        assert_eq!(pf_second.status, "ALLOWED");
+
+        let second_outcome = contract.execute(transfer_to_charlie);
+        assert_eq!(second_outcome.status, "ALLOWED");
+        assert!(second_outcome.pending_id.is_none());
     }
 }
