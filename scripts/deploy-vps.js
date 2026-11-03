@@ -12,9 +12,15 @@ const filesToUpload = [
   { local: path.join(__dirname, '..', 'web', 'lib', 'wallet-selector.ts'), remote: '/var/www/scopeguard/web/lib/wallet-selector.ts' },
   { local: path.join(__dirname, '..', 'web', 'lib', 'admin.ts'), remote: '/var/www/scopeguard/web/lib/admin.ts' },
   { local: path.join(__dirname, '..', 'web', 'lib', 'ledger.ts'), remote: '/var/www/scopeguard/web/lib/ledger.ts' },
+  { local: path.join(__dirname, '..', 'web', 'lib', 'drafter.ts'), remote: '/var/www/scopeguard/web/lib/drafter.ts' },
   { local: path.join(__dirname, '..', 'web', 'context', 'WalletContext.tsx'), remote: '/var/www/scopeguard/web/context/WalletContext.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'AuthModal.tsx'), remote: '/var/www/scopeguard/web/components/AuthModal.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'ReceiptModal.tsx'), remote: '/var/www/scopeguard/web/components/ReceiptModal.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'components', 'AttackAutopsy.tsx'), remote: '/var/www/scopeguard/web/components/AttackAutopsy.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'components', 'BudgetVelocityGauge.tsx'), remote: '/var/www/scopeguard/web/components/BudgetVelocityGauge.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'components', 'PlatformPresets.tsx'), remote: '/var/www/scopeguard/web/components/PlatformPresets.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'create', 'page.tsx'), remote: '/var/www/scopeguard/web/app/create/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
   { local: path.join(__dirname, '..', 'web', 'app', 'api', 'tx', 'route.ts'), remote: '/var/www/scopeguard/web/app/api/tx/route.ts' },
 ];
 
