@@ -25,7 +25,7 @@ function loadToken() {
   let token = "";
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
-    const match = trimmed.match(/^(GITHUB_PAT|GITHUB_TOKEN)\s*[=:]\s*(.+)$/i);
+    const match = trimmed.match(/^(GITHUB_PAT|GITHUB_TOKEN|GITHUB\s+TOKEN)\s*[=:]\s*(.+)$/i);
     if (match) {
       token = match[2].trim().replace(/^["']|["']$/g, "");
     }
