@@ -34,6 +34,7 @@ import {
   TrendingDown,
   Timer,
   Crosshair,
+  Wand2,
 } from "lucide-react";
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
@@ -66,11 +67,33 @@ interface PendingActionItem {
 }
 
 export default function DashboardPage() {
-  const { user, accountId: connectedWalletId, isConnected: isWalletConnected, refreshBalance } = useWallet();
+  const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
+  const [queriedAgent, setQueriedAgent] = useState<string | null>(null);
+  const [queriedOwner, setQueriedOwner] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const qAgent = sp.get("agent");
+      const qOwner = sp.get("owner");
+      const qGuard = sp.get("guard");
+      if (qAgent) {
+        setAgentId(qAgent);
+        setQueriedAgent(qAgent);
+      }
+      if (qOwner) {
+        setOwnerId(qOwner);
+        setQueriedOwner(qOwner);
+      }
+      if (qGuard) {
+        setGuardId(qGuard);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (isWalletConnected && connectedWalletId) {
@@ -123,9 +146,15 @@ export default function DashboardPage() {
     title: string;
     description: string;
     command: string;
+    method?: string;
+    args?: Record<string, any>;
     isDanger?: boolean;
+    builderLink?: boolean;
   } | null>(null);
   const [copiedCmd, setCopiedCmd] = useState(false);
+  const [isSigningAction, setIsSigningAction] = useState(false);
+  const [actionTxHash, setActionTxHash] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -149,12 +178,31 @@ export default function DashboardPage() {
   const loadOnchainState = async () => {
     setLoading(true);
     try {
-      const resp = await fetch("/api/state");
+      const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const explicitAgent = sp?.get("agent") || queriedAgent;
+      const effectiveOwner = (isWalletConnected && connectedWalletId)
+        ? connectedWalletId
+        : (sp?.get("owner") || queriedOwner || ownerId);
+
+      const params = new URLSearchParams();
+      if (explicitAgent) {
+        params.set("agent", explicitAgent);
+      } else if (!isWalletConnected && agentId) {
+        params.set("agent", agentId);
+      }
+      if (effectiveOwner) params.set("owner", effectiveOwner);
+      if (guardId) params.set("guard", guardId);
+
+      const resp = await fetch(`/api/state?${params.toString()}`);
       const data = await resp.json();
       if (data.success) {
-        if (data.agentId) setAgentId(data.agentId);
+        if (data.agentId) {
+          setAgentId(data.agentId);
+        }
         if (data.guardId) setGuardId(data.guardId);
-        if (data.ownerId) setOwnerId(data.ownerId);
+        if (!isWalletConnected && !sp?.get("owner") && !queriedOwner && data.ownerId) {
+          setOwnerId(data.ownerId);
+        }
         if (data.agentPublicKey) setAgentPublicKey(data.agentPublicKey);
         if (data.policy) {
           setPolicy(data.policy);
@@ -206,6 +254,12 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (isMounted && connectedWalletId) {
+      loadOnchainState();
+    }
+  }, [connectedWalletId, isMounted]);
+
   // Timelock countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
@@ -220,29 +274,76 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
+  const handleSignOwnerAction = async () => {
+    if (!activeOwnerModal?.method) return;
+    setIsSigningAction(true);
+    setActionError(null);
+    try {
+      const { getNearWalletSelector } = await import("@/lib/wallet-selector");
+      const ws = await getNearWalletSelector();
+      if (!ws) throw new Error("Wallet selector could not be initialized");
+      const wallet = await ws.selector.wallet();
+      const { transactions } = await import("near-api-js");
+      const action = transactions.functionCall(
+        activeOwnerModal.method,
+        Buffer.from(JSON.stringify(activeOwnerModal.args || {})),
+        BigInt("100000000000000"),
+        BigInt(0)
+      );
+      const res = await wallet.signAndSendTransaction({
+        receiverId: guardId,
+        actions: [action as any],
+      });
+      if (res && typeof res === "object" && "transaction" in res) {
+        setActionTxHash((res as any).transaction.hash);
+      } else {
+        setActionTxHash("Confirmed onchain");
+      }
+      setTimeout(() => {
+        loadOnchainState();
+      }, 2000);
+    } catch (err: any) {
+      setActionError(err.message || "Failed to execute wallet transaction");
+    } finally {
+      setIsSigningAction(false);
+    }
+  };
+
   const handlePause = async () => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
       title: "Emergency Pause Key",
       description: "Freezes all agent transactions on NEAR Testnet immediately. The Guard contract will refuse all calls until unpaused by the owner.",
       command: `near call ${guardId} pause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "pause",
+      args: { agent_account: agentId },
       isDanger: false,
     });
   };
 
   const handleUnpause = async () => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
       title: "Unpause Agent Key",
       description: "Resumes normal agent operation on NEAR Testnet. The Guard will resume checking transactions against approved policy rules.",
       command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "unpause",
+      args: { agent_account: agentId },
       isDanger: false,
     });
   };
 
   const handleWithdrawVault = async () => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
-      title: "Evacuate Vault to Owner",
+      title: "Withdraw Vault to Owner",
       description: "Empties 100% of the agent spending pot back into your owner wallet. The destination is forced to the verified owner account onchain.",
       command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "withdraw",
+      args: { agent_account: agentId, amount: vaultBalance },
       isDanger: true,
     });
   };
@@ -271,28 +372,53 @@ export default function DashboardPage() {
   };
 
   const handleSettlePending = (pendingId: number) => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
       title: "Settle Quarantined Action",
       description: `Authorizes and executes quarantined action #${pendingId} on NEAR Testnet. The 60-second review timelock has completed.`,
       command: `near call ${guardId} settle_pending '{"agent":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "settle_pending",
+      args: { agent_account: agentId, id: pendingId },
       isDanger: false,
     });
   };
 
   const handleCancelPending = (pendingId: number) => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
       title: "Veto Quarantined Action",
       description: `Vetoes and deletes quarantined action #${pendingId} from the onchain queue. No funds will be transferred.`,
       command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "cancel_pending",
+      args: { agent_account: agentId, id: pendingId },
       isDanger: true,
     });
   };
 
   const handleCancelPolicyChange = async () => {
+    setActionTxHash(null);
+    setActionError(null);
     setActiveOwnerModal({
       title: "Cancel Staged Policy Change",
       description: "Cancels the pending policy change currently sitting in the timelock queue. The existing policy rules remain active.",
       command: `near call ${guardId} cancel_policy_change '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "cancel_policy_change",
+      args: { agent_account: agentId },
+      isDanger: true,
+    });
+  };
+
+  const handleRevoke = async () => {
+    setActionTxHash(null);
+    setActionError(null);
+    setActiveOwnerModal({
+      title: "Permanently Revoke Agent Passkey",
+      description: "Permanently revokes all allowlisted targets and recipients onchain and pauses the agent. Even if unpaused, the agent cannot execute any future actions.",
+      command: `near call ${guardId} revoke_agent '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "revoke_agent",
+      args: { agent_account: agentId },
       isDanger: true,
     });
   };
@@ -307,10 +433,27 @@ export default function DashboardPage() {
       }
       return;
     }
-    setRuleToggles((prev) => ({
-      ...prev,
-      [ruleNum]: !prev[ruleNum],
-    }));
+    const ruleNames: Record<number, string> = {
+      3: "Task Lease Expiration",
+      4: "Canary Honeypot Decoys",
+      5: "Velocity Throttle",
+      6: "Allowed Targets and Methods",
+      7: "Allowed External Recipients",
+      8: "Daily Spending Cap",
+      9: "Custodied Vault Balance",
+      10: "Net Drawdown Breaker",
+      11: "Cross-Chain IntentShield",
+      12: "High-Value Timelock Quarantine",
+    };
+    setActionTxHash(null);
+    setActionError(null);
+    setActiveOwnerModal({
+      title: `Configure Rule ${ruleNum}: ${ruleNames[ruleNum] || "Policy Invariant"}`,
+      description: `Rule ${ruleNum} is enforced directly onchain by the Guard policy. Changes must be staged with a mandatory timelock delay via set_policy.`,
+      command: `near call ${guardId} set_policy '{"agent_account":"${agentId}","policy":${JSON.stringify(policy || {})}}' --accountId ${ownerId} --gas 100000000000000`,
+      builderLink: true,
+      isDanger: false,
+    });
   };
 
   const copyAgentId = () => {
@@ -339,6 +482,25 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Unauthenticated Read-Only Demo Notice */}
+      {!user && (
+        <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+            <Shield className="w-4 h-4 text-brand-blue shrink-0" />
+            <span>
+              Viewing in <strong>Read-Only Demonstration Mode</strong> (<span className="font-mono">{agentId}</span>). Sign in with your NEAR owner account to modify policy and execute emergency controls.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={openAuthModal}
+            className="px-3 py-1.5 rounded-lg bg-brand-blue hover:bg-blue-600 text-white text-xs font-semibold shrink-0 cursor-pointer transition"
+          >
+            Sign In with Wallet
+          </button>
+        </div>
+      )}
+
       {/* Mobile Greeting & Status Header */}
       <div className="lg:hidden flex items-center justify-between bg-white dark:bg-obsidian-900 p-3.5 rounded-xl border border-slate-200 dark:border-obsidian-800">
         <div className="min-w-0">
@@ -398,14 +560,14 @@ export default function DashboardPage() {
         windowMinutes={Number(policy?.auto_pause_window_minutes || 10)}
         recentRejections={[]}
         onUnpause={handleUnpause}
-        isOwner={true}
+        isOwner={Boolean(user && connectedWalletId === ownerId)}
       />
 
       {/* Staged Policy Timelock Banner */}
       <StagedPolicyBanner
         stagedPolicy={stagedPolicy}
         onCancelPolicyChange={handleCancelPolicyChange}
-        isOwner={true}
+        isOwner={Boolean(user && connectedWalletId === ownerId)}
       />
 
       {/* Hero Financial Vault Card */}
@@ -902,25 +1064,35 @@ export default function DashboardPage() {
                       {rule.badge}
                     </span>
 
-                    <button
-                      type="button"
-                      disabled={rule.isLocked}
-                      onClick={() => toggleRule(rule.num)}
-                      title={rule.isLocked ? "Protocol invariant: cannot disable" : "Toggle rule enforcement"}
-                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        rule.isLocked
-                          ? "opacity-60 cursor-not-allowed bg-brand-blue"
-                          : isEnabled
-                          ? "cursor-pointer bg-brand-blue"
-                          : "cursor-pointer bg-slate-300 dark:bg-obsidian-800"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${
-                          isEnabled ? "translate-x-4" : "translate-x-0"
+                    {rule.num === 1 ? (
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                        Protocol Fixed
+                      </span>
+                    ) : rule.num === 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleRule(rule.num)}
+                        title={isPaused ? "Click to unpause key" : "Click to pause key"}
+                        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none cursor-pointer ${
+                          !isPaused ? "bg-brand-blue" : "bg-slate-300 dark:bg-obsidian-800"
                         }`}
-                      />
-                    </button>
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${
+                            !isPaused ? "translate-x-4" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toggleRule(rule.num)}
+                        title="Click to configure onchain rule"
+                        className="text-[11px] font-semibold text-brand-blue hover:text-blue-500 cursor-pointer flex items-center gap-1"
+                      >
+                        <span>Configure</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1234,34 +1406,44 @@ export default function DashboardPage() {
             <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block">
               Owner Controls
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {isPaused ? (
                 <button
                   type="button"
                   onClick={handleUnpause}
-                  className="py-2 px-3 rounded-lg bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="py-2 px-2.5 rounded-lg bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <PlayCircle className="w-3.5 h-3.5" />
-                  <span>Unpause Key</span>
+                  <span>Unpause</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handlePause}
-                  className="py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-900 dark:text-white text-xs font-semibold border border-slate-200 dark:border-obsidian-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="py-2 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-900 dark:text-white text-xs font-semibold border border-slate-200 dark:border-obsidian-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <PauseCircle className="w-3.5 h-3.5" />
-                  <span>Pause Key</span>
+                  <span>Pause</span>
                 </button>
               )}
 
               <button
                 type="button"
+                onClick={handleRevoke}
+                className="py-2 px-2.5 rounded-lg bg-amber-600/90 hover:bg-amber-600 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Permanently revoke all target and recipient permissions onchain"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Revoke</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleWithdrawVault}
-                className="py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="py-2 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <DownloadCloud className="w-3.5 h-3.5" />
-                <span>Evacuate Pot</span>
+                <span>Withdraw</span>
               </button>
             </div>
           </div>
@@ -1296,7 +1478,56 @@ export default function DashboardPage() {
               {activeOwnerModal.description}
             </p>
 
-            <div className="space-y-1.5">
+            {activeOwnerModal.builderLink && (
+              <div className="pt-1">
+                <Link
+                  href={`/create?agent=${encodeURIComponent(agentId)}`}
+                  className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>Customize in Policy Builder</span>
+                </Link>
+              </div>
+            )}
+
+            {activeOwnerModal.method && isWalletConnected && connectedWalletId === ownerId && (
+              <div className="pt-1 space-y-2">
+                <button
+                  type="button"
+                  onClick={handleSignOwnerAction}
+                  disabled={isSigningAction}
+                  className={`w-full py-2.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 ${
+                    activeOwnerModal.isDanger
+                      ? "bg-rose-600 hover:bg-rose-700 text-white"
+                      : "bg-brand-blue hover:bg-brand-blueHover text-white"
+                  }`}
+                >
+                  {isSigningAction ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Signing with Wallet...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>Sign with Connected Wallet ({connectedWalletId})</span>
+                    </>
+                  )}
+                </button>
+                {actionTxHash && (
+                  <p className="text-[11px] font-mono text-center text-emerald-600 dark:text-emerald-400">
+                    Confirmed onchain: {actionTxHash}
+                  </p>
+                )}
+                {actionError && (
+                  <p className="text-[11px] font-mono text-center text-rose-500">
+                    {actionError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between text-[11px] text-slate-400">
                 <span>Run in terminal:</span>
                 <button

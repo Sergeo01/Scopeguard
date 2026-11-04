@@ -784,7 +784,7 @@ if !is_promise_success() {
 
             <div className="space-y-2.5">
               {[
-                { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown and deployed at guard2.sergeo-guard.testnet. 42 unit/integration tests passing." },
+                { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown and deployed at guard2.sergeo-guard.testnet. 67 unit/integration tests passing." },
                 { title: "10-Rule Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, timelock queue, vault solvency, queue capacity." },
                 { title: "Zero-Panic Policy Rejections", desc: "Policy rejections return structured values with reason codes to ensure reject audit logs and circuit breaker strike counts are never reverted." },
                 { title: "3-Strike Circuit Breaker Auto-Pause", desc: "Automatically sets paused = true on the 3rd rejection within 5 minutes and emits AUTO_PAUSE onchain event." },

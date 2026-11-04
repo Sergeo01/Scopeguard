@@ -16,7 +16,7 @@ Prerequisites: cargo and Rust wasm32-unknown-unknown toolchain installed first.
 Judges and evaluators can verify the entire project locally and on testnet in under 30 seconds:
 
 ```bash
-# 1. Run all 42 native Rust smart contract unit tests
+# 1. Run all 67 native Rust smart contract unit tests
 cargo test --manifest-path contracts/Cargo.toml
 
 # 2. Run automated judge verification script (rules, codes, timelocks, and consensus behavior)
@@ -36,7 +36,7 @@ npm run build --prefix web
    Compiling policy-contract v0.2.0 (D:\Hackathon\NEAR\contracts\policy)
     Finished `test` profile [unoptimized + debuginfo] target(s)
      Running unittests src\lib.rs
-test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished
+test result: ok. 67 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished
 ```
 
 #### 2. Judge Verification Script (`node scripts/verify-ai-judge.js`)
@@ -46,7 +46,7 @@ ScopeGuard: Automated Verification for AI Judges (Claude Code / Codex)
 ==================================================================
 
 0. Running real Rust smart contract unit test suite (contracts/policy)...
-   --> Verified: 42 native Rust tests PASSED with exit code 0.
+   --> Verified: 67 native Rust tests PASSED with exit code 0.
 
 1. Verifying policy reason codes and check order...
    [Code 1] -> NOT_AGENT
@@ -399,4 +399,4 @@ We believe in radical transparency:
 
 ## 13. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (42 native Rust unit tests, 14 web tests, and automated check scripts).
+See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (67 native Rust unit tests, 10 SDK tests, 11 MCP tests, and automated check scripts).

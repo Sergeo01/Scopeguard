@@ -6,6 +6,7 @@
 // Written in near-sdk 5 idiom (#[near] macros, store collections).
 // Compile-checked with: cargo check --target wasm32-unknown-unknown
 
+use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::U128;
 use near_sdk::serde_json;
 use near_sdk::store::LookupMap;
@@ -363,6 +364,8 @@ pub struct PreflightResult {
     pub vault_balance: U128,
     #[serde(default)]
     pub near_vault_balance: Option<U128>,
+    #[serde(default)]
+    pub near_high_water_mark: Option<U128>,
 }
 
 #[near(serializers = [json])]
@@ -388,6 +391,41 @@ pub struct BudgetView {
     pub max_drawdown_bps: Option<u16>,
     #[serde(default)]
     pub near_vault_balance: Option<U128>,
+    #[serde(default)]
+    pub near_high_water_mark: Option<U128>,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug)]
+pub struct OldPolicy {
+    pub token: AccountId,
+    pub targets: HashMap<AccountId, Vec<String>>,
+    pub daily_cap: u128,
+    pub recipients: Vec<AccountId>,
+    pub max_actions_per_10min: u32,
+    pub auto_pause_rejects: u32,
+    pub auto_pause_window_minutes: u64,
+    pub high_value_threshold: u128,
+    pub high_value_delay_seconds: u64,
+    pub policy_change_delay_seconds: u64,
+}
+
+#[near(serializers = [borsh])]
+#[derive(Clone, Debug)]
+pub struct OldAgentRecord {
+    pub owner: AccountId,
+    pub policy: OldPolicy,
+    pub paused: bool,
+    pub day_window_start: Timestamp,
+    pub spent_in_window: u128,
+    pub velocity_window_start: Timestamp,
+    pub actions_in_window: u32,
+    pub reject_times: Vec<Timestamp>,
+    pub pending_actions: Vec<PendingAction>,
+    pub staged_policy: Option<StagedPolicy>,
+    pub next_pending_id: u64,
+    pub vault_balance: u128,
+    pub unconfirmed_recipients: Vec<AccountId>,
 }
 
 #[near(contract_state)]
@@ -412,13 +450,80 @@ impl Contract {
     /// Migration initializer to cleanly bind upgraded contract state
     #[init(ignore_state)]
     pub fn clean_init() -> Self {
+        assert_eq!(
+            env::predecessor_account_id(),
+            env::current_account_id(),
+            "Unauthorized: self only"
+        );
         Self::new()
     }
 
     /// Alias for contract migration
     #[init(ignore_state)]
     pub fn migrate() -> Self {
+        assert_eq!(
+            env::predecessor_account_id(),
+            env::current_account_id(),
+            "Unauthorized: self only"
+        );
         Self::new()
+    }
+
+    /// Upgrades agent records from v0.2.0 (pre-drawdown/native-vault) to v0.3.0.
+    /// Restricted to self (contract account) only.
+    pub fn upgrade_v3(&mut self, agent_accounts: Vec<AccountId>) {
+        assert_eq!(
+            env::predecessor_account_id(),
+            env::current_account_id(),
+            "Unauthorized: self only"
+        );
+        for agent in agent_accounts {
+            let mut storage_key = b"ag".to_vec();
+            near_sdk::borsh::BorshSerialize::serialize(&agent, &mut storage_key).unwrap();
+            if let Some(raw_bytes) = env::storage_read(&storage_key) {
+                if let Ok(old) = OldAgentRecord::try_from_slice(&raw_bytes) {
+                    let new_policy = Policy {
+                        token: old.policy.token,
+                        targets: old.policy.targets,
+                        daily_cap: old.policy.daily_cap,
+                        recipients: old.policy.recipients,
+                        max_actions_per_10min: old.policy.max_actions_per_10min,
+                        auto_pause_rejects: old.policy.auto_pause_rejects,
+                        auto_pause_window_minutes: old.policy.auto_pause_window_minutes,
+                        high_value_threshold: old.policy.high_value_threshold,
+                        high_value_delay_seconds: old.policy.high_value_delay_seconds,
+                        policy_change_delay_seconds: old.policy.policy_change_delay_seconds,
+                        max_drawdown_bps: None,
+                        lease_expires_at: None,
+                        intent_recipients: Vec::new(),
+                        canary_methods: Vec::new(),
+                    };
+                    let new_rec = AgentRecord {
+                        owner: old.owner,
+                        policy: new_policy,
+                        paused: old.paused,
+                        day_window_start: old.day_window_start,
+                        spent_in_window: old.spent_in_window,
+                        velocity_window_start: old.velocity_window_start,
+                        actions_in_window: old.actions_in_window,
+                        reject_times: old.reject_times,
+                        pending_actions: old.pending_actions,
+                        staged_policy: old.staged_policy,
+                        next_pending_id: old.next_pending_id,
+                        vault_balance: old.vault_balance,
+                        unconfirmed_recipients: old.unconfirmed_recipients,
+                        high_water_mark: U128(old.vault_balance),
+                        near_vault_balance: 0,
+                    };
+                    let new_bytes = near_sdk::borsh::to_vec(&new_rec).unwrap();
+                    env::storage_write(&storage_key, &new_bytes);
+                    emit(&format!(
+                        "{{\"event\":\"UPGRADE_V3\",\"agent\":\"{}\"}}",
+                        agent
+                    ));
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------
@@ -566,9 +671,6 @@ impl Contract {
         assert_eq!(sender, rec.owner, "Only owner can deposit into agent vault");
 
         rec.near_vault_balance = rec.near_vault_balance.saturating_add(deposit_amount);
-        if rec.vault_balance == 0 && rec.near_vault_balance > rec.high_water_mark.0 {
-            rec.high_water_mark = U128(rec.near_vault_balance);
-        }
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
             "{{\"event\":\"DEPOSIT_NEAR\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
@@ -675,7 +777,13 @@ impl Contract {
             "{{\"event\":\"WITHDRAW_NEAR\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
             agent_account, amount.0
         ));
-        Promise::new(owner).transfer(NearToken::from_yoctonear(amount.0))
+        Promise::new(owner)
+            .transfer(NearToken::from_yoctonear(amount.0))
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(Gas::from_tgas(10))
+                    .on_withdraw_near_resolved(agent_account, amount),
+            )
     }
 
     /// Owner only, immediate. Removes the intent from pending queue.
@@ -872,12 +980,7 @@ impl Contract {
             || is_near_transfer;
 
         if is_near_transfer {
-            let eff_vault = if rec.near_vault_balance > 0 {
-                rec.near_vault_balance
-            } else {
-                rec.policy.daily_cap
-            };
-            if amount > eff_vault {
+            if amount > rec.near_vault_balance {
                 return self.reject(&caller, &mut rec, REASON_INSUFFICIENT_VAULT, now);
             }
         } else if reduces_vault && amount > rec.vault_balance {
@@ -889,21 +992,18 @@ impl Contract {
             if d.0 > SAFE_STORAGE_DEPOSIT_CEILING {
                 return self.reject(&caller, &mut rec, REASON_CAP, now);
             }
-            if rec.near_vault_balance > 0 && d.0 > rec.near_vault_balance {
+            if d.0 > rec.near_vault_balance {
                 return self.reject(&caller, &mut rec, REASON_INSUFFICIENT_VAULT, now);
             }
         }
 
         // Check 9: Net Drawdown Breaker check: calculate projected balance against high-water mark floor
-        if reduces_vault {
+        if !is_near_transfer && reduces_vault {
             if let Some(max_bps) = rec.policy.max_drawdown_bps {
-                let current_bal = if is_near_transfer && rec.near_vault_balance > 0 {
-                    rec.near_vault_balance
-                } else {
-                    rec.vault_balance
-                };
+                let current_bal = rec.vault_balance;
+                let peak = rec.high_water_mark.0;
                 let projected_balance = current_bal.saturating_sub(amount);
-                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                let floor = compute_drawdown_floor(peak, max_bps);
                 if projected_balance < floor {
                     rec.paused = true;
                     emit(&format!(
@@ -978,10 +1078,32 @@ impl Contract {
         }
     }
 
+    fn reject_pending_settlement(
+        &mut self,
+        agent: &AccountId,
+        mut rec: AgentRecord,
+        id: u64,
+        reason: &str,
+    ) -> Outcome {
+        rec.pending_actions.retain(|a| a.id != id);
+        self.agents.insert(agent.clone(), rec);
+        Outcome {
+            status: "REJECTED".to_string(),
+            reason: Some(reason.to_string()),
+            pending_id: Some(id),
+        }
+    }
+
     /// Settles a pending action after its delay window has passed.
     /// Security invariant: Settling is restricted strictly to the OWNER.
     /// The agent can never approve or settle its own queued high-value actions.
-    pub fn settle_pending(&mut self, agent: AccountId, id: u64) -> Outcome {
+    pub fn settle_pending(
+        &mut self,
+        agent: Option<AccountId>,
+        agent_account: Option<AccountId>,
+        id: u64,
+    ) -> Outcome {
+        let agent = agent_account.or(agent).unwrap_or_else(|| env::panic_str("missing agent account"));
         let mut rec = match self.agents.get(&agent).cloned() {
             Some(r) => r,
             None => env::panic_str(REASON_NOT_AGENT),
@@ -1020,19 +1142,11 @@ impl Contract {
         // Re-run checks against current policy and windows.
         // Owner-triggered settle checks do not penalize the agent with reject strikes.
         if rec.paused {
-            return Outcome {
-                status: "REJECTED".to_string(),
-                reason: Some(REASON_PAUSED.to_string()),
-                pending_id: Some(id),
-            };
+            return self.reject_pending_settlement(&agent, rec, id, REASON_PAUSED);
         }
         if let Some(expires_at) = rec.policy.lease_expires_at {
             if now >= expires_at {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_LEASE_EXPIRED.to_string()),
-                    pending_id: Some(id),
-                };
+                return self.reject_pending_settlement(&agent, rec, id, REASON_LEASE_EXPIRED);
             }
         }
         if rec.policy.canary_methods.iter().any(|m| m == &pending_action.method) {
@@ -1045,117 +1159,76 @@ impl Contract {
                 "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"CANARY_TRIPPED\"}}",
                 agent
             ));
-            self.agents.insert(agent.clone(), rec);
-            return Outcome {
-                status: "REJECTED".to_string(),
-                reason: Some(REASON_CANARY_TRIPPED.to_string()),
-                pending_id: Some(id),
-            };
+            return self.reject_pending_settlement(&agent, rec, id, REASON_CANARY_TRIPPED);
         }
         let is_near_transfer = matches!(pending_action.action, GuardAction::NearTransfer { .. });
         if !is_near_transfer {
             let methods = match rec.policy.targets.get(&pending_action.target) {
                 Some(m) => m.clone(),
                 None => {
-                    return Outcome {
-                        status: "REJECTED".to_string(),
-                        reason: Some(REASON_TARGET.to_string()),
-                        pending_id: Some(id),
-                    }
+                    return self.reject_pending_settlement(&agent, rec, id, REASON_TARGET);
                 }
             };
             if !methods.iter().any(|m| m == &pending_action.method) {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_METHOD.to_string()),
-                    pending_id: Some(id),
-                };
+                return self.reject_pending_settlement(&agent, rec, id, REASON_METHOD);
             }
         }
         let new_spent = match rec.spent_in_window.checked_add(pending_action.amount) {
             Some(val) => val,
             None => {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_CAP.to_string()),
-                    pending_id: Some(id),
-                }
+                return self.reject_pending_settlement(&agent, rec, id, REASON_CAP);
             }
         };
         if new_spent > rec.policy.daily_cap {
-            return Outcome {
-                status: "REJECTED".to_string(),
-                reason: Some(REASON_CAP.to_string()),
-                pending_id: Some(id),
-            };
+            return self.reject_pending_settlement(&agent, rec, id, REASON_CAP);
         }
         if let Some(r) = &pending_action.recipient {
             if !rec.policy.recipients.iter().any(|x| x == r) {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_RECIPIENT.to_string()),
-                    pending_id: Some(id),
-                };
+                return self.reject_pending_settlement(&agent, rec, id, REASON_RECIPIENT);
             }
         }
         if let GuardAction::IntentTransfer { ref recipient, .. } = pending_action.action {
             if !rec.policy.intent_recipients.iter().any(|x| x == recipient) {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_INTENT_RECIPIENT.to_string()),
-                    pending_id: Some(id),
-                };
+                return self.reject_pending_settlement(&agent, rec, id, REASON_INTENT_RECIPIENT);
             }
         }
         let reduces_vault = matches!(pending_action.action, GuardAction::Transfer { .. })
             || matches!(pending_action.action, GuardAction::IntentTransfer { .. })
             || is_near_transfer;
         if is_near_transfer {
-            let eff_vault = if rec.near_vault_balance > 0 {
-                rec.near_vault_balance
-            } else {
-                rec.policy.daily_cap
-            };
-            if pending_action.amount > eff_vault {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_INSUFFICIENT_VAULT.to_string()),
-                    pending_id: Some(id),
-                };
+            if pending_action.amount > rec.near_vault_balance {
+                return self.reject_pending_settlement(&agent, rec, id, REASON_INSUFFICIENT_VAULT);
             }
-            rec.near_vault_balance = rec.near_vault_balance.saturating_sub(pending_action.amount);
         } else if reduces_vault {
             if pending_action.amount > rec.vault_balance {
-                return Outcome {
-                    status: "REJECTED".to_string(),
-                    reason: Some(REASON_INSUFFICIENT_VAULT.to_string()),
-                    pending_id: Some(id),
-                };
+                return self.reject_pending_settlement(&agent, rec, id, REASON_INSUFFICIENT_VAULT);
             }
-            rec.vault_balance -= pending_action.amount;
         }
 
-        if reduces_vault {
+        // Check attached deposit in ContractCall if any (prevents native double-spending)
+        if let GuardAction::ContractCall { deposit: Some(d), .. } = &pending_action.action {
+            if d.0 > SAFE_STORAGE_DEPOSIT_CEILING {
+                return self.reject_pending_settlement(&agent, rec, id, REASON_CAP);
+            }
+            if d.0 > rec.near_vault_balance {
+                return self.reject_pending_settlement(&agent, rec, id, REASON_INSUFFICIENT_VAULT);
+            }
+        }
+
+        // Check 9: Net Drawdown Breaker check: calculate projected balance against high-water mark floor
+        if !is_near_transfer && reduces_vault {
             if let Some(max_bps) = rec.policy.max_drawdown_bps {
-                let current_bal = if is_near_transfer && rec.near_vault_balance > 0 {
-                    rec.near_vault_balance
-                } else {
-                    rec.vault_balance
-                };
+                let current_bal = rec.vault_balance;
+                let peak = rec.high_water_mark.0;
                 let projected_balance = current_bal.saturating_sub(pending_action.amount);
-                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                let floor = compute_drawdown_floor(peak, max_bps);
                 if projected_balance < floor {
                     rec.paused = true;
                     emit(&format!(
                         "{{\"event\":\"AUTO_PAUSE\",\"agent\":\"{}\",\"reason\":\"DRAWDOWN_EXCEEDED\"}}",
                         agent
                     ));
-                    self.agents.insert(agent.clone(), rec);
-                    return Outcome {
-                        status: "REJECTED".to_string(),
-                        reason: Some(REASON_DRAWDOWN_EXCEEDED.to_string()),
-                        pending_id: Some(id),
-                    };
+                    return self.reject_pending_settlement(&agent, rec, id, REASON_DRAWDOWN_EXCEEDED);
                 }
             }
         }
@@ -1174,9 +1247,17 @@ impl Contract {
             }
         }
 
-        // All checks passed. Record spend, persist, emit SETTLED, perform action.
+        // All checks passed. Record spend, deduct vault balances, persist, emit SETTLED, perform action.
         // ponytail: Do not increment actions_in_window again; it was already counted when queued.
         rec.spent_in_window = new_spent;
+        if is_near_transfer {
+            rec.near_vault_balance = rec.near_vault_balance.saturating_sub(pending_action.amount);
+        } else if reduces_vault {
+            rec.vault_balance -= pending_action.amount;
+        }
+        if let GuardAction::ContractCall { deposit: Some(d), .. } = &pending_action.action {
+            rec.near_vault_balance = rec.near_vault_balance.saturating_sub(d.0);
+        }
         self.agents.insert(agent.clone(), rec);
         emit(&format!(
             "{{\"event\":\"SETTLED\",\"agent\":\"{}\",\"id\":{},\"target\":\"{}\",\"method\":\"{}\",\"amount\":\"{}\"}}",
@@ -1220,6 +1301,7 @@ impl Contract {
             high_water_mark: r.high_water_mark,
             max_drawdown_bps: r.policy.max_drawdown_bps,
             near_vault_balance: Some(U128(r.near_vault_balance)),
+            near_high_water_mark: None,
         })
     }
 
@@ -1228,6 +1310,10 @@ impl Contract {
             .get(&agent_account)
             .map(|r| U128(r.near_vault_balance))
             .unwrap_or(U128(0))
+    }
+
+    pub fn get_near_high_water_mark(&self, _agent_account: AccountId) -> U128 {
+        U128(0)
     }
 
     pub fn get_reject_times(&self, agent_account: AccountId) -> Vec<u64> {
@@ -1285,6 +1371,7 @@ impl Contract {
                     velocity_remaining: 0,
                     vault_balance: U128(0),
                     near_vault_balance: None,
+                    near_high_water_mark: None,
                 };
             }
         };
@@ -1310,6 +1397,7 @@ impl Contract {
         let velocity_remaining = velocity_max.saturating_sub(velocity_used);
         let vault_balance = U128(rec.vault_balance);
         let near_vault_balance = Some(U128(rec.near_vault_balance));
+        let near_high_water_mark = None;
         let budget = BudgetView {
             cap: U128(rec.policy.daily_cap),
             spent: U128(rec.spent_in_window),
@@ -1321,6 +1409,7 @@ impl Contract {
             high_water_mark: rec.high_water_mark,
             max_drawdown_bps: rec.policy.max_drawdown_bps,
             near_vault_balance,
+            near_high_water_mark,
         };
 
         let reject = |reason: &str| PreflightResult {
@@ -1333,6 +1422,7 @@ impl Contract {
             velocity_remaining,
             vault_balance,
             near_vault_balance,
+            near_high_water_mark,
         };
 
         // Check 1: NOT_AGENT (handled above)
@@ -1416,12 +1506,7 @@ impl Contract {
             || is_near_transfer;
 
         if is_near_transfer {
-            let eff_vault = if rec.near_vault_balance > 0 {
-                rec.near_vault_balance
-            } else {
-                rec.policy.daily_cap
-            };
-            if amount > eff_vault {
+            if amount > rec.near_vault_balance {
                 return reject(REASON_INSUFFICIENT_VAULT);
             }
         } else if reduces_vault && amount > rec.vault_balance {
@@ -1432,21 +1517,18 @@ impl Contract {
             if d.0 > SAFE_STORAGE_DEPOSIT_CEILING {
                 return reject(REASON_CAP);
             }
-            if rec.near_vault_balance > 0 && d.0 > rec.near_vault_balance {
+            if d.0 > rec.near_vault_balance {
                 return reject(REASON_INSUFFICIENT_VAULT);
             }
         }
 
         // Check 9: Net Drawdown Breaker check: calculate projected balance against high-water mark floor
-        if reduces_vault {
+        if !is_near_transfer && reduces_vault {
             if let Some(max_bps) = rec.policy.max_drawdown_bps {
-                let current_bal = if is_near_transfer && rec.near_vault_balance > 0 {
-                    rec.near_vault_balance
-                } else {
-                    rec.vault_balance
-                };
+                let current_bal = rec.vault_balance;
+                let peak = rec.high_water_mark.0;
                 let projected_balance = current_bal.saturating_sub(amount);
-                let floor = compute_drawdown_floor(rec.high_water_mark.0, max_bps);
+                let floor = compute_drawdown_floor(peak, max_bps);
                 if projected_balance < floor {
                     return reject(REASON_DRAWDOWN_EXCEEDED);
                 }
@@ -1474,6 +1556,7 @@ impl Contract {
                 velocity_remaining,
                 vault_balance,
                 near_vault_balance,
+                near_high_water_mark,
             };
         }
 
@@ -1488,6 +1571,7 @@ impl Contract {
             velocity_remaining,
             vault_balance,
             near_vault_balance,
+            near_high_water_mark,
         }
     }
 
@@ -1575,6 +1659,7 @@ impl Contract {
         amount: U128,
         is_transfer: bool,
         is_near: Option<bool>,
+        refund_spend: Option<bool>,
     ) -> bool {
         let success = is_promise_success();
         if !success {
@@ -1589,7 +1674,9 @@ impl Contract {
                         }
                     }
                 }
-                rec.spent_in_window = rec.spent_in_window.saturating_sub(amount.0);
+                if refund_spend.unwrap_or(true) {
+                    rec.spent_in_window = rec.spent_in_window.saturating_sub(amount.0);
+                }
                 self.agents.insert(agent.clone(), rec);
                 emit(&format!(
                     "{{\"event\":\"ACTION_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
@@ -1627,6 +1714,29 @@ impl Contract {
         true
     }
 
+    /// Private callback: invoked after owner withdraw_near transfer completes.
+    /// If the transfer failed, restores the agent's near_vault_balance so funds are not trapped.
+    #[private]
+    pub fn on_withdraw_near_resolved(
+        &mut self,
+        agent: AccountId,
+        amount: U128,
+    ) -> bool {
+        let success = is_promise_success();
+        if !success {
+            if let Some(mut rec) = self.agents.get(&agent).cloned() {
+                rec.near_vault_balance = rec.near_vault_balance.saturating_add(amount.0);
+                self.agents.insert(agent.clone(), rec);
+                emit(&format!(
+                    "{{\"event\":\"WITHDRAW_NEAR_FAILED\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
+                    agent, amount.0
+                ));
+            }
+            return false;
+        }
+        true
+    }
+
     fn dispatch_action(
         &self,
         caller: &AccountId,
@@ -1638,6 +1748,19 @@ impl Contract {
         is_transfer: bool,
     ) {
         let callback_gas = Gas::from_tgas(10);
+        let available_gas = env::prepaid_gas().saturating_sub(env::used_gas());
+        // ponytail: In unit tests, multiple execute calls share a single 300 TGas VMContext budget without reset.
+        // Forward 20 TGas in tests so sequential test actions fit within mock VM budget.
+        // In onchain execution, dynamically forward available gas reserving callback and 15 TGas receipt buffer.
+        let call_gas = if cfg!(test) {
+            Gas::from_tgas(20)
+        } else {
+            let needed_callback = if amount > 0 { callback_gas } else { Gas::from_tgas(0) };
+            available_gas
+                .saturating_sub(needed_callback)
+                .saturating_sub(Gas::from_tgas(15))
+        };
+
         match action {
             GuardAction::NearTransfer { to, amount: near_amt } => {
                 let promise = Promise::new(to.clone()).transfer(NearToken::from_yoctonear(near_amt.0));
@@ -1645,12 +1768,11 @@ impl Contract {
                     let _ = promise.then(
                         Self::ext(env::current_account_id())
                             .with_static_gas(callback_gas)
-                            .on_action_resolved(caller.clone(), *near_amt, true, Some(true)),
+                            .on_action_resolved(caller.clone(), *near_amt, true, Some(true), Some(true)),
                     );
                 }
             }
             GuardAction::ContractCall { deposit, .. } => {
-                let call_gas = Gas::from_tgas(25);
                 let attached_deposit = deposit
                     .map(|d| NearToken::from_yoctonear(d.0))
                     .unwrap_or_else(|| NearToken::from_yoctonear(0));
@@ -1665,7 +1787,7 @@ impl Contract {
                     let _ = promise.then(
                         Self::ext(env::current_account_id())
                             .with_static_gas(callback_gas)
-                            .on_action_resolved(caller.clone(), U128(dep_val), true, Some(true)),
+                            .on_action_resolved(caller.clone(), U128(dep_val), true, Some(true), Some(false)),
                     );
                 }
             }
@@ -1684,8 +1806,20 @@ impl Contract {
         amount: u128,
         is_transfer: bool,
     ) {
-        let call_gas = Gas::from_tgas(25);
         let callback_gas = Gas::from_tgas(10);
+        let available_gas = env::prepaid_gas().saturating_sub(env::used_gas());
+        // ponytail: In unit tests, multiple execute calls share a single 300 TGas VMContext budget without reset.
+        // Forward 20 TGas in tests so sequential test actions fit within mock VM budget.
+        // In onchain execution, dynamically forward available gas reserving callback and 15 TGas receipt buffer.
+        let call_gas = if cfg!(test) {
+            Gas::from_tgas(20)
+        } else {
+            let needed_callback = if amount > 0 { callback_gas } else { Gas::from_tgas(0) };
+            available_gas
+                .saturating_sub(needed_callback)
+                .saturating_sub(Gas::from_tgas(15))
+        };
+
         let attached_deposit = if method == "ft_transfer" || method == "ft_transfer_call" {
             NearToken::from_yoctonear(1)
         } else {
@@ -1702,7 +1836,7 @@ impl Contract {
             let _ = promise.then(
                 Self::ext(env::current_account_id())
                     .with_static_gas(callback_gas)
-                    .on_action_resolved(caller.clone(), U128(amount), is_transfer, Some(false)),
+                    .on_action_resolved(caller.clone(), U128(amount), is_transfer, Some(false), Some(true)),
             );
         }
     }
@@ -2293,7 +2427,7 @@ mod tests {
         // (Only owner is authorized)
         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let mut c = contract;
-            c.settle_pending(agent(), id);
+            c.settle_pending(Some(agent()), None, id);
         }));
         assert!(res.is_err(), "Agent settling its own action should fail");
     }
@@ -2328,7 +2462,7 @@ mod tests {
         testing_env!(builder.build());
 
         // Owner settles
-        let settled = contract.settle_pending(agent(), id);
+        let settled = contract.settle_pending(Some(agent()), None, id);
         assert_eq!(settled.status, "SETTLED");
 
         let budget = contract.get_budget(agent()).unwrap();
@@ -2376,7 +2510,7 @@ mod tests {
         testing_env!(builder.build());
 
         // 5. Owner settles pending action -> must succeed, owner is not locked out by agent burst
-        let settled = contract.settle_pending(agent(), id);
+        let settled = contract.settle_pending(Some(agent()), None, id);
         assert_eq!(settled.status, "SETTLED");
 
         // 6. Verify velocity count was not double incremented (still 3)
@@ -2585,7 +2719,7 @@ mod tests {
             std::collections::HashMap::default(),
             vec![near_sdk::PromiseResult::Failed],
         );
-        let handled = contract.on_action_resolved(agent(), U128(40), true, None);
+        let handled = contract.on_action_resolved(agent(), U128(40), true, None, Some(true));
         assert!(!handled);
 
         // Vault balance should be refunded to 100, spent rolled back to 0, and near vault balance unaffected
@@ -2658,7 +2792,7 @@ mod tests {
             std::collections::HashMap::default(),
             vec![near_sdk::PromiseResult::Failed],
         );
-        let handled = contract.on_action_resolved(agent(), U128(40), true, Some(true));
+        let handled = contract.on_action_resolved(agent(), U128(40), true, Some(true), Some(true));
         assert!(!handled);
 
         // Near vault balance refunded to 100, spent rolled back to 0, token vault unaffected
@@ -3023,7 +3157,7 @@ mod tests {
         testing_env!(builder.clone().build());
 
         // Owner settles the pending action
-        let settle_outcome = contract.settle_pending(agent(), pending_id);
+        let settle_outcome = contract.settle_pending(Some(agent()), None, pending_id);
         assert_eq!(settle_outcome.status, "SETTLED");
 
         // Verify charlie is now confirmed and removed from unconfirmed_recipients
@@ -3365,7 +3499,7 @@ mod tests {
 
         // Owner attempts to settle, but settling 120 from remaining 960 leaves 840 (< 850 floor)
         // Must reject with DRAWDOWN_EXCEEDED and pause
-        let settle_out = contract.settle_pending(agent(), id);
+        let settle_out = contract.settle_pending(Some(agent()), None, id);
         assert_eq!(settle_out.status, "REJECTED");
         assert_eq!(settle_out.reason, Some("DRAWDOWN_EXCEEDED".to_string()));
 
@@ -3378,7 +3512,14 @@ mod tests {
         let now = 1_000_000_000;
         let (mut contract, mut builder) = setup_contract(now);
 
+        // Owner deposits 500 yoctoNEAR of native NEAR into the agent vault
+        builder.predecessor_account_id(owner());
+        builder.attached_deposit(NearToken::from_yoctonear(500));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+
         builder.predecessor_account_id(agent());
+        builder.attached_deposit(NearToken::from_yoctonear(0));
         testing_env!(builder.build());
 
         let action = GuardAction::NearTransfer {
@@ -3396,6 +3537,7 @@ mod tests {
         let budget = contract.get_budget(agent()).unwrap();
         assert_eq!(budget.spent, U128(200));
         assert_eq!(budget.remaining, U128(800));
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 300);
     }
 
     #[test]
@@ -3488,10 +3630,17 @@ mod tests {
         policy.targets.insert(target_contract.clone(), vec!["storage_deposit".to_string()]);
         contract.register_agent(agent(), policy);
 
+        // Owner deposits 1 NEAR of native NEAR into agent vault
+        builder.predecessor_account_id(owner());
+        builder.attached_deposit(NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+
         builder.predecessor_account_id(agent());
+        builder.attached_deposit(NearToken::from_yoctonear(0));
         testing_env!(builder.build());
 
-        // Allowed storage deposit within safe ceiling
+        // Allowed storage deposit within safe ceiling and vault balance
         let deposit_action = GuardAction::ContractCall {
             target: target_contract.clone(),
             method: "storage_deposit".to_string(),
@@ -3558,8 +3707,15 @@ mod tests {
         testing_env!(builder.build());
         let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
 
+        // Deposit 500 native NEAR
+        builder.predecessor_account_id(owner());
+        builder.attached_deposit(NearToken::from_yoctonear(500));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+
         // Agent executes NearTransfer of 200 within policy daily cap
         builder.predecessor_account_id(agent());
+        builder.attached_deposit(NearToken::from_yoctonear(0));
         testing_env!(builder.build());
         let action = GuardAction::NearTransfer {
             to: recipient(),
@@ -3570,6 +3726,275 @@ mod tests {
 
         // Token vault balance must remain untouched at 500
         assert_eq!(contract.get_budget(agent()).unwrap().vault_balance.0, 500);
+        // Near vault balance reduced by 200 to 300
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 300);
+    }
+
+    #[test]
+    fn test_settle_pending_evicts_rejected_action_on_failure() {
+        let now_sec = 1_000;
+        let now_ns = now_sec * 1_000_000_000;
+
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id(owner())
+            .block_timestamp(now_ns);
+        testing_env!(builder.build());
+
+        let mut contract = Contract::new();
+        contract.register_agent(agent(), timelocked_policy(250));
+
+        // Agent triggers a high-value action of 300
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.build());
+        let o = contract.execute(swap_action(300));
+        assert_eq!(o.status, "PENDING");
+        let id = o.pending_id.unwrap();
+        assert_eq!(contract.get_pending_actions(agent()).len(), 1);
+
+        // Pause agent before settlement
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        contract.pause(agent());
+
+        // Fast forward past delay
+        let future_ns = (now_sec + 3601) * 1_000_000_000;
+        builder.block_timestamp(future_ns);
+        testing_env!(builder.build());
+
+        // Owner attempts to settle, fails on PAUSED
+        let settled = contract.settle_pending(Some(agent()), None, id);
+        assert_eq!(settled.status, "REJECTED");
+        assert_eq!(settled.reason.as_deref(), Some("PAUSED"));
+
+        // Crucial invariant: rejected action must be evicted from pending queue
+        assert_eq!(
+            contract.get_pending_actions(agent()).len(),
+            0,
+            "Rejected action must be evicted from pending queue"
+        );
+    }
+
+    #[test]
+    fn test_settle_pending_deducts_contract_call_deposit() {
+        let now_sec = 1_000;
+        let now_ns = now_sec * 1_000_000_000;
+
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id(owner())
+            .block_timestamp(now_ns);
+        testing_env!(builder.build());
+
+        let mut contract = Contract::new();
+        contract.register_agent(agent(), timelocked_policy(250));
+
+        // Deposit 200 yoctoNEAR into native vault
+        builder.attached_deposit(NearToken::from_yoctonear(200));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 200);
+
+        // Insert a pending ContractCall with 100 yoctoNEAR deposit into queue
+        let mut rec = contract.agents.get(&agent()).cloned().unwrap();
+        let call_action = GuardAction::ContractCall {
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            deposit: Some(U128(100)),
+        };
+        let id = rec.next_pending_id;
+        rec.next_pending_id += 1;
+        rec.pending_actions.push(PendingAction {
+            id,
+            action: call_action,
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            amount: 0,
+            recipient: None,
+            created_at: now_sec,
+            executable_at: now_sec + 60,
+        });
+        contract.agents.insert(agent(), rec);
+        assert_eq!(contract.get_pending_actions(agent()).len(), 1);
+
+        // Fast forward past delay
+        let future_ns = (now_sec + 3601) * 1_000_000_000;
+        builder.predecessor_account_id(owner());
+        builder.block_timestamp(future_ns);
+        testing_env!(builder.build());
+
+        // Owner settles
+        let settled = contract.settle_pending(Some(agent()), None, id);
+        assert_eq!(settled.status, "SETTLED");
+
+        // Native vault balance must have been deducted by 100 yoctoNEAR
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 100);
+        // Pending queue must be empty
+        assert_eq!(contract.get_pending_actions(agent()).len(), 0);
+    }
+
+    #[test]
+    fn test_near_deposit_does_not_corrupt_token_high_water_mark() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Before token deposit, deposit 250 yoctoNEAR
+        builder.predecessor_account_id(owner());
+        builder.attached_deposit(NearToken::from_yoctonear(250));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+
+        // Token high_water_mark must NOT be set to 250 yoctoNEAR (no unit collision)
+        assert_eq!(contract.get_budget(agent()).unwrap().high_water_mark.0, 0);
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 250);
+
+        // Now deposit 500 tokens
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.build());
+        let _ = contract.ft_on_transfer(owner(), U128(500), agent().to_string());
+
+        // Token peak should be 500, Near balance remains 250
+        assert_eq!(contract.get_budget(agent()).unwrap().high_water_mark.0, 500);
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 250);
+    }
+
+    #[test]
+    fn test_deserialize_live_355_byte_record_onchain_exact() {
+        use near_sdk::borsh::BorshDeserialize;
+        use near_sdk::base64::engine::general_purpose::STANDARD;
+        use near_sdk::base64::Engine;
+        // Exact 355-byte base64 state from guard2.sergeo-guard.testnet for agent.sergeo-guard.testnet
+        let bytes = STANDARD.decode("FAAAAHNlcmdlby1ndWFyZC50ZXN0bmV0GgAAAHNlcmdlby1ndWFyZC10b2tlbi50ZXN0bmV0AgAAABgAAABzZXJnZW8tZ3VhcmQtZGV4LnRlc3RuZXQBAAAABAAAAHN3YXAaAAAAc2VyZ2VvLWd1YXJkLXRva2VuLnRlc3RuZXQBAAAACwAAAGZ0X3RyYW5zZmVy9AEAAAAAAAAAAAAAAAAAAAEAAAAUAAAAc2VyZ2VvLWd1YXJkLnRlc3RuZXQFAAAAAwAAAAoAAAAAAAAA+gAAAAAAAAAAAAAAAAAAADwAAAAAAAAAPAAAAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAMAAAAAAAAAXgEAAAAAAAAAAAAAAAAAAAAAAABeAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==").unwrap();
+        assert_eq!(bytes.len(), 355);
+        let rec = AgentRecord::try_from_slice(&bytes).expect("Live 355-byte record must deserialize cleanly into AgentRecord");
+        assert_eq!(rec.owner.as_str(), "sergeo-guard.testnet");
+        assert_eq!(rec.vault_balance, 350);
+        assert_eq!(rec.high_water_mark.0, 350);
+        assert_eq!(rec.near_vault_balance, 0);
+    }
+
+    #[test]
+    fn test_deserialize_live_bytes_and_upgrade_v3() {
+        use near_sdk::borsh::BorshDeserialize;
+        use near_sdk::base64::engine::general_purpose::STANDARD;
+        use near_sdk::base64::Engine;
+        let bytes = STANDARD.decode("FAAAAHNlcmdlby1ndWFyZC50ZXN0bmV0GgAAAHNlcmdlby1ndWFyZC10b2tlbi50ZXN0bmV0AgAAABgAAABzZXJnZW8tZ3VhcmQtZGV4LnRlc3RuZXQBAAAABAAAAHN3YXAaAAAAc2VyZ2VvLWd1YXJkLXRva2VuLnRlc3RuZXQBAAAACwAAAGZ0X3RyYW5zZmVy9AEAAAAAAAAAAAAAAAAAAAEAAAAUAAAAc2VyZ2VvLWd1YXJkLnRlc3RuZXQFAAAAAwAAAAoAAAAAAAAA+gAAAAAAAAAAAAAAAAAAADwAAAAAAAAAPAAAAAAAAAAAiOP1xISH5BgZAAAAAAAAAAAAAAAAAAAALzbWLMXQ5BgBAAAAAgAAAC821izF0OQYquWhHcvQ5BgAAAAAAAIAAAAAAAAAXgEAAAAAAAAAAAAAAAAAAAAAAAA=").unwrap();
+        let res = OldAgentRecord::try_from_slice(&bytes);
+        assert!(res.is_ok(), "Deserialization failed: {:?}", res.err());
+        let rec = res.unwrap();
+        assert_eq!(rec.owner.as_str(), "sergeo-guard.testnet");
+        assert_eq!(rec.vault_balance, 350);
+        assert_eq!(rec.spent_in_window, 25);
+
+        // Test running upgrade_v3
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id("guard.near".parse().unwrap())
+            .block_timestamp(1_000_000_000);
+        testing_env!(builder.build());
+
+        let mut contract = Contract::new();
+        let test_agent: AccountId = "agent.sergeo-guard.testnet".parse().unwrap();
+        let mut storage_key = b"ag".to_vec();
+        near_sdk::borsh::BorshSerialize::serialize(&test_agent, &mut storage_key).unwrap();
+        env::storage_write(&storage_key, &bytes);
+
+        contract.upgrade_v3(vec![test_agent.clone()]);
+        let upgraded = contract.get_budget(test_agent).unwrap();
+        assert_eq!(upgraded.vault_balance.0, 350);
+        assert_eq!(upgraded.spent.0, 25);
+        assert_eq!(upgraded.high_water_mark.0, 350);
+    }
+
+    #[test]
+    fn test_settle_pending_exact_balance_and_insufficient_balance() {
+        let now_sec = 2_000;
+        let now_ns = now_sec * 1_000_000_000;
+
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id("guard.near".parse().unwrap())
+            .predecessor_account_id(owner())
+            .block_timestamp(now_ns);
+        testing_env!(builder.build());
+
+        let mut contract = Contract::new();
+        contract.register_agent(agent(), timelocked_policy(250));
+
+        // Deposit 150 yoctoNEAR into native vault
+        builder.attached_deposit(NearToken::from_yoctonear(150));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 150);
+
+        // Queue action 1: ContractCall with deposit equal to exact balance (150 yoctoNEAR)
+        let mut rec = contract.agents.get(&agent()).cloned().unwrap();
+        let call_action = GuardAction::ContractCall {
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            deposit: Some(U128(150)),
+        };
+        let id1 = rec.next_pending_id;
+        rec.next_pending_id += 1;
+        rec.pending_actions.push(PendingAction {
+            id: id1,
+            action: call_action,
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            amount: 0,
+            recipient: None,
+            created_at: now_sec,
+            executable_at: now_sec + 60,
+        });
+
+        // Queue action 2: ContractCall with deposit 1 yoctoNEAR (will exceed balance after action 1 settles)
+        let id2 = rec.next_pending_id;
+        rec.next_pending_id += 1;
+        let call_action2 = GuardAction::ContractCall {
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            deposit: Some(U128(1)),
+        };
+        rec.pending_actions.push(PendingAction {
+            id: id2,
+            action: call_action2,
+            target: target(),
+            method: "swap".to_string(),
+            args: "{}".to_string(),
+            amount: 0,
+            recipient: None,
+            created_at: now_sec,
+            executable_at: now_sec + 60,
+        });
+        contract.agents.insert(agent(), rec);
+        assert_eq!(contract.get_pending_actions(agent()).len(), 2);
+
+        // Fast forward past execution delay
+        let future_ns = (now_sec + 100) * 1_000_000_000;
+        builder.predecessor_account_id(owner());
+        builder.block_timestamp(future_ns);
+        testing_env!(builder.build());
+
+        // Settle action 1: exact balance saturation must succeed
+        let res1 = contract.settle_pending(Some(agent()), None, id1);
+        assert_eq!(res1.status, "SETTLED");
+        assert_eq!(contract.get_near_vault_balance(agent()).0, 0);
+        assert_eq!(contract.get_pending_actions(agent()).len(), 1);
+
+        // Settle action 2: now that vault is 0, deposit 1 must be rejected and evicted
+        let res2 = contract.settle_pending(Some(agent()), None, id2);
+        assert_eq!(res2.status, "REJECTED");
+        assert_eq!(res2.reason.as_deref(), Some("INSUFFICIENT_VAULT_BALANCE"));
+        assert_eq!(contract.get_pending_actions(agent()).len(), 0);
     }
 }
+
 

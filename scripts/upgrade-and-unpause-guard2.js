@@ -45,12 +45,23 @@ async function main() {
   console.log(`Wasm size: ${wasmBytes.length} bytes`);
 
   const guardAccount = await near.account(GUARD_ID);
+  const ownerAccount = await near.account(OWNER_ID);
+
   console.log(`Deploying updated contract to ${GUARD_ID}...`);
   const deployRes = await guardAccount.deployContract(wasmBytes);
   console.log(`--> Deployed successfully! Tx: ${deployRes.transaction.hash}`);
 
+  // 1b. Call upgrade_v3 to migrate v0.2.0 agent state to v0.3.0
+  console.log(`Calling upgrade_v3 for ${TRADER_ID} on ${GUARD_ID}...`);
+  const upgradeRes = await guardAccount.functionCall({
+    contractId: GUARD_ID,
+    methodName: "upgrade_v3",
+    args: { agent_accounts: [TRADER_ID] },
+    gas: BigInt("100000000000000"), // 100 TGas
+  });
+  console.log(`--> upgrade_v3 executed successfully! Tx: ${upgradeRes.transaction.hash}`);
+
   // 2. Unpause agent.sergeo-guard.testnet from sergeo-guard.testnet (owner)
-  const ownerAccount = await near.account(OWNER_ID);
   console.log(`Unpausing ${TRADER_ID} on ${GUARD_ID} from owner ${OWNER_ID}...`);
   const unpauseRes = await ownerAccount.functionCall({
     contractId: GUARD_ID,

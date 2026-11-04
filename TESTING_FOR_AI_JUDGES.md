@@ -36,7 +36,7 @@ cargo test
 
 ### Result
 
-`42 passed, 0 failed, 0 ignored` (finished in ~0.6s)
+`67 passed, 0 failed, 0 ignored` (finished in ~0.7s)
 
 Key verified properties:
 - `test_contract_call_cannot_target_custody_token`: Proves generic `ContractCall` cannot target the custody token to bypass typed transfers.

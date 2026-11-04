@@ -24,6 +24,7 @@ import {
   Timer,
   Crosshair,
   Shield,
+  AlertTriangle,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
@@ -79,6 +80,7 @@ export default function CreateAgentPage() {
   const [explorerUrl, setExplorerUrl] = useState<string>("");
   const [registrationStatus, setRegistrationStatus] = useState<"idle" | "broadcasting" | "registered" | "manual">("idle");
   const [registrationCommand, setRegistrationCommand] = useState<string>("");
+  const [deployError, setDeployError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -259,6 +261,7 @@ export default function CreateAgentPage() {
 
   const handleIssueCard = async () => {
     setIsDeploying(true);
+    setDeployError(null);
     setRegistrationStatus("broadcasting");
     try {
       const keyPair = KeyPair.fromRandom("ed25519");
@@ -267,18 +270,140 @@ export default function CreateAgentPage() {
       setGeneratedPasskey(privKey);
       setGeneratedPublicKey(pubKey);
 
-      try {
-        const regRes = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agentAccountId: agentName,
+      // When wallet is connected, sign and broadcast onchain directly via NEAR Wallet Selector
+      if (isWalletConnected && connectedWalletId) {
+        const { getNearWalletSelector } = await import("@/lib/wallet-selector");
+        const ws = await getNearWalletSelector();
+        if (!ws) throw new Error("Wallet selector could not be initialized");
+        const wallet = await ws.selector.wallet();
+        const { transactions, utils } = await import("near-api-js");
+        const guardId = process.env.NEXT_PUBLIC_SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+
+        const registerAction = transactions.functionCall(
+          "register_agent",
+          Buffer.from(JSON.stringify({
+            agent_account: agentName,
             policy: compiledPolicyJson,
-            publicKey: pubKey,
-          }),
-        });
-        const regData = await regRes.json();
-        if (regData.success && regData.txHash) {
+          })),
+          BigInt("100000000000000"), // 100 TGas
+          BigInt(0)
+        );
+
+        const txList: any[] = [
+          {
+            receiverId: guardId,
+            actions: [registerAction],
+          },
+        ];
+
+        // Check if agent subaccount already exists onchain
+        let accountExists = false;
+        try {
+          const rpcUrl = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
+          const checkRes = await fetch(rpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: "check-acct",
+              method: "query",
+              params: {
+                request_type: "view_account",
+                finality: "final",
+                account_id: agentName,
+              },
+            }),
+          });
+          const checkData = await checkRes.json();
+          accountExists = !checkData.error;
+        } catch {
+          accountExists = false;
+        }
+
+        const keyAction = transactions.addKey(
+          utils.PublicKey.from(pubKey),
+          transactions.functionCallAccessKey(
+            guardId,
+            ["execute"],
+            BigInt("250000000000000000000000") // 0.25 NEAR allowance for gas
+          )
+        );
+
+        // If sub-account does not exist yet under connected owner, create and attach passkey
+        if (!accountExists && agentName.endsWith(`.${connectedWalletId}`)) {
+          txList.push({
+            receiverId: agentName,
+            actions: [
+              transactions.createAccount(),
+              transactions.transfer(BigInt("100000000000000000000000")), // 0.1 NEAR for storage
+              keyAction,
+            ],
+          });
+        } else if (accountExists && agentName === connectedWalletId) {
+          txList.push({
+            receiverId: connectedWalletId,
+            actions: [keyAction],
+          });
+        }
+
+        let signedTxHash = "";
+        if (txList.length > 1 && typeof wallet.signAndSendTransactions === "function") {
+          const res = await wallet.signAndSendTransactions({ transactions: txList });
+          if (Array.isArray(res) && res[0]?.transaction?.hash) {
+            signedTxHash = res[0].transaction.hash;
+          }
+        } else {
+          const res = await wallet.signAndSendTransaction(txList[0]);
+          if (res && typeof res === "object" && "transaction" in res) {
+            signedTxHash = (res as any).transaction.hash;
+          }
+          if (txList.length > 1) {
+            try {
+              await wallet.signAndSendTransaction(txList[1]);
+            } catch {
+              // Non-blocking passkey attachment if wallet requires separate approval
+            }
+          }
+        }
+
+        if (signedTxHash) {
+          setTxHash(signedTxHash);
+          setExplorerUrl(`https://testnet.nearblocks.io/txns/${signedTxHash}`);
+        }
+        setRegistrationStatus("registered");
+        setIsDeploying(false);
+        setIssuedSuccess(true);
+        return;
+      }
+
+      // Non-wallet flow: invoke /api/register
+      const regRes = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentAccountId: agentName,
+          policy: compiledPolicyJson,
+          publicKey: pubKey,
+        }),
+      });
+
+      const regData = await regRes.json();
+
+      if (!regRes.ok || !regData.success) {
+        const errorMsg = regData.error || regData.message || `Registration failed with status ${regRes.status}`;
+        if (regData.command) {
+          setRegistrationCommand(regData.command);
+          setRegistrationStatus("manual");
+          setIsDeploying(false);
+          setIssuedSuccess(true);
+        } else {
+          setDeployError(errorMsg);
+          setRegistrationStatus("idle");
+          setIsDeploying(false);
+          return;
+        }
+      } else {
+        if (regData.txHash) {
           setTxHash(regData.txHash);
           setExplorerUrl(regData.explorerUrl);
           setRegistrationStatus("registered");
@@ -286,16 +411,12 @@ export default function CreateAgentPage() {
           setRegistrationCommand(regData.command);
           setRegistrationStatus("manual");
         }
-      } catch (err: any) {
-        console.warn("Auto registration broadcast failed:", err);
-        setRegistrationStatus("manual");
+        setIsDeploying(false);
+        setIssuedSuccess(true);
       }
-
-      setIsDeploying(false);
-      setIssuedSuccess(true);
     } catch (e: any) {
       setIsDeploying(false);
-      alert("Failed to generate passkey: " + e.message);
+      setDeployError(e.message || "Failed to generate passkey or register agent");
     }
   };
 
@@ -894,6 +1015,17 @@ export default function CreateAgentPage() {
                       <li key={i}>{w.message}</li>
                     ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Deploy Error Banner */}
+            {deployError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <span>Registration Failed:</span>
+                </div>
+                <p className="leading-relaxed font-mono text-[11px] break-all">{deployError}</p>
               </div>
             )}
 

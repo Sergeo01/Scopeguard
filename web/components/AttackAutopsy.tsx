@@ -43,6 +43,7 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
   if (!data) return null;
 
   const isPending = data.reasonCode === "PENDING";
+  const isAllowed = data.reasonCode === "POLICY_PASSED" || data.reasonCode === "ALLOWED" || (data as any).status === "ALLOWED";
 
   const copyHash = () => {
     if (!data.txHash) return;
@@ -52,6 +53,8 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
   };
 
   const humanReasonMap: Record<string, string> = {
+    POLICY_PASSED: "Authorized Action Executed within Policy Limits",
+    ALLOWED: "Authorized Action Executed within Policy Limits",
     NOT_AGENT: "The calling account is not the registered agent sub-account authorized for this policy.",
     PAUSED: "The agent spending key is currently paused by the owner or emergency circuit breaker.",
     OVER_VELOCITY_CAP: "Too many actions attempted too quickly. Anti-spam speed brake activated.",
@@ -68,16 +71,18 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
     PENDING_QUEUE_FULL: "The timelock review queue is full. Wait for existing quarantined items to clear.",
   };
 
-  const humanExplanation = humanReasonMap[data.reasonCode] || "The transaction did not meet your safety guardrails.";
+  const humanExplanation = humanReasonMap[data.reasonCode] || (isAllowed ? "Authorized Action Executed within Policy Limits" : "The transaction did not meet your safety guardrails.");
   const displayHash = data.txHash && data.txHash.length > 16 ? `${data.txHash.slice(0, 16)}...` : (data.txHash || "N/A");
 
   return (
     <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 overflow-hidden transition-colors">
-      {/* Decline Header Banner */}
+      {/* Decline / Status Header Banner */}
       <div
         className={`px-5 py-3.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           isPending
             ? "bg-brand-blue/10 border-brand-blue/20 text-brand-blue"
+            : isAllowed
+            ? "bg-mint-green/10 border-mint-green/20 text-emerald-700 dark:text-emerald-300"
             : "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300"
         }`}
       >
@@ -86,6 +91,10 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
             <div className="w-8 h-8 rounded-lg bg-brand-blue/10 text-brand-blue flex items-center justify-center shrink-0">
               <AlertTriangle className="w-4 h-4" />
             </div>
+          ) : isAllowed ? (
+            <div className="w-8 h-8 rounded-lg bg-mint-green/10 text-mint-green flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <XCircle className="w-4 h-4" />
@@ -93,11 +102,17 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
           )}
           <div>
             <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-              {isPending ? "Large Transaction Quarantined for Owner Review" : "Attack Declined on Blockchain"}
+              {isPending
+                ? "Large Transaction Quarantined for Owner Review"
+                : isAllowed
+                ? "Authorized Action Executed within Policy Limits"
+                : "Attack Declined on Blockchain"}
             </h3>
             <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
               {isPending
                 ? "Transaction over $250 paused for 60 seconds. You have full veto power."
+                : isAllowed
+                ? "The agent action was verified onchain and executed successfully."
                 : "The agent attempted to move money, but ScopeGuard refused the transaction onchain."}
             </p>
           </div>
@@ -163,19 +178,21 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
                 <span>With ScopeGuard (Passkey)</span>
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-mint-green/10 text-mint-greenDark dark:text-mint-green font-bold">
-                {isPending ? "Quarantined" : "100% Safe"}
+                {isPending ? "Quarantined" : isAllowed ? "Authorized" : "100% Safe"}
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {isPending
                 ? "Your agent holds only a limited passkey restricted to ScopeGuard. High-value transactions are held in timelock quarantine until explicitly confirmed by the owner."
+                : isAllowed
+                ? "Your agent holds a limited passkey restricted to ScopeGuard. The action satisfied all policy limits and was executed within safe parameters."
                 : "Your agent only holds a limited passkey restricted to ScopeGuard. Even if the agent is tricked, the smart contract blocks the unauthorized transfer onchain."}
             </p>
             <div className="pt-1 flex items-baseline justify-between text-xs">
-              <span className="text-slate-500 font-medium">Actual Money Lost:</span>
+              <span className="text-slate-500 font-medium">{isAllowed ? "Spend Authorized:" : "Actual Money Lost:"}</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold font-mono text-mint-greenDark dark:text-mint-green">
-                  $0.00 (Zero Loss)
+                  {isAllowed ? `${data.attemptedAction.amount || "0"} mUSD (Within Budget)` : "$0.00 (Zero Loss)"}
                 </span>
                 <span className="text-[10px] font-mono text-slate-500">
                   Rule #{data.ruleNumber}
@@ -258,7 +275,7 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
 {JSON.stringify(
   {
     tx_hash: data.txHash,
-    status: data.reasonCode === "PENDING" ? "PENDING" : "REJECTED",
+    status: data.reasonCode === "PENDING" ? "PENDING" : isAllowed ? "ALLOWED" : "REJECTED",
     reason_code: data.reasonCode,
     rule_number: data.ruleNumber,
     rule_name: data.ruleName,

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { connect, keyStores, KeyPair } from "near-api-js";
+import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { guardSigningRequest } from "@/lib/api-guard";
 
 const DEFAULT_GUARD = "guard2.sergeo-guard.testnet";
@@ -63,11 +63,88 @@ export async function POST(req: Request) {
       );
     }
 
+    const ownerKeyPair = KeyPair.fromString(ownerPrivateKey as any);
+    const ownerPublicKey = ownerKeyPair.getPublicKey();
+
     const keyStore = new keyStores.InMemoryKeyStore();
-    await keyStore.setKey(networkId, ownerId, KeyPair.fromString(ownerPrivateKey as any));
+    await keyStore.setKey(networkId, ownerId, ownerKeyPair);
 
     const near = await connect({ networkId, nodeUrl, keyStore });
     const ownerAccount = await near.account(ownerId);
+
+    // If a public key was provided and the agent account is a sub-account of the owner,
+    // ensure the sub-account exists on NEAR consensus with the function-call access key attached.
+    let subAccountCreated = false;
+    if (publicKey && agentAccountId.endsWith(`.${ownerId}`)) {
+      let accountExists = false;
+      try {
+        await near.connection.provider.query({
+          request_type: "view_account",
+          finality: "final",
+          account_id: agentAccountId,
+        });
+        accountExists = true;
+      } catch {
+        accountExists = false;
+      }
+
+      if (!accountExists) {
+        // Account does not exist yet: create subaccount with:
+        // 1. Storage deposit (0.1 NEAR)
+        // 2. Owner full-access recovery key (stored securely in owner's wallet)
+        // 3. Agent function-call access key scoped strictly to Guard execute()
+        try {
+          const createActions = [
+            transactions.createAccount(),
+            transactions.transfer(BigInt("100000000000000000000000")), // 0.1 NEAR for storage
+            transactions.addKey(ownerPublicKey, transactions.fullAccessKey()), // Owner recovery key
+            transactions.addKey(
+              utils.PublicKey.from(publicKey),
+              transactions.functionCallAccessKey(
+                guardId,
+                ["execute"],
+                BigInt("250000000000000000000000") // 0.25 NEAR allowance for gas
+              )
+            ),
+          ];
+          await ownerAccount.signAndSendTransaction({
+            receiverId: agentAccountId,
+            actions: createActions,
+          });
+          subAccountCreated = true;
+        } catch (err: any) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Failed to provision subaccount ${agentAccountId} on NEAR consensus: ${err.message}`,
+            },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Account already exists: verify if passkey is already attached
+        try {
+          await keyStore.setKey(networkId, agentAccountId, ownerKeyPair);
+          const keyList = await near.connection.provider.query<any>({
+            request_type: "view_access_key_list",
+            finality: "final",
+            account_id: agentAccountId,
+          });
+          const hasKey = keyList.keys.some((k: any) => k.public_key === publicKey);
+          if (!hasKey) {
+            const subAccount = await near.account(agentAccountId);
+            await subAccount.addKey(
+              publicKey,
+              guardId,
+              ["execute"],
+              BigInt("250000000000000000000000")
+            );
+          }
+        } catch (kErr: any) {
+          console.warn("Could not check/attach key to existing subaccount:", kErr.message);
+        }
+      }
+    }
 
     const callResult = await ownerAccount.functionCall({
       contractId: guardId,

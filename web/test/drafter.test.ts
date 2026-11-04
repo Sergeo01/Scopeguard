@@ -129,3 +129,21 @@ test("drafter: draftPolicyFromText extracts parameters and falls back gracefully
   assert.deepStrictEqual(result.validationErrors, []);
   assert.ok(result.plainEnglish.includes("250 mUSD"));
 });
+
+test("drafter: word boundary target matching avoids false positives", async () => {
+  // 'refresh' should NOT trigger ref finance target
+  const nonRefPrompt = "Refresh my token balance and do swaps up to 100 mUSD";
+  const nonRefResult = await draftPolicyFromText(nonRefPrompt);
+  assert.strictEqual(nonRefResult.policy.targets["ref-finance-101.testnet"], undefined);
+  assert.ok(nonRefResult.policy.targets["sergeo-guard-dex.testnet"] !== undefined);
+
+  // 'ref' or 'ref finance' SHOULD trigger ref finance target
+  const refPrompt = "Swap on ref finance up to 200 mUSD";
+  const refResult = await draftPolicyFromText(refPrompt);
+  assert.ok(refResult.policy.targets["ref-finance-101.testnet"] !== undefined);
+
+  // 'burrow' SHOULD trigger burrow target
+  const burrowPrompt = "Borrow and deposit on burrow with 300 cap";
+  const burrowResult = await draftPolicyFromText(burrowPrompt);
+  assert.ok(burrowResult.policy.targets["contract.burrow.testnet"] !== undefined);
+});

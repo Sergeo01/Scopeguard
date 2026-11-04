@@ -260,12 +260,17 @@ Draft a minimal-privilege JSON policy matching this schema:
   "auto_pause_window_minutes": <integer 1-1440>,
   "high_value_threshold": <integer>,
   "high_value_delay_seconds": <integer>,
-  "policy_change_delay_seconds": <integer>
+  "policy_change_delay_seconds": <integer>,
+  "max_drawdown_bps": <optional integer 0-10000, default 1500>,
+  "lease_expires_at": <optional null or unix timestamp in nanoseconds>,
+  "intent_recipients": <optional array of cross-chain recipient addresses, default []>,
+  "canary_methods": <array of decoy method names, default ["emergency_withdraw_all", "drain_vault"]>
 }
 Rules:
 1. Least privilege: recipients MUST be empty unless explicitly instructed.
 2. Never propose wildcards (*). Name exact methods.
-3. Return raw JSON only with zero markdown or fences.`;
+3. Include canary_methods with decoy names to detect rogue prompt injections.
+4. Return raw JSON only with zero markdown or fences.`;
 
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${options.apiKey}`,
@@ -405,13 +410,13 @@ Rules:
 
   // Recognize target contracts
   const targets: Record<string, string[]> = {};
-  if (text.includes("ref") || text.includes("ref finance")) {
+  if (/\b(?:ref|ref\s+finance)\b/i.test(text)) {
     targets["ref-finance-101.testnet"] = ["swap"];
   }
-  if (text.includes("burrow")) {
+  if (/\bburrow\b/i.test(text)) {
     targets["contract.burrow.testnet"] = ["deposit", "borrow"];
   }
-  if (text.includes("dex") || text.includes("swap") || text.includes("mock") || Object.keys(targets).length === 0) {
+  if (/\b(?:dex|swap|mock)\b/i.test(text) || Object.keys(targets).length === 0) {
     targets["sergeo-guard-dex.testnet"] = ["swap"];
   }
 
@@ -436,6 +441,10 @@ Rules:
     high_value_threshold: threshold,
     high_value_delay_seconds: 60,
     policy_change_delay_seconds: 60,
+    max_drawdown_bps: 1500,
+    lease_expires_at: null,
+    intent_recipients: [],
+    canary_methods: ["emergency_withdraw_all", "drain_vault"],
   };
 
   const plainEnglish = generatePlainEnglish(draft, {

@@ -261,7 +261,7 @@ export default function HomePage() {
     ruleNumber: 7,
     ruleName: "Recipient Allowlist",
     explanation: "Transfers to recipient attacker.testnet are refused because the recipient is not allowlisted.",
-    txHash: ATTACK_SCENARIOS[0].presetTxHash,
+    txHash: "",
     attemptedTarget: "sergeo-guard-token.testnet",
     attemptedMethod: "ft_transfer",
     attemptedAmount: "100",
@@ -332,7 +332,7 @@ export default function HomePage() {
       ruleNumber: ruleNum,
       ruleName: ruleTitle,
       explanation,
-      txHash: s.presetTxHash,
+      txHash: "",
       attemptedTarget: s.target,
       attemptedMethod: s.method,
       attemptedAmount: s.amount,
@@ -358,7 +358,7 @@ export default function HomePage() {
       const data = await res.json();
       const outcome = data.outcome || data.verdict;
       const scenario = ATTACK_SCENARIOS.find((s) => s.id === selectedScenarioId);
-      const txHash = data.txHash || data.verdict?.txHash || scenario?.presetTxHash || "7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX";
+      const txHash = data.txHash || data.verdict?.txHash || "";
 
       if (outcome) {
         let ruleNum = 4;
@@ -507,7 +507,6 @@ export default function HomePage() {
       }
     } catch {
       const scenario = ATTACK_SCENARIOS.find((s) => s.id === selectedScenarioId);
-      const fallbackHash = scenario?.presetTxHash || "7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX";
       const status = scenario?.ruleCode === "PENDING" ? "PENDING" : scenario?.ruleCode === "POLICY_PASSED" ? "ALLOWED" : "REJECTED";
       setActiveVerdict({
         status,
@@ -515,13 +514,13 @@ export default function HomePage() {
         ruleNumber: scenario?.ruleNumber || 7,
         ruleName: scenario?.title || "Onchain Security Rule",
         explanation: scenario?.description || "Action refused by onchain policy.",
-        txHash: fallbackHash,
+        txHash: "",
         attemptedTarget: targetAccount,
         attemptedMethod: methodName,
         attemptedAmount: amountVal,
         fundsSaved: status === "ALLOWED" ? "0" : amountVal,
       });
-      setStatusMessage("Exploit blocked onchain. Zero funds moved.");
+      setStatusMessage("Simulation completed via offline policy guard.");
     } finally {
       setLoading(false);
     }
@@ -1114,15 +1113,31 @@ export default function HomePage() {
                     </>
                   )}
                 </button>
+                {statusMessage && (
+                  <p className="text-[11px] font-mono text-center text-slate-500 dark:text-slate-400 mt-2">
+                    {statusMessage}
+                  </p>
+                )}
               </div>
 
               {/* Right Column: Live Onchain Verdict */}
               <div className="p-5 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                      Guard Onchain Verdict
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                        Guard Onchain Verdict
+                      </span>
+                      {activeVerdict.txHash ? (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">
+                          Live Consensus Receipt
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+                          Preflight Dry Run
+                        </span>
+                      )}
+                    </div>
                     <span
                       className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                         activeVerdict.status === "ALLOWED"
@@ -1162,15 +1177,21 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center justify-between text-slate-500">
                     <span>Transaction Hash:</span>
-                    <a
-                      href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-blue hover:underline truncate max-w-[180px] inline-flex items-center gap-1"
-                    >
-                      <span>{activeVerdict.txHash.slice(0, 10)}...</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {activeVerdict.txHash ? (
+                      <a
+                        href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-blue hover:underline truncate max-w-[180px] inline-flex items-center gap-1"
+                      >
+                        <span>{activeVerdict.txHash.slice(0, 10)}...</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 text-[11px] font-sans italic">
+                        Live execution ready
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -341,7 +341,7 @@ export class ScopeGuardAgentClient {
       contractId: this.credential.policyContractId,
       methodName: "execute",
       args: { action },
-      gas: BigInt("50000000000000"), // 50 TGas
+      gas: BigInt("100000000000000"), // 100 TGas
       attachedDeposit: BigInt(0),
     });
 

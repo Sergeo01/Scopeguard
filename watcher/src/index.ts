@@ -24,7 +24,19 @@ export interface ScopeGuardEvent {
     | "CANCELLED"
     | "POLICY_STAGED"
     | "POLICY_APPLIED"
-    | "POLICY_CHANGE_CANCELLED";
+    | "POLICY_CHANGE_CANCELLED"
+    | "REVOKE"
+    | "CANARY_TRIPPED"
+    | "CANARY_TRIGGERED"
+    | "WINDOWS_RESET"
+    | "UPGRADE_V3"
+    | "DEPOSIT"
+    | "DEPOSIT_NEAR"
+    | "WITHDRAW"
+    | "WITHDRAW_NEAR"
+    | "WITHDRAW_FAILED"
+    | "WITHDRAW_NEAR_FAILED"
+    | "RECIPIENT_CONFIRMED";
   agent: string;
   id?: number;
   reason?: string;
@@ -80,6 +92,12 @@ export function formatAlertMessage(event: ScopeGuardEvent): string | null {
   }
   if (event.event === "UNPAUSE") {
     return `▶ ScopeGuard Notice: Agent ${event.agent} has been unpaused. Normal operations resumed.`;
+  }
+  if (event.event === "REVOKE") {
+    return `🚨 ScopeGuard Security Alert: Agent ${event.agent} has been PERMANENTLY REVOKED by the owner. All access keys and allowlists deleted.`;
+  }
+  if (event.event === "CANARY_TRIPPED" || event.event === "CANARY_TRIGGERED") {
+    return `🚨 ScopeGuard Trap Alert: Honeypot decoy method tripped by agent ${event.agent}! The agent attempted an unauthorized call and was immediately locked out.`;
   }
   return null;
 }

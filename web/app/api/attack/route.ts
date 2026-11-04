@@ -170,7 +170,7 @@ export async function POST(req: Request) {
       contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
       methodName: "execute",
       args: { action },
-      gas: BigInt("50000000000000"), // 50 TGas
+      gas: BigInt("100000000000000"), // 100 TGas
     });
 
     const txHash = callResult.transaction.hash;
@@ -201,13 +201,19 @@ export async function POST(req: Request) {
     const RULE_NUMBER: Record<string, number> = {
       NOT_AGENT: 1,
       PAUSED: 2,
-      OVER_VELOCITY_CAP: 3,
-      TARGET_NOT_ALLOWED: 4,
-      METHOD_NOT_ALLOWED: 5,
-      OVER_DAILY_CAP: 6,
-      RECIPIENT_NOT_ALLOWED: 7,
-      INSUFFICIENT_VAULT_BALANCE: 9,
-      PENDING_QUEUE_FULL: 10,
+      LEASE_EXPIRED: 3,
+      CANARY_TRIPPED: 4,
+      OVER_VELOCITY_CAP: 5,
+      TARGET_NOT_ALLOWED: 6,
+      METHOD_NOT_ALLOWED: 7,
+      OVER_DAILY_CAP: 8,
+      RECIPIENT_NOT_ALLOWED: 9,
+      OVER_MAX_DRAWDOWN: 10,
+      DRAWDOWN_EXCEEDED: 10,
+      CROSS_CHAIN_INTENT_NOT_ALLOWED: 11,
+      INTENT_RECIPIENT_NOT_ALLOWED: 11,
+      INSUFFICIENT_VAULT_BALANCE: 12,
+      PENDING_QUEUE_FULL: 13,
     };
 
     return NextResponse.json({
@@ -229,7 +235,7 @@ export async function POST(req: Request) {
         attemptedTarget: target,
         attemptedMethod: method,
         attemptedAmount: amount,
-        fundsSaved: amount,
+        fundsSaved: parsedOutcome.status === "ALLOWED" ? "0" : amount,
       },
     });
   } catch (err: any) {

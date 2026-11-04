@@ -6,19 +6,18 @@ import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 import { getRecentActivities } from "@/lib/ledger";
 
-let cachedState: any = null;
-let lastCacheTimestamp = 0;
+const cacheMap = new Map<string, { state: any; timestamp: number }>();
 const CACHE_TTL_MS = 5000;
 
-export async function GET() {
-  const now = Date.now();
-  if (cachedState && now - lastCacheTimestamp < CACHE_TTL_MS) {
-    return NextResponse.json({
-      ...cachedState,
-      cached: true,
-      activities: getRecentActivities(),
-    });
-  }
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const queryAgent = searchParams.get("agent");
+  const queryOwner = searchParams.get("owner");
+  const queryGuard = searchParams.get("guard");
+
+  const guardId = queryGuard || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+  const defaultAgent = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "agent.sergeo-guard.testnet";
+  const ownerId = queryOwner || process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   try {
     const near = await connect({
@@ -27,27 +26,51 @@ export async function GET() {
       keyStore: new keyStores.InMemoryKeyStore(),
     });
 
-    const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
-    const agentId = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "agent.sergeo-guard.testnet";
-    const ownerId = process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
     const account = await near.account(ownerId);
+
+    let effectiveAgentId = queryAgent || defaultAgent;
+    if (!queryAgent && queryOwner) {
+      try {
+        const ownerAgents = await account.viewFunction({
+          contractId: guardId,
+          methodName: "get_agents",
+          args: { owner: ownerId },
+        });
+        if (Array.isArray(ownerAgents) && ownerAgents.length > 0) {
+          effectiveAgentId = ownerAgents[0];
+        }
+      } catch {
+        // Fall back to default
+      }
+    }
+
+    const cacheKey = `${guardId}:${effectiveAgentId}:${ownerId}`;
+    const now = Date.now();
+    const cached = cacheMap.get(cacheKey);
+    if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json({
+        ...cached.state,
+        cached: true,
+        activities: getRecentActivities(),
+      });
+    }
 
     const budget = await account.viewFunction({
       contractId: guardId,
       methodName: "get_budget",
-      args: { agent_account: agentId },
+      args: { agent_account: effectiveAgentId },
     });
 
     const pendingActions = await account.viewFunction({
       contractId: guardId,
       methodName: "get_pending_actions",
-      args: { agent_account: agentId },
+      args: { agent_account: effectiveAgentId },
     });
 
     const stagedPolicy = await account.viewFunction({
       contractId: guardId,
       methodName: "get_staged_policy",
-      args: { agent_account: agentId },
+      args: { agent_account: effectiveAgentId },
     });
 
     let policy = null;
@@ -55,7 +78,7 @@ export async function GET() {
       policy = await account.viewFunction({
         contractId: guardId,
         methodName: "get_policy",
-        args: { agent_account: agentId },
+        args: { agent_account: effectiveAgentId },
       });
     } catch {
       // Policy view query fallback
@@ -67,7 +90,7 @@ export async function GET() {
     let agentPublicKey: string | null =
       process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || null;
     try {
-      const agentAccount = await near.account(agentId);
+      const agentAccount = await near.account(effectiveAgentId);
       const accessKeys = await agentAccount.getAccessKeys();
       if (accessKeys && accessKeys.length > 0) {
         const scopedKey = accessKeys.find((k: any) => {
@@ -90,14 +113,13 @@ export async function GET() {
       pendingActions,
       stagedPolicy,
       guardId,
-      agentId,
+      agentId: effectiveAgentId,
       ownerId,
       agentPublicKey,
       activities: getRecentActivities(),
     };
 
-    cachedState = statePayload;
-    lastCacheTimestamp = now;
+    cacheMap.set(cacheKey, { state: statePayload, timestamp: now });
 
     return NextResponse.json(statePayload);
   } catch (err: any) {
