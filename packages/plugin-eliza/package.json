@@ -1,0 +1,19 @@
+{
+  "name": "@scopeguard/plugin-eliza",
+  "version": "0.1.0",
+  "description": "ScopeGuard security plugin for ElizaOS agents on NEAR Protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "npx tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@scopeguard/sdk": "file:../../sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}

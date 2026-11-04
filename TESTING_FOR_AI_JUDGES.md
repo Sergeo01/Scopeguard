@@ -68,19 +68,45 @@ npm test --prefix web
 
 ### Result
 
-`14 pass, 0 fail` (finished in ~8.5s)
+`18 pass, 0 fail` (finished in ~4.5s)
 
 Key verified properties:
 - `api-guard: isSameOrigin`: Verifies cross-origin browser protection against CSRF signing attacks.
 - `api-guard: guardSigningRequest`: Proves server-side signing is disabled by default and returns fallback CLI instructions without broadcasting transactions.
 - `drafter: validatePolicyShape`: Enforces strict schema validation against the onchain Policy type.
 - `drafter: lintPolicy`: Flags dangerous administrative methods, open recipients, and velocity anomalies.
+- `drafter: word boundary matching`: Verifies target name regex matching eliminates false positive allowlist matches.
+- `auth: multi-wallet and admin switching`: Verifies unprivileged client isolation and administrative identity checks.
 - `register-route: server-signing-enabled branch`: Exercises KeyPair loading and functionCall signing path against a test key.
 - `tx-route`: Verifies in-app transaction receipt parsing with FastNear and Pagoda RPC fallback and timeout protection.
 
 ---
 
-## 4. Automated AI Judge Verification Script
+## 4. TypeScript SDK & Agent Framework Tests
+
+ScopeGuard exports standalone packages for integration across modern AI agent runtimes:
+
+### A. TypeScript SDK & LangChain Tool Tests
+```bash
+npm test --prefix sdk
+```
+**Result:** `11 pass, 0 fail` (contract alias resolver, toGuardAction typing, quarantine escalation formatting, createScopeGuardTools declarations).
+
+### B. IronClaw MCP Server Tests (Desktop Agents)
+```bash
+npm test --prefix packages/ironclaw-mcp
+```
+**Result:** `11 pass, 0 fail` (MCP JSON-RPC lifecycle, tool schema registration, decline explanation memory, budget and quarantine tools).
+
+### C. ElizaOS Security Plugin Tests
+```bash
+npm test --prefix packages/plugin-eliza
+```
+**Result:** `9 pass, 0 fail` (ElizaOS plugin structure, SCOPEGUARD_POLICY_PROVIDER prompt context injection, EXECUTE_ONCHAIN_ACTION, GET_WALLET_BUDGET, SIMULATE_ONCHAIN_ACTION).
+
+---
+
+## 5. Automated AI Judge Verification Script
 
 Run the automated judge runner (which runs the native Rust test suite plus rule evaluations in one command):
 

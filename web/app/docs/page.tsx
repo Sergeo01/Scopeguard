@@ -641,6 +641,14 @@ if !is_promise_success() {
                 <p className="text-slate-600 dark:text-slate-400">When a staged policy applies, any recipient present in the new policy but absent from the old one is flagged unconfirmed. Any transfer to an unconfirmed recipient is quarantined to PENDING regardless of amount (even below the high-value threshold). When the owner settles that action, the recipient is confirmed, and subsequent transfers behave normally.</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-amber-400">ElizaOS Security Plugin (packages/plugin-eliza)</span>
+                <p className="text-slate-600 dark:text-slate-400">Official security plugin for ElizaOS autonomous agents. Provides SCOPEGUARD_POLICY_PROVIDER to inject live policy rules and budget into the LLM prompt context, plus EXECUTE_ONCHAIN_ACTION, GET_WALLET_BUDGET, and SIMULATE_ONCHAIN_ACTION actions.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-emerald-400">LangChain & OpenAI Tool Adapters (sdk)</span>
+                <p className="text-slate-600 dark:text-slate-400">Exported createScopeGuardTools helper returning standard OpenAI function schemas and LangChain tool interfaces (scopeguard_execute, scopeguard_get_budget, scopeguard_preflight) for single-line agent protection.</p>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-blue-400">IronClaw MCP Server (packages/ironclaw-mcp)</span>
                 <p className="text-slate-600 dark:text-slate-400">Standard stdio Model Context Protocol (MCP) server wrapping ScopeGuard SDK. Exposes strictly agent execution tools (scopeguard_budget, scopeguard_preflight, scopeguard_act) and zero owner powers. Registered via: ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js.</p>
               </div>
@@ -793,6 +801,9 @@ if !is_promise_success() {
                 { title: "TypeScript SDK (@scopeguard/sdk)", desc: "Production SDK exporting loadCredential, act, and budget." },
                 { title: "Natural Language AI Policy Drafter", desc: "Service turning one-sentence job descriptions into least-privilege Policy JSON with JSON Schema validation." },
                 { title: "Interactive Attack Arena", desc: "Live attack simulator dispatching real onchain prompt injection transactions to testnet contracts with verified explorer links." },
+                { title: "ElizaOS Security Plugin (@scopeguard/plugin-eliza)", desc: "Full agent plugin for ElizaOS providing prompt policy context injection, passkey-restricted execution, budget checks, and preflight simulation." },
+                { title: "LangChain & Tool-Calling Adapters", desc: "createScopeGuardTools export returning standardized OpenAI function declarations and LangChain structured tools." },
+                { title: "IronClaw MCP Server (packages/ironclaw-mcp)", desc: "Standard Model Context Protocol stdio server providing 6 autonomous self-awareness tools for desktop LLMs like Claude, Cursor, and Antigravity." },
                 { title: "Operations Security Console", desc: "Comprehensive Next.js dashboard featuring spend gauge, velocity bar, circuit breaker banner, and real-time activity feed." },
                 { title: "Supabase & Multi-Wallet Authentication", desc: "Google OAuth, Email OTP, and direct NEAR Web3 wallet connection (MyNearWallet, Meteor, Here, Sender) with hidden admin protection." },
                 { title: "Zero Em/En Dash Copy Invariant", desc: "Strict typography linting ensuring zero em or en dashes across UI, documentation, and codebase." },

@@ -399,4 +399,4 @@ We believe in radical transparency:
 
 ## 13. Verification and Testing
 
-See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (67 native Rust unit tests, 10 SDK tests, 11 MCP tests, and automated check scripts).
+See [TESTING_FOR_AI_JUDGES.md](./TESTING_FOR_AI_JUDGES.md) for exact reproduction steps for human and AI evaluators (67 native Rust unit tests, 18 web tests, 11 SDK tests, 11 MCP tests, 9 Eliza plugin tests, and automated check scripts).

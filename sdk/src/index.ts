@@ -690,3 +690,69 @@ export function loadCredential(path: string): ScopeGuardAgentClient {
   const cred = JSON.parse(content) as ScopeGuardCredential;
   return new ScopeGuardAgentClient(cred);
 }
+
+/**
+ * Generic AI Agent Tool definitions compatible with LangChain, LlamaIndex, and OpenAI tool calling.
+ */
+export interface AgentToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, any>;
+    required?: string[];
+  };
+  call: (args: any) => Promise<any>;
+}
+
+export function createScopeGuardTools(client: ScopeGuardAgentClient): AgentToolDefinition[] {
+  return [
+    {
+      name: "scopeguard_execute",
+      description:
+        "Executes an onchain action strictly scoped through the ScopeGuard passkey on NEAR. Verifies spending limits, allowlists, and timelocks.",
+      parameters: {
+        type: "object",
+        properties: {
+          target: {
+            type: "string",
+            description: "Target contract account ID or contract alias (e.g. 'wrap.near', 'ref-finance.near').",
+          },
+          method: { type: "string", description: "Method name to invoke on the target contract." },
+          args: { type: "object", description: "JSON arguments for the method call." },
+          amount: { type: "string", description: "Token amount or yoctoNEAR value." },
+          recipient: { type: "string", description: "Recipient account ID for transfers." },
+        },
+        required: ["amount"],
+      },
+      call: async (args: ActParams) => client.act(args),
+    },
+    {
+      name: "scopeguard_get_budget",
+      description:
+        "Checks the agent's current spending allowance, remaining daily budget, vault balance, and circuit breaker health.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+      call: async () => client.budget(),
+    },
+    {
+      name: "scopeguard_preflight",
+      description:
+        "Simulates an onchain action against ScopeGuard rules without broadcasting to the chain, returning whether it will be allowed, quarantined, or rejected.",
+      parameters: {
+        type: "object",
+        properties: {
+          target: { type: "string", description: "Target contract account ID or alias." },
+          method: { type: "string", description: "Method name." },
+          args: { type: "object", description: "Arguments object." },
+          amount: { type: "string", description: "Amount value." },
+          recipient: { type: "string", description: "Recipient account ID." },
+        },
+        required: ["amount"],
+      },
+      call: async (args: ActParams) => client.preflight(args),
+    },
+  ];
+}

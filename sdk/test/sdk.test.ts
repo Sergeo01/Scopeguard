@@ -5,6 +5,8 @@ import {
   toGuardAction,
   formatPendingEscalationMessage,
   getEscalationGuidance,
+  createScopeGuardTools,
+  ScopeGuardAgentClient,
   Outcome,
 } from "../src/index";
 
@@ -174,5 +176,30 @@ describe("SDK: Escalation Helpers", () => {
     };
     const nonPendingGuidance = getEscalationGuidance(allowedOutcome);
     assert.equal(nonPendingGuidance.requires_owner_approval, false);
+  });
+});
+
+describe("SDK: createScopeGuardTools (LangChain / LlamaIndex / Tool-calling)", () => {
+  it("creates standard tool definitions for agent frameworks", () => {
+    const mockCred = {
+      agentAccountId: "agent.testnet",
+      policyContractId: "guard.testnet",
+      privateKey: "ed25519:3D5qZ9u8zF6G7H8J9K0L1M2N3P4Q5R6S7T8U9V0W1X2Y3Z4A5B6C7D8E9F0G1H2J",
+      publicKey: "ed25519:4w5e6r7t8y9u0i1o2p3a4s5d6f7g8h9j0k1l2z3x4c5v",
+      networkId: "testnet" as const,
+    };
+    const client = new ScopeGuardAgentClient(mockCred);
+    const tools = createScopeGuardTools(client);
+
+    assert.equal(tools.length, 3);
+    const names = tools.map((t) => t.name);
+    assert.deepEqual(names, ["scopeguard_execute", "scopeguard_get_budget", "scopeguard_preflight"]);
+
+    for (const tool of tools) {
+      assert.ok(tool.name);
+      assert.ok(tool.description);
+      assert.ok(typeof tool.call === "function");
+      assert.equal(tool.parameters.type, "object");
+    }
   });
 });
