@@ -32,6 +32,7 @@ export type GuardAction =
         target: string;
         method: string;
         args: string;
+        deposit?: string | null;
       };
     }
   | {
@@ -41,11 +42,17 @@ export type GuardAction =
         destination_asset: string;
         recipient: string;
       };
+    }
+  | {
+      NearTransfer: {
+        to: string;
+        amount: string;
+      };
     };
 
 export interface ActParams {
-  target: string;
-  method: string;
+  target?: string;
+  method?: string;
   args?: Record<string, any> | string;
   amount?: string;
   recipient?: string;
@@ -54,12 +61,15 @@ export interface ActParams {
   memo?: string | null;
   deposit_address?: string;
   destination_asset?: string;
+  deposit?: string | null;
+  to?: string;
 }
 
 export interface Outcome {
   status: "ALLOWED" | "REJECTED" | "PENDING" | "SETTLED";
   reason?: string;
   pending_id?: number;
+  escalation_message?: string;
 }
 
 export interface PreflightResult {
@@ -71,24 +81,130 @@ export interface PreflightResult {
   velocity_max: number;
   velocity_remaining: number;
   vault_balance: string;
+  near_vault_balance?: string | null;
 }
 
-export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAction {
+export const CONTRACT_ALIASES: Record<string, { mainnet: string; testnet: string }> = {
+  USDC: {
+    mainnet: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    testnet: "sergeo-guard-token.testnet",
+  },
+  REF: {
+    mainnet: "v2.ref-finance.near",
+    testnet: "sergeo-guard-dex.testnet",
+  },
+  REF_FINANCE: {
+    mainnet: "v2.ref-finance.near",
+    testnet: "sergeo-guard-dex.testnet",
+  },
+  INTENTS: {
+    mainnet: "intents.near",
+    testnet: "intents.near",
+  },
+  DEFUSE: {
+    mainnet: "intents.near",
+    testnet: "intents.near",
+  },
+  WRAP_NEAR: {
+    mainnet: "wrap.near",
+    testnet: "wrap.testnet",
+  },
+  WNEAR: {
+    mainnet: "wrap.near",
+    testnet: "wrap.testnet",
+  },
+};
+
+export function resolveContractAlias(
+  nameOrAddress: string | undefined | null,
+  networkId: string = "testnet"
+): string {
+  if (!nameOrAddress) return "";
+  const trimmed = nameOrAddress.trim();
+  const normalizedKey = trimmed.toUpperCase().replace(/[-\s]/g, "_");
+  const match = CONTRACT_ALIASES[normalizedKey];
+  if (match) {
+    return networkId === "mainnet" ? match.mainnet : match.testnet;
+  }
+  return trimmed;
+}
+
+export function formatPendingEscalationMessage(outcome: Outcome, delaySeconds?: number): string {
+  const pendingId = outcome.pending_id !== undefined ? `#${outcome.pending_id}` : "#pending";
+  const delay = delaySeconds !== undefined ? delaySeconds : 3600;
+  return `Action queued in ScopeGuard review quarantine (Pending ID: ${pendingId}). Estimated review delay: ${delay} seconds. The owner must approve this in the ScopeGuard dashboard before funds move.`;
+}
+
+export function getEscalationGuidance(
+  outcome: Outcome,
+  delaySeconds?: number
+): {
+  message: string;
+  requires_owner_approval: boolean;
+  pending_id?: number;
+  instructions: string;
+} {
+  const isPending = outcome.status === "PENDING";
+  return {
+    message: isPending
+      ? formatPendingEscalationMessage(outcome, delaySeconds)
+      : `Action ${outcome.status.toLowerCase()}${outcome.reason ? `: ${outcome.reason}` : ""}`,
+    requires_owner_approval: isPending,
+    pending_id: outcome.pending_id,
+    instructions: isPending
+      ? "Please inform the user that their request exceeds the agent's autonomous limits or is subject to timelock security quarantine. The owner must log in to the ScopeGuard dashboard to review and approve this action before any funds will move."
+      : "No owner escalation required.",
+  };
+}
+
+export function toGuardAction(
+  paramsOrAction: ActParams | GuardAction,
+  networkId: string = "testnet"
+): GuardAction {
   if (
     "Transfer" in paramsOrAction ||
     "Swap" in paramsOrAction ||
     "ContractCall" in paramsOrAction ||
-    "IntentTransfer" in paramsOrAction
+    "IntentTransfer" in paramsOrAction ||
+    "NearTransfer" in paramsOrAction
   ) {
+    if ("Transfer" in paramsOrAction) {
+      paramsOrAction.Transfer.token = resolveContractAlias(paramsOrAction.Transfer.token, networkId);
+      paramsOrAction.Transfer.to = resolveContractAlias(paramsOrAction.Transfer.to, networkId);
+    } else if ("Swap" in paramsOrAction) {
+      paramsOrAction.Swap.dex = resolveContractAlias(paramsOrAction.Swap.dex, networkId);
+      paramsOrAction.Swap.token_in = resolveContractAlias(paramsOrAction.Swap.token_in, networkId);
+    } else if ("ContractCall" in paramsOrAction) {
+      paramsOrAction.ContractCall.target = resolveContractAlias(paramsOrAction.ContractCall.target, networkId);
+    } else if ("IntentTransfer" in paramsOrAction) {
+      paramsOrAction.IntentTransfer.deposit_address = resolveContractAlias(paramsOrAction.IntentTransfer.deposit_address, networkId);
+    } else if ("NearTransfer" in paramsOrAction) {
+      paramsOrAction.NearTransfer.to = resolveContractAlias(paramsOrAction.NearTransfer.to, networkId);
+    }
     return paramsOrAction;
   }
   const p = paramsOrAction as ActParams;
+  const target = resolveContractAlias(p.target || (p as any).dex, networkId);
+  const token = p.token ? resolveContractAlias(p.token, networkId) : undefined;
+  const depositAddress = p.deposit_address ? resolveContractAlias(p.deposit_address, networkId) : undefined;
   const argsString = typeof p.args === "string" ? p.args : JSON.stringify(p.args || {});
 
-  if (p.method === "execute_intent" || p.destination_asset) {
+  if (p.method === "near_transfer" || p.method === "transfer_near" || (p.token === "NEAR" && (p.recipient || p.to))) {
+    const rawDest = p.recipient || p.to || target;
+    if (!rawDest) {
+      throw new Error("NearTransfer requires a destination recipient account id");
+    }
+    const destination = resolveContractAlias(rawDest, networkId);
+    return {
+      NearTransfer: {
+        to: destination,
+        amount: p.amount || "0",
+      },
+    };
+  } else if (p.method === "execute_intent" || p.destination_asset) {
     return {
       IntentTransfer: {
-        deposit_address: p.deposit_address || p.target,
+        deposit_address: depositAddress || target,
         amount: p.amount || "0",
         destination_asset: p.destination_asset || "USDC",
         recipient: p.recipient || "",
@@ -97,8 +213,8 @@ export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAct
   } else if (p.method === "swap") {
     return {
       Swap: {
-        dex: p.target,
-        token_in: p.token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet",
+        dex: target,
+        token_in: token || process.env.SCOPEGUARD_VAULT_TOKEN || "sergeo-guard-token.testnet",
         amount_in: p.amount || "0",
         min_out: p.min_out || "0",
       },
@@ -111,8 +227,8 @@ export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAct
     }
     return {
       Transfer: {
-        token: p.token || p.target,
-        to: p.recipient,
+        token: token || target,
+        to: resolveContractAlias(p.recipient, networkId),
         amount: p.amount || "0",
         memo: p.memo || null,
       },
@@ -120,9 +236,10 @@ export function toGuardAction(paramsOrAction: ActParams | GuardAction): GuardAct
   } else {
     return {
       ContractCall: {
-        target: p.target,
-        method: p.method,
+        target,
+        method: p.method || "",
         args: argsString,
+        deposit: p.deposit || null,
       },
     };
   }
@@ -138,6 +255,7 @@ export interface BudgetView {
   vault_balance: string;
   high_water_mark?: string;
   max_drawdown_bps?: number | null;
+  near_vault_balance?: string;
 }
 
 export interface Policy {
@@ -217,7 +335,7 @@ export class ScopeGuardAgentClient {
 
   async act(paramsOrAction: ActParams | GuardAction): Promise<Outcome> {
     const account = await this.getAccount();
-    const action = toGuardAction(paramsOrAction);
+    const action = toGuardAction(paramsOrAction, this.credential.networkId || "testnet");
 
     const outcome = await account.functionCall({
       contractId: this.credential.policyContractId,
@@ -230,12 +348,15 @@ export class ScopeGuardAgentClient {
     const parsed = JSON.parse(
       Buffer.from((outcome.status as any).SuccessValue, "base64").toString()
     ) as Outcome;
+    if (parsed.status === "PENDING") {
+      parsed.escalation_message = formatPendingEscalationMessage(parsed);
+    }
     return parsed;
   }
 
   async preflight(paramsOrAction: ActParams | GuardAction): Promise<PreflightResult> {
     const account = await this.getAccount();
-    const action = toGuardAction(paramsOrAction);
+    const action = toGuardAction(paramsOrAction, this.credential.networkId || "testnet");
 
     return account.viewFunction({
       contractId: this.credential.policyContractId,
@@ -252,6 +373,33 @@ export class ScopeGuardAgentClient {
     return account.viewFunction({
       contractId: this.credential.policyContractId,
       methodName: "get_budget",
+      args: { agent_account: this.credential.agentAccountId },
+    });
+  }
+
+  async getPolicy(): Promise<Policy | null> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.credential.policyContractId,
+      methodName: "get_policy",
+      args: { agent_account: this.credential.agentAccountId },
+    });
+  }
+
+  async getRejectTimes(): Promise<number[]> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.credential.policyContractId,
+      methodName: "get_reject_times",
+      args: { agent_account: this.credential.agentAccountId },
+    });
+  }
+
+  async getNearVaultBalance(): Promise<string> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.credential.policyContractId,
+      methodName: "get_near_vault_balance",
       args: { agent_account: this.credential.agentAccountId },
     });
   }
@@ -419,9 +567,47 @@ export class ScopeGuardOwnerClient {
     }
   }
 
+  async depositNear(agentAccount: string, amountYocto: string): Promise<void> {
+    const account = await this.getAccount();
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "deposit_near",
+        args: { agent_account: agentAccount },
+        gas: BigInt("30000000000000"),
+        attachedDeposit: BigInt(amountYocto),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
+  }
+
+  async withdrawNear(agentAccount: string, amount: string): Promise<void> {
+    const account = await this.getAccount();
+    try {
+      await account.functionCall({
+        contractId: this.policyContractId,
+        methodName: "withdraw_near",
+        args: { agent_account: agentAccount, amount },
+        gas: BigInt("30000000000000"),
+      });
+    } catch (err) {
+      throw new Error(formatNearError(err));
+    }
+  }
+
+  async getNearVaultBalance(agentAccount: string): Promise<string> {
+    const account = await this.getAccount();
+    return account.viewFunction({
+      contractId: this.policyContractId,
+      methodName: "get_near_vault_balance",
+      args: { agent_account: agentAccount },
+    });
+  }
+
   async preflight(agentAccount: string, paramsOrAction: ActParams | GuardAction): Promise<PreflightResult> {
     const account = await this.getAccount();
-    const action = toGuardAction(paramsOrAction);
+    const action = toGuardAction(paramsOrAction, this.networkId);
 
     return account.viewFunction({
       contractId: this.policyContractId,

@@ -8,7 +8,8 @@
     "scopeguard": "./bin/cli.js"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "npx tsx --test test/*.test.ts"
   },
   "dependencies": {
     "near-api-js": "^4.0.0"
