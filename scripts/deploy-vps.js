@@ -19,9 +19,12 @@ const filesToUpload = [
   { local: path.join(__dirname, '..', 'web', 'components', 'AttackAutopsy.tsx'), remote: '/var/www/scopeguard/web/components/AttackAutopsy.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'BudgetVelocityGauge.tsx'), remote: '/var/www/scopeguard/web/components/BudgetVelocityGauge.tsx' },
   { local: path.join(__dirname, '..', 'web', 'components', 'PlatformPresets.tsx'), remote: '/var/www/scopeguard/web/components/PlatformPresets.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'components', 'WebhookAlertSettings.tsx'), remote: '/var/www/scopeguard/web/components/WebhookAlertSettings.tsx' },
   { local: path.join(__dirname, '..', 'web', 'app', 'create', 'page.tsx'), remote: '/var/www/scopeguard/web/app/create/page.tsx' },
   { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'docs', 'page.tsx'), remote: '/var/www/scopeguard/web/app/docs/page.tsx' },
   { local: path.join(__dirname, '..', 'web', 'app', 'api', 'tx', 'route.ts'), remote: '/var/www/scopeguard/web/app/api/tx/route.ts' },
+  { local: path.join(__dirname, '..', 'web', 'app', 'api', 'alerts', 'test', 'route.ts'), remote: '/var/www/scopeguard/web/app/api/alerts/test/route.ts' },
 ];
 
 for (const f of filesToUpload) {

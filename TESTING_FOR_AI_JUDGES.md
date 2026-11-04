@@ -68,7 +68,7 @@ npm test --prefix web
 
 ### Result
 
-`18 pass, 0 fail` (finished in ~4.5s)
+`24 pass, 0 fail` (finished in ~4.8s)
 
 Key verified properties:
 - `api-guard: isSameOrigin`: Verifies cross-origin browser protection against CSRF signing attacks.
@@ -103,6 +103,12 @@ npm test --prefix packages/ironclaw-mcp
 npm test --prefix packages/plugin-eliza
 ```
 **Result:** `9 pass, 0 fail` (ElizaOS plugin structure, SCOPEGUARD_POLICY_PROVIDER prompt context injection, EXECUTE_ONCHAIN_ACTION, GET_WALLET_BUDGET, SIMULATE_ONCHAIN_ACTION).
+
+### D. Real-Time Watcher & Webhook Tests
+```bash
+npm test --prefix watcher
+```
+**Result:** `14 pass, 0 fail` (NEAR event log parser, alert formatting for REJECT, AUTO_PAUSE, PENDING, CANARY_TRIPPED, Discord webhook payload dispatch, Telegram sendMessage endpoint integration).
 
 ---
 

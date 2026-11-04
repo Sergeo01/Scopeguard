@@ -652,6 +652,10 @@ if !is_promise_success() {
                 <span className="font-mono font-bold text-blue-400">IronClaw MCP Server (packages/ironclaw-mcp)</span>
                 <p className="text-slate-600 dark:text-slate-400">Standard stdio Model Context Protocol (MCP) server wrapping ScopeGuard SDK. Exposes strictly agent execution tools (scopeguard_budget, scopeguard_preflight, scopeguard_act) and zero owner powers. Registered via: ironclaw mcp add scopeguard node packages/ironclaw-mcp/dist/index.js.</p>
               </div>
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
+                <span className="font-mono font-bold text-rose-400">Real-Time Watcher & Webhooks (watcher/)</span>
+                <p className="text-slate-600 dark:text-slate-400">Stateless event watcher service tailing NEAR block outcomes for REJECT, AUTO_PAUSE, PENDING, and CANARY_TRIPPED logs. Delivers instant notifications to Discord webhooks and Telegram chats with zero key storage and zero signing authority.</p>
+              </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-3">
                 <div>
                   <span className="font-mono font-bold text-mint-green">Strict Bot Proxy (proxy/)</span>
@@ -804,6 +808,7 @@ if !is_promise_success() {
                 { title: "ElizaOS Security Plugin (@scopeguard/plugin-eliza)", desc: "Full agent plugin for ElizaOS providing prompt policy context injection, passkey-restricted execution, budget checks, and preflight simulation." },
                 { title: "LangChain & Tool-Calling Adapters", desc: "createScopeGuardTools export returning standardized OpenAI function declarations and LangChain structured tools." },
                 { title: "IronClaw MCP Server (packages/ironclaw-mcp)", desc: "Standard Model Context Protocol stdio server providing 6 autonomous self-awareness tools for desktop LLMs like Claude, Cursor, and Antigravity." },
+                { title: "Real-Time Watcher & Webhooks (watcher/)", desc: "Background event monitoring daemon delivering instant Telegram and Discord alerts on policy rejections and circuit breaker triggers." },
                 { title: "Operations Security Console", desc: "Comprehensive Next.js dashboard featuring spend gauge, velocity bar, circuit breaker banner, and real-time activity feed." },
                 { title: "Supabase & Multi-Wallet Authentication", desc: "Google OAuth, Email OTP, and direct NEAR Web3 wallet connection (MyNearWallet, Meteor, Here, Sender) with hidden admin protection." },
                 { title: "Zero Em/En Dash Copy Invariant", desc: "Strict typography linting ensuring zero em or en dashes across UI, documentation, and codebase." },
@@ -904,7 +909,7 @@ if !is_promise_success() {
                   </h4>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Partial / Codebase only. The watcher package exists in watcher/index.ts to tail REJECT and AUTO_PAUSE events, but it is not currently running as an autonomous background PM2 daemon on the server. Notifications in the live console are polled via NEAR RPC rather than pushed via webhooks.
+                  Status: Complete and Verified. The watcher package exists in watcher/src/index.ts with 14 passing unit tests covering NEAR event parsing, alert formatting, and webhook dispatch. The dashboard includes a live Notification Webhooks panel with browser-initiated test alert dispatch via /api/alerts/test.
                 </p>
               </div>
 

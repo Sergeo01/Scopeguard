@@ -43,6 +43,7 @@ import { ReceiptModal } from "@/components/ReceiptModal";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 import { IncidentExportModal } from "@/components/IncidentExportModal";
 import { BudgetVelocityGauge } from "@/components/BudgetVelocityGauge";
+import { WebhookAlertSettings } from "@/components/WebhookAlertSettings";
 
 interface ActivityItem {
   id: string;
@@ -865,6 +866,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Real-Time Emergency Alerts: Telegram & Discord Webhooks */}
+      <WebhookAlertSettings agentId={agentId} />
 
       {/* Enforced Policy Rules and Controls */}
       <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-obsidian-800 space-y-4">
