@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Receipt,
+  RefreshCw,
 } from "lucide-react";
 
 export interface AutopsyData {
@@ -34,9 +35,16 @@ export interface AutopsyData {
 interface AttackAutopsyProps {
   data: AutopsyData | null;
   onInspect?: (hash: string) => void;
+  onReset?: () => void;
+  isResetting?: boolean;
 }
 
-export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect }) => {
+export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({
+  data,
+  onInspect,
+  onReset,
+  isResetting = false,
+}) => {
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -119,6 +127,17 @@ export const AttackAutopsy: React.FC<AttackAutopsyProps> = ({ data, onInspect })
         </div>
 
         <div className="flex items-center gap-2">
+          {onReset && (data.reasonCode === "PAUSED" || data.ruleNumber === 2) && (
+            <button
+              type="button"
+              onClick={onReset}
+              disabled={isResetting}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs transition font-semibold cursor-pointer disabled:opacity-50 shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+              <span>{isResetting ? "Resetting on NEAR..." : "Reset Circuit Breaker on NEAR"}</span>
+            </button>
+          )}
           {onInspect && data.txHash && (
             <button
               type="button"

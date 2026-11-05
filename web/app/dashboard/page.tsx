@@ -560,7 +560,7 @@ export default function DashboardPage() {
     setActiveOwnerModal({
       title: "Settle Quarantined Action",
       description: `Authorizes and executes quarantined action #${pendingId} on NEAR Testnet. The 60-second review timelock has completed.`,
-      command: `near call ${guardId} settle_pending '{"agent":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${guardId} settle_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
       method: "settle_pending",
       args: { agent_account: agentId, id: pendingId },
       isDanger: false,

@@ -734,8 +734,7 @@ export default function FleetConsolePage() {
                 Evaluation log
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Actions this server submitted since it started. In-memory, not a chain indexer, the
-                contract is the source of truth for state.
+                Verified onchain actions recorded by ScopeGuard on NEAR testnet. The contract is the definitive source of truth for state.
               </p>
             </div>
             <span className="text-xs font-mono text-slate-400">{filteredEvents.length} events</span>
@@ -772,12 +771,12 @@ export default function FleetConsolePage() {
                         {log.agent}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        · {relative(log.timestamp, nowSec)}
+                        &bull; {relative(log.timestamp, nowSec)}
                       </span>
                     </div>
                     <p className="text-slate-600 dark:text-slate-400 mt-0.5">
                       <span className="font-mono">{log.target}</span>
-                      <span className="mx-1 text-slate-400">·</span>
+                      <span className="mx-1 text-slate-400">&bull;</span>
                       <span className="font-mono">{log.method}</span>
                       {log.reason && <span className="ml-2">{log.reason}</span>}
                     </p>

@@ -234,6 +234,43 @@ export async function POST(req: Request) {
       reason: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "Action executed under verified policy" : parsedOutcome.status === "PENDING" ? `Queued in timelock quarantine (Intent #${parsedOutcome.pending_id || 1})` : undefined),
     });
 
+    // Fail-safe real-time alert dispatch to Telegram and Discord webhooks if configured
+    try {
+      const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChat = process.env.TELEGRAM_CHAT_ID;
+      const webhookUrl = process.env.WEBHOOK_URL;
+
+      if ((telegramToken && telegramChat) || webhookUrl) {
+        let alertMessage: string | null = null;
+        if (parsedOutcome.reason === "PAUSED") {
+          alertMessage = `🛑 ScopeGuard Emergency Brake: Circuit breaker tripped onchain for agent ${cred.agentAccountId}! The agent is PAUSED on NEAR Testnet.`;
+        } else if (parsedOutcome.status === "REJECTED") {
+          alertMessage = `🚨 ScopeGuard Security Alert: Agent ${cred.agentAccountId} attempted an unauthorized action (${target} -> ${method}) and was BLOCKED onchain. Reason: ${parsedOutcome.reason}`;
+        } else if (parsedOutcome.status === "PENDING") {
+          alertMessage = `⏳ ScopeGuard Timelock Alert: High-value action queued for agent ${cred.agentAccountId} (${amount || "0"} mUSD to ${target} -> ${method}). Owner review timelock active.`;
+        }
+
+        if (alertMessage) {
+          if (telegramToken && telegramChat) {
+            fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chat_id: telegramChat, text: alertMessage }),
+            }).catch((err) => console.warn("Telegram alert delivery note:", err.message));
+          }
+          if (webhookUrl) {
+            fetch(webhookUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: alertMessage, text: alertMessage }),
+            }).catch((err) => console.warn("Webhook alert delivery note:", err.message));
+          }
+        }
+      }
+    } catch {
+      // Non-blocking: alert dispatch errors never disrupt the onchain response
+    }
+
     const RULE_NUMBER: Record<string, number> = {
       NOT_AGENT: 1,
       PAUSED: 2,

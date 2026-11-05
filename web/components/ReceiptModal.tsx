@@ -110,7 +110,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 }`}
               >
                 {txData?.found === undefined
-                  ? "Looking up receipt…"
+                  ? "Looking up receipt..."
                   : txData.found
                   ? "Testnet Receipt Found"
                   : "Awaiting index"}
