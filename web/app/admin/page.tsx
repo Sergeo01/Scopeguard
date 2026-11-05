@@ -744,7 +744,7 @@ export default function FleetConsolePage() {
           <div className="space-y-2">
             {filteredEvents.length === 0 && (
               <p className="py-6 text-center text-xs text-slate-400">
-                No actions recorded by this process yet. Run an attack simulation to populate it.
+                No actions recorded by this process yet. Run an attack in the arena to populate it.
               </p>
             )}
 

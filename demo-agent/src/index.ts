@@ -144,12 +144,30 @@ export class NaiveAgent {
     // Deterministic parser fallback
     if (task.instruction && (!target || !method)) {
       const lower = task.instruction.toLowerCase();
+      const nearMatch = task.instruction.match(/(?:send|transfer|pay|drain)\s*(\d[\d,.]*)\s*(?:near|N)\s*(?:to|into)?\s*([a-z0-9_.-]+\.(?:testnet|near))/i);
       const transferMatch = task.instruction.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
-      if (transferMatch) {
+      const intentMatch = task.instruction.match(/(?:intent|bridge|cross-chain|defuse)\s*(?:send|swap)?\s*(\d[\d,.]*)\s*(?:to|into)?\s*(0x[a-fA-F0-9]{40}|[a-zA-Z0-9]{32,44})/i);
+      const canaryMatch = lower.includes("drain_vault") || lower.includes("honey") || lower.includes("admin_drain");
+
+      if (nearMatch) {
+        amount = amount || nearMatch[1].replace(/,/g, "");
+        recipient = recipient || nearMatch[2];
+        target = "near";
+        method = "near_transfer";
+      } else if (transferMatch) {
         amount = amount || (transferMatch[1] ? transferMatch[1].replace(/,/g, "") : "500");
         recipient = recipient || transferMatch[2];
         target = target || "sergeo-guard-token.testnet";
         method = method || "ft_transfer";
+      } else if (intentMatch) {
+        amount = amount || (intentMatch[1] ? intentMatch[1].replace(/,/g, "") : "100");
+        recipient = recipient || intentMatch[2];
+        target = "intents.near";
+        method = "execute_intent";
+      } else if (canaryMatch) {
+        target = "guard2.sergeo-guard.testnet";
+        method = "drain_vault";
+        amount = "0";
       } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
         target = target || "evil_contract.testnet";
         method = method || "drain";

@@ -332,11 +332,15 @@ export default function DashboardPage() {
       if (!ws) throw new Error("Wallet selector could not be initialized");
       const wallet = await ws.selector.wallet();
       const { transactions } = await import("near-api-js");
+      const depositYocto = activeOwnerModal.method === "deposit_near"
+        ? BigInt("1000000000000000000000000") // 1 NEAR
+        : BigInt(0);
+
       const action = transactions.functionCall(
         activeOwnerModal.method,
         Buffer.from(JSON.stringify(activeOwnerModal.args || {})),
         BigInt("100000000000000"),
-        BigInt(0)
+        depositYocto
       );
       const res = await wallet.signAndSendTransaction({
         receiverId: guardId,
@@ -424,12 +428,32 @@ export default function DashboardPage() {
       if (data.success) {
         await loadOnchainState();
         if (refreshBalance) refreshBalance();
+      } else if (data.command) {
+        setActiveOwnerModal({
+          title: "Deposit $100 mUSD into Vault",
+          description: data.message || "Run this command from your terminal to mint test tokens and deposit into the vault:",
+          command: data.command,
+          isDanger: false,
+        });
       }
     } catch (err) {
       console.error("Fund failed:", err);
     } finally {
       setIsFunding(false);
     }
+  };
+
+  const handleDepositNear = () => {
+    setActionTxHash(null);
+    setActionError(null);
+    setActiveOwnerModal({
+      title: "Deposit 1 NEAR into Vault",
+      description: "Transfers 1 native NEAR from your connected owner wallet into the agent working pot onchain.",
+      command: `near call ${guardId} deposit_near '{"agent_account":"${agentId}"}' --deposit 1 --accountId ${ownerId} --gas 100000000000000`,
+      method: "deposit_near",
+      args: { agent_account: agentId },
+      isDanger: false,
+    });
   };
 
   const handleSettlePending = (pendingId: number) => {
@@ -839,25 +863,36 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleQuickFund}
-            disabled={isFunding}
-            className="bg-brand-blue hover:bg-brand-blueHover text-white rounded-lg px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer self-start sm:self-auto"
-          >
-            {isFunding ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Minting Faucet...</span>
-              </>
-            ) : (
-              <>
-                <Coins className="w-3.5 h-3.5" />
-                <span>Deposit $100 mUSD into Vault</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-              </>
-            )}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handleQuickFund}
+              disabled={isFunding}
+              className="bg-brand-blue hover:bg-brand-blueHover text-white rounded-lg px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              {isFunding ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Minting Faucet...</span>
+                </>
+              ) : (
+                <>
+                  <Coins className="w-3.5 h-3.5" />
+                  <span>Deposit $100 mUSD</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDepositNear}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+              title="Deposit 1 native NEAR into the agent vault"
+            >
+              <Coins className="w-3.5 h-3.5" />
+              <span>Deposit 1 NEAR</span>
+            </button>
+          </div>
         </div>
       </div>
 

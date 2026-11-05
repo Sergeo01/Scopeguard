@@ -16,7 +16,7 @@ const MAX_ATTACKS_PER_WINDOW = 12;
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
     return NextResponse.json(
-      { success: false, error: "Cross-origin simulation request rejected." },
+      { success: false, error: "Cross-origin request rejected." },
       { status: 403 }
     );
   }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   if (attackTimestamps.length >= MAX_ATTACKS_PER_WINDOW) {
     return NextResponse.json({
       success: false,
-      error: "Rate limit: maximum 12 live attack simulations per minute to conserve testnet gas. Please wait a moment.",
+      error: "Rate limit: maximum 12 live attack executions per minute to conserve testnet gas. Please wait a moment.",
     }, { status: 429 });
   }
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     if (now - lastAttackTimestamp < 1500) {
       return NextResponse.json({
         success: false,
-        error: "Rate limit: please wait 1.5 seconds between simulation calls.",
+        error: "Rate limit: please wait 1.5 seconds between onchain calls.",
       }, { status: 429 });
     }
     lastAttackTimestamp = now;
@@ -263,7 +263,7 @@ export async function POST(req: Request) {
         ruleNumber: parsedOutcome.reason
           ? RULE_NUMBER[parsedOutcome.reason] ?? 0
           : parsedOutcome.status === "PENDING"
-          ? 8
+          ? 12
           : 0,
         ruleName: parsedOutcome.reason ? parsedOutcome.reason.replace(/_/g, " ") : parsedOutcome.status === "PENDING" ? "High Value Timelock" : "Policy Check",
         explanation: parsedOutcome.reason ? `Refused by onchain policy: ${parsedOutcome.reason}` : parsedOutcome.status === "PENDING" ? "High-value action held in 60-second owner veto quarantine." : "Action cleared all onchain policy bounds.",

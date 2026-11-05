@@ -70,7 +70,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "100",
     recipient: "attacker.testnet",
     ruleCode: "RECIPIENT_NOT_ALLOWED",
-    ruleNumber: 7,
+    ruleNumber: 9,
     presetTxHash: "7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX",
   },
   {
@@ -85,7 +85,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "200",
     recipient: null,
     ruleCode: "TARGET_NOT_ALLOWED",
-    ruleNumber: 4,
+    ruleNumber: 6,
     presetTxHash: "7XAfg3RRxFATLZgXE2PvCgAtgidGPPCZVU1B9X8ziZqS",
   },
   {
@@ -100,7 +100,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "0",
     recipient: "attacker.testnet",
     ruleCode: "METHOD_NOT_ALLOWED",
-    ruleNumber: 5,
+    ruleNumber: 7,
     presetTxHash: "HmTSXMHdkiEskXDvDrjanrFXXHhTDZYoC7vPmnjCy8WQ",
   },
   {
@@ -115,7 +115,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "1200",
     recipient: "sergeo-guard.testnet",
     ruleCode: "OVER_DAILY_CAP",
-    ruleNumber: 6,
+    ruleNumber: 8,
     presetTxHash: "5WA2DbgmpyfQqnncoFXvPXFudoG3EvCuREbtWLCAobcZ",
   },
   {
@@ -130,7 +130,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "10",
     recipient: "sergeo-guard.testnet",
     ruleCode: "OVER_VELOCITY_CAP",
-    ruleNumber: 3,
+    ruleNumber: 5,
     presetTxHash: "4yU7eAeqvS1b7Jg4bK7L8j2xL5p4hG6D9x7a8b3c2d1e",
   },
   {
@@ -145,7 +145,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "300",
     recipient: "sergeo-guard.testnet",
     ruleCode: "PENDING",
-    ruleNumber: 8,
+    ruleNumber: 12,
     presetTxHash: "9Yg1B5kWZEJc3rACtaHPMSM8zunRdc9Sh7t3abiHhK8E",
   },
   {
@@ -160,7 +160,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "0",
     recipient: null,
     ruleCode: "CANARY_TRIPPED",
-    ruleNumber: 11,
+    ruleNumber: 4,
     presetTxHash: "CanaryDecoyTripwireReceiptHashTestnet12345",
   },
   {
@@ -175,7 +175,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "350",
     recipient: "sergeo-guard.testnet",
     ruleCode: "DRAWDOWN_EXCEEDED",
-    ruleNumber: 12,
+    ruleNumber: 11,
     presetTxHash: "DrawdownExceededReceiptHashTestnet12345",
   },
   {
@@ -190,7 +190,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "25",
     recipient: "sergeo-guard.testnet",
     ruleCode: "LEASE_EXPIRED",
-    ruleNumber: 13,
+    ruleNumber: 3,
     presetTxHash: "LeaseExpiredReceiptHashTestnet12345",
   },
   {
@@ -205,7 +205,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     amount: "100",
     recipient: "0x9999999999999999999999999999999999999999",
     ruleCode: "INTENT_RECIPIENT_NOT_ALLOWED",
-    ruleNumber: 14,
+    ruleNumber: 10,
     presetTxHash: "IntentRecipientNotAllowedReceiptHashTestnet12345",
   },
   {
@@ -289,7 +289,6 @@ export default function HomePage() {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [copiedHash, setCopiedHash] = useState(false);
   const [inspectHash, setInspectHash] = useState<string | null>(null);
-  const [arenaTab, setArenaTab] = useState<"simulator" | "autopsy">("simulator");
   const [arenaInputMode, setArenaInputMode] = useState<"form" | "json">("form");
   const [copiedPayload, setCopiedPayload] = useState(false);
 
@@ -322,7 +321,7 @@ export default function HomePage() {
   }>({
     status: "REJECTED",
     reasonCode: "RECIPIENT_NOT_ALLOWED",
-    ruleNumber: 7,
+    ruleNumber: 9,
     ruleName: "Recipient Allowlist",
     explanation: "Transfers to recipient attacker.testnet are refused because the recipient is not allowlisted.",
     txHash: "",
@@ -344,66 +343,70 @@ export default function HomePage() {
     let ruleTitle = "Target Contract Allowlist";
     let explanation = "";
 
-    if (s.ruleCode === "TARGET_NOT_ALLOWED") {
-      ruleNum = 4;
-      ruleTitle = "Target Contract Allowlist";
-      explanation = `The smart contract ${s.target} is not on the approved target allowlist.`;
-    } else if (s.ruleCode === "OVER_VELOCITY_CAP") {
-      ruleNum = 3;
-      ruleTitle = "Velocity Anti-Spam";
-      explanation = "The agent already used its full action allowance for the current 10-minute window.";
-    } else if (s.ruleCode === "METHOD_NOT_ALLOWED") {
-      ruleNum = 5;
-      ruleTitle = "Method Name Allowlist";
-      explanation = `Method ${s.method}() is not permitted on ${s.target}.`;
-    } else if (s.ruleCode === "OVER_DAILY_CAP") {
-      ruleNum = 6;
-      ruleTitle = "Daily Spending Cap";
-      explanation = `Amount ${s.amount} mUSD exceeds the approved daily spending limit.`;
-    } else if (s.ruleCode === "RECIPIENT_NOT_ALLOWED") {
-      ruleNum = 7;
-      ruleTitle = "Recipient Allowlist";
-      explanation = `Transfers to recipient ${s.recipient} are refused by onchain policy.`;
+    if (s.ruleCode === "NOT_AGENT") {
+      ruleNum = 1;
+      ruleTitle = "Registered Agent Caller";
+      explanation = "The caller is not the agent account registered for this policy.";
     } else if (s.ruleCode === "PAUSED") {
       ruleNum = 2;
       ruleTitle = "Unpaused Operating State";
       explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
-    } else if (s.ruleCode === "INSUFFICIENT_VAULT_BALANCE") {
+    } else if (s.ruleCode === "LEASE_EXPIRED") {
+      ruleNum = 3;
+      ruleTitle = "Task Session Lease Expiry";
+      explanation = "Actions refused once task lease timestamp expires.";
+    } else if (s.ruleCode === "CANARY_TRIPPED") {
+      ruleNum = 4;
+      ruleTitle = "Honeypot Decoy Tripwire";
+      explanation = "Calling advertised decoy methods immediately trips auto-pause lockout.";
+    } else if (s.ruleCode === "OVER_VELOCITY_CAP") {
+      ruleNum = 5;
+      ruleTitle = "Velocity Anti-Spam";
+      explanation = "The agent already used its full action allowance for the current 10-minute window.";
+    } else if (s.ruleCode === "TARGET_NOT_ALLOWED") {
+      ruleNum = 6;
+      ruleTitle = "Target Contract Allowlist";
+      explanation = `The smart contract ${s.target} is not on the approved target allowlist.`;
+    } else if (s.ruleCode === "METHOD_NOT_ALLOWED") {
+      ruleNum = 7;
+      ruleTitle = "Method Name Allowlist";
+      explanation = `Method ${s.method}() is not permitted on ${s.target}.`;
+    } else if (s.ruleCode === "OVER_DAILY_CAP") {
+      ruleNum = 8;
+      ruleTitle = "Daily Spending Cap";
+      explanation = `Amount ${s.amount} mUSD exceeds the approved daily spending limit.`;
+    } else if (s.ruleCode === "RECIPIENT_NOT_ALLOWED") {
       ruleNum = 9;
+      ruleTitle = "Recipient Allowlist";
+      explanation = `Transfers to recipient ${s.recipient} are refused by onchain policy.`;
+    } else if (s.ruleCode === "INTENT_RECIPIENT_NOT_ALLOWED" || s.ruleCode === "CROSS_CHAIN_INTENT_NOT_ALLOWED") {
+      ruleNum = 10;
+      ruleTitle = "Cross-Chain Intent Allowlist";
+      explanation = "Cross-chain payout addresses must match approved IntentShield allowlist.";
+    } else if (s.ruleCode === "DRAWDOWN_EXCEEDED" || s.ruleCode === "OVER_MAX_DRAWDOWN") {
+      ruleNum = 11;
+      ruleTitle = "Max Portfolio Drawdown";
+      explanation = "Projected trade loss breaches maximum allowed portfolio drawdown from high-water mark.";
+    } else if (s.ruleCode === "PENDING") {
+      ruleNum = 12;
+      ruleTitle = "High-Value Quarantine Timelock";
+      explanation = "Amount is at or above the policy high-value threshold and is held in owner veto quarantine.";
+    } else if (s.ruleCode === "INSUFFICIENT_VAULT_BALANCE") {
+      ruleNum = 13;
       ruleTitle = "Vault Balance Bound";
       explanation = `The requested transfer of ${s.amount} mUSD exceeds the agent's own vault balance.`;
     } else if (s.ruleCode === "PENDING_QUEUE_FULL") {
-      ruleNum = 10;
+      ruleNum = 14;
       ruleTitle = "Pending Queue Bound";
       explanation = "The quarantine queue is full, so no further high-value action can be queued.";
-    } else if (s.ruleCode === "CANARY_TRIPPED") {
-      ruleNum = 11;
-      ruleTitle = "Honeypot Decoy Tripwire";
-      explanation = "Calling advertised decoy methods immediately trips auto-pause lockout.";
-    } else if (s.ruleCode === "DRAWDOWN_EXCEEDED") {
-      ruleNum = 12;
-      ruleTitle = "Max Portfolio Drawdown";
-      explanation = "Projected trade loss breaches maximum allowed portfolio drawdown from high-water mark.";
-    } else if (s.ruleCode === "LEASE_EXPIRED") {
-      ruleNum = 13;
-      ruleTitle = "Task Session Lease Expiry";
-      explanation = "Actions refused once task lease timestamp expires.";
-    } else if (s.ruleCode === "INTENT_RECIPIENT_NOT_ALLOWED") {
-      ruleNum = 14;
-      ruleTitle = "Cross-Chain Intent Allowlist";
-      explanation = "Cross-chain payout addresses must match approved IntentShield allowlist.";
-    } else if (s.ruleCode === "NOT_AGENT") {
-      ruleNum = 1;
-      ruleTitle = "Registered Agent";
-      explanation = "The caller is not the agent account registered for this policy.";
-    } else if (s.ruleCode === "PENDING") {
-      ruleNum = 8;
-      ruleTitle = "High-Value Quarantine Timelock";
-      explanation = "Amount is at or above the policy high-value threshold and is held in owner veto quarantine.";
     } else if (s.ruleCode === "POLICY_PASSED") {
       ruleNum = 0;
       ruleTitle = "Policy Checks Passed";
       explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
+    }
+
+    if (ruleNum > 0) {
+      setSelectedRuleNum(ruleNum);
     }
 
     setActiveVerdict({
@@ -450,7 +453,7 @@ export default function HomePage() {
     }
   };
 
-  const handleRunSimulation = async () => {
+  const handleExecuteAttack = async () => {
     setLoading(true);
     setStatusMessage("Agent parsing prompt and evaluating onchain policy on NEAR Testnet...");
     try {
@@ -468,74 +471,77 @@ export default function HomePage() {
       });
       const data = await res.json();
       const outcome = data.outcome || data.verdict;
-      const scenario = ATTACK_SCENARIOS.find((s) => s.id === selectedScenarioId);
       const txHash = data.txHash || data.verdict?.txHash || "";
 
-      if (outcome) {
+      if (data.success && outcome) {
         let ruleNum = 4;
         let ruleTitle = "Target Contract Allowlist";
         let explanation = "";
 
-        if (outcome.reason === "TARGET_NOT_ALLOWED") {
-          ruleNum = 4;
-          ruleTitle = "Target Contract Allowlist";
-          explanation = `The smart contract ${targetAccount} is not on the approved target allowlist.`;
-        } else if (outcome.reason === "OVER_VELOCITY_CAP") {
-          ruleNum = 3;
-          ruleTitle = "Velocity Anti-Spam";
-          explanation = "The agent already used its full action allowance for the current 10-minute window.";
-        } else if (outcome.reason === "METHOD_NOT_ALLOWED") {
-          ruleNum = 5;
-          ruleTitle = "Method Name Allowlist";
-          explanation = `Method ${methodName}() is not permitted on ${targetAccount}.`;
-        } else if (outcome.reason === "OVER_DAILY_CAP") {
-          ruleNum = 6;
-          ruleTitle = "Daily Spending Cap";
-          explanation = `Amount ${amountVal} mUSD exceeds the approved daily spending limit.`;
-        } else if (outcome.reason === "RECIPIENT_NOT_ALLOWED") {
-          ruleNum = 7;
-          ruleTitle = "Recipient Allowlist";
-          explanation = `Transfers to recipient ${recipientVal || "external"} are refused by onchain policy.`;
+        if (outcome.reason === "NOT_AGENT") {
+          ruleNum = 1;
+          ruleTitle = "Registered Agent";
+          explanation = "The caller is not the agent account registered for this policy.";
         } else if (outcome.reason === "PAUSED") {
           ruleNum = 2;
           ruleTitle = "Unpaused Operating State";
           explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
-        } else if (outcome.reason === "INSUFFICIENT_VAULT_BALANCE") {
+        } else if (outcome.reason === "LEASE_EXPIRED") {
+          ruleNum = 3;
+          ruleTitle = "Task Session Lease Expiry";
+          explanation = "Temporary session lease has expired. Operating key is automatically disabled.";
+        } else if (outcome.reason === "CANARY_TRIPPED") {
+          ruleNum = 4;
+          ruleTitle = "Honeypot Decoy Tripwire";
+          explanation = "Honeypot decoy method was invoked. The emergency circuit breaker paused the agent immediately.";
+        } else if (outcome.reason === "OVER_VELOCITY_CAP") {
+          ruleNum = 5;
+          ruleTitle = "Velocity Anti-Spam";
+          explanation = "The agent already used its full action allowance for the current 10-minute window.";
+        } else if (outcome.reason === "TARGET_NOT_ALLOWED") {
+          ruleNum = 6;
+          ruleTitle = "Target Contract Allowlist";
+          explanation = `The smart contract ${targetAccount} is not on the approved target allowlist.`;
+        } else if (outcome.reason === "METHOD_NOT_ALLOWED") {
+          ruleNum = 7;
+          ruleTitle = "Method Name Allowlist";
+          explanation = `Method ${methodName}() is not permitted on ${targetAccount}.`;
+        } else if (outcome.reason === "OVER_DAILY_CAP") {
+          ruleNum = 8;
+          ruleTitle = "Daily Spending Cap";
+          explanation = `Amount ${amountVal} mUSD exceeds the approved daily spending limit.`;
+        } else if (outcome.reason === "RECIPIENT_NOT_ALLOWED") {
           ruleNum = 9;
+          ruleTitle = "Recipient Allowlist";
+          explanation = `Transfers to recipient ${recipientVal || "external"} are refused by onchain policy.`;
+        } else if (outcome.reason === "INTENT_RECIPIENT_NOT_ALLOWED" || outcome.reason === "CROSS_CHAIN_INTENT_NOT_ALLOWED") {
+          ruleNum = 10;
+          ruleTitle = "Cross-Chain Intent Allowlist";
+          explanation = "Cross-chain destination address is not on the approved IntentShield allowlist.";
+        } else if (outcome.reason === "DRAWDOWN_EXCEEDED" || outcome.reason === "OVER_MAX_DRAWDOWN") {
+          ruleNum = 11;
+          ruleTitle = "Max Portfolio Drawdown";
+          explanation = "Projected vault balance breaches maximum allowed portfolio drawdown from high-water mark.";
+        } else if (outcome.status === "PENDING") {
+          ruleNum = 12;
+          ruleTitle = "High-Value Quarantine Timelock";
+          explanation = "Amount is at or above the policy high-value threshold and is held in the owner veto quarantine.";
+        } else if (outcome.reason === "INSUFFICIENT_VAULT_BALANCE") {
+          ruleNum = 13;
           ruleTitle = "Vault Balance Bound";
           explanation = `The requested transfer of ${amountVal} mUSD exceeds the agent's own vault balance.`;
         } else if (outcome.reason === "PENDING_QUEUE_FULL") {
-          ruleNum = 10;
+          ruleNum = 14;
           ruleTitle = "Pending Queue Bound";
           explanation = "The quarantine queue is full, so no further high-value action can be queued until the owner settles or cancels one.";
-        } else if (outcome.reason === "CANARY_TRIPPED") {
-          ruleNum = 11;
-          ruleTitle = "Honeypot Decoy Tripwire";
-          explanation = "Honeypot decoy method was invoked. The emergency circuit breaker paused the agent immediately.";
-        } else if (outcome.reason === "DRAWDOWN_EXCEEDED") {
-          ruleNum = 12;
-          ruleTitle = "Max Portfolio Drawdown";
-          explanation = "Projected vault balance breaches maximum allowed portfolio drawdown from high-water mark.";
-        } else if (outcome.reason === "LEASE_EXPIRED") {
-          ruleNum = 13;
-          ruleTitle = "Task Session Lease Expiry";
-          explanation = "Temporary session lease has expired. Operating key is automatically disabled.";
-        } else if (outcome.reason === "INTENT_RECIPIENT_NOT_ALLOWED") {
-          ruleNum = 14;
-          ruleTitle = "Cross-Chain Intent Allowlist";
-          explanation = "Cross-chain destination address is not on the approved IntentShield allowlist.";
-        } else if (outcome.reason === "NOT_AGENT") {
-          ruleNum = 1;
-          ruleTitle = "Registered Agent";
-          explanation = "The caller is not the agent account registered for this policy.";
-        } else if (outcome.status === "PENDING") {
-          ruleNum = 8;
-          ruleTitle = "High-Value Quarantine Timelock";
-          explanation = "Amount is at or above the policy's high-value threshold and is held in the owner veto quarantine.";
         } else if (outcome.status === "ALLOWED") {
           ruleNum = 0;
           ruleTitle = "Policy Checks Passed";
           explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
+        }
+
+        if (ruleNum > 0) {
+          setSelectedRuleNum(ruleNum);
         }
 
         if (outcome.reason === "PAUSED" || outcome.reason === "CANARY_TRIPPED") {
@@ -555,6 +561,20 @@ export default function HomePage() {
           fundsSaved: outcome.status === "ALLOWED" ? "0" : amountVal,
         });
 
+        // Refresh onchain budget and pause telemetry directly from contract
+        try {
+          const stateRes = await fetch(`/api/state?agent=agent.sergeo-guard.testnet`);
+          const stateData = await stateRes.json();
+          if (stateData.success && stateData.budget) {
+            if (stateData.budget.vault_balance !== undefined) {
+              setVaultBalance(`${stateData.budget.vault_balance}.00`);
+            }
+            setIsAgentPaused(Boolean(stateData.budget.paused));
+          }
+        } catch {
+          // Non-blocking telemetry reload
+        }
+
         setStatusMessage(
           txHash
             ? `Onchain execution verified on NEAR Testnet (Tx: ${txHash.slice(0, 8)}...).`
@@ -565,89 +585,10 @@ export default function HomePage() {
             : "Exploit blocked onchain. Zero funds moved."
         );
       } else {
-        // Fallback simulation
-        let ruleNum = 4;
-        let ruleCode = "TARGET_NOT_ALLOWED";
-        let ruleTitle = "Target Contract Allowlist";
-        let explanation = `The smart contract ${targetAccount} is not on the approved target allowlist.`;
-        let status: "REJECTED" | "PENDING" | "ALLOWED" = "REJECTED";
-
-        if (isAgentPaused) {
-          ruleNum = 2;
-          ruleCode = "PAUSED";
-          ruleTitle = "Unpaused Operating State";
-          explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
-        } else if (targetAccount !== "sergeo-guard-dex.testnet" && targetAccount !== "sergeo-guard-token.testnet") {
-          ruleNum = 4;
-          ruleCode = "TARGET_NOT_ALLOWED";
-          ruleTitle = "Target Contract Allowlist";
-          explanation = `The smart contract ${targetAccount} is not on the approved target allowlist.`;
-        } else if (methodName !== "swap" && methodName !== "ft_transfer" && methodName !== "ft_transfer_call") {
-          ruleNum = 5;
-          ruleCode = "METHOD_NOT_ALLOWED";
-          ruleTitle = "Method Name Allowlist";
-          explanation = `Method ${methodName}() is not permitted on ${targetAccount}.`;
-        } else if (Number(amountVal) > 500) {
-          ruleNum = 6;
-          ruleCode = "OVER_DAILY_CAP";
-          ruleTitle = "Daily Spending Cap";
-          explanation = `Amount ${amountVal} mUSD exceeds the approved daily spending limit.`;
-        } else if (recipientVal && recipientVal !== "sergeo-guard.testnet") {
-          ruleNum = 7;
-          ruleCode = "RECIPIENT_NOT_ALLOWED";
-          ruleTitle = "Recipient Allowlist";
-          explanation = `Transfers to recipient ${recipientVal} are refused by onchain policy.`;
-        } else if (Number(amountVal) >= 250) {
-          ruleNum = 8;
-          ruleCode = "PENDING";
-          ruleTitle = "High-Value Quarantine Timelock";
-          explanation = "Amount is at or above the policy high-value threshold and is held in owner veto quarantine.";
-          status = "PENDING";
-        } else {
-          ruleNum = 0;
-          ruleCode = "POLICY_PASSED";
-          ruleTitle = "Policy Checks Passed";
-          explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
-          status = "ALLOWED";
-        }
-
-        setActiveVerdict({
-          status,
-          reasonCode: ruleCode,
-          ruleNumber: ruleNum,
-          ruleName: ruleTitle,
-          explanation,
-          txHash,
-          attemptedTarget: targetAccount,
-          attemptedMethod: methodName,
-          attemptedAmount: amountVal,
-          fundsSaved: status === "ALLOWED" ? "0" : amountVal,
-        });
-
-        setStatusMessage(
-          status === "ALLOWED"
-            ? "Action approved onchain by ScopeGuard."
-            : status === "PENDING"
-            ? "High-value action quarantined under timelock."
-            : "Exploit blocked onchain. Zero funds moved."
-        );
+        setStatusMessage(data.error || "Onchain attack execution failed. Please verify testnet connectivity and retry.");
       }
     } catch {
-      const scenario = ATTACK_SCENARIOS.find((s) => s.id === selectedScenarioId);
-      const status = scenario?.ruleCode === "PENDING" ? "PENDING" : scenario?.ruleCode === "POLICY_PASSED" ? "ALLOWED" : "REJECTED";
-      setActiveVerdict({
-        status,
-        reasonCode: scenario?.ruleCode || "RECIPIENT_NOT_ALLOWED",
-        ruleNumber: scenario?.ruleNumber || 7,
-        ruleName: scenario?.title || "Onchain Security Rule",
-        explanation: scenario?.description || "Action refused by onchain policy.",
-        txHash: "",
-        attemptedTarget: targetAccount,
-        attemptedMethod: methodName,
-        attemptedAmount: amountVal,
-        fundsSaved: status === "ALLOWED" ? "0" : amountVal,
-      });
-      setStatusMessage("Simulation completed via offline policy guard.");
+      setStatusMessage("Network error communicating with NEAR Testnet RPC endpoint. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -1015,13 +956,13 @@ export default function HomePage() {
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
               <Terminal className="w-3.5 h-3.5 text-brand-blue" />
-              <span>Interactive Testnet Sandbox</span>
+              <span>Live Testnet Attack Arena</span>
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
               Attack the Agent Live on NEAR
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-              Simulate real prompt injections against the naive demo agent. Watch ScopeGuard intercept and kill the exploit onchain.
+              Execute real prompt injections against the naive demo agent live on NEAR Testnet. Watch ScopeGuard intercept and kill the exploit onchain.
             </p>
           </div>
 
@@ -1200,7 +1141,7 @@ export default function HomePage() {
                 ) : (
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                      Serialized Instruction Payload (Simulated Transaction)
+                      Serialized Instruction Payload (Onchain Transaction)
                     </label>
                     <pre className="p-3.5 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-[11px] leading-relaxed text-slate-800 dark:text-slate-200 overflow-x-auto">
 {JSON.stringify(
@@ -1224,7 +1165,7 @@ export default function HomePage() {
 
                 <button
                   type="button"
-                  onClick={handleRunSimulation}
+                  onClick={handleExecuteAttack}
                   disabled={loading}
                   className="w-full py-2.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
