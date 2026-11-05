@@ -114,7 +114,12 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
 ];
 
 function getLedgerFilePath(): string {
-  const dataDir = path.join(process.cwd(), "data");
+  const rootDir = fs.existsSync(path.join(process.cwd(), "data"))
+    ? process.cwd()
+    : fs.existsSync(path.join(process.cwd(), "web", "data"))
+    ? path.join(process.cwd(), "web")
+    : process.cwd();
+  const dataDir = path.join(rootDir, "data");
   if (!fs.existsSync(dataDir)) {
     try {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -134,6 +139,9 @@ let activityLog: ActivityItem[] = (() => {
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
+    } else {
+      // Seed file on initial startup
+      fs.writeFileSync(filePath, JSON.stringify(VERIFIED_GENESIS_ACTIVITIES, null, 2), "utf-8");
     }
   } catch {
     // Disk read fallback
