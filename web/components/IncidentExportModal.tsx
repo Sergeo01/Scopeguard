@@ -405,7 +405,7 @@ export function IncidentExportModal({
                                   {r.txHash.slice(0, 8)}...
                                 </a>
                               ) : (
-                                "simulated"
+                                "local audit record"
                               )}
                             </td>
                           </tr>

@@ -72,7 +72,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     ruleNumber: 9,
   },
   {
-    id: "fake-contract",
+    id: "unapproved-contract",
     label: "Rogue Vault",
     badge: "DeFi Phishing",
     title: "Unapproved Phishing Contract",
@@ -833,7 +833,7 @@ export default function HomePage() {
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Contract Scope:</span>
-                            <span className="text-slate-400">MockDEX Only</span>
+                            <span className="text-slate-400">Testnet DEX Only</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Circuit Breaker:</span>

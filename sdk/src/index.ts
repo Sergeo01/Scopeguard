@@ -740,7 +740,7 @@ export function createScopeGuardTools(client: ScopeGuardAgentClient): AgentToolD
     {
       name: "scopeguard_preflight",
       description:
-        "Simulates an onchain action against ScopeGuard rules without broadcasting to the chain, returning whether it will be allowed, quarantined, or rejected.",
+        "Evaluates an onchain action against ScopeGuard rules via read-only view call without broadcasting state changes, returning whether it will be allowed, quarantined, or rejected.",
       parameters: {
         type: "object",
         properties: {

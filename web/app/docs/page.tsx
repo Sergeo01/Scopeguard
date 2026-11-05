@@ -294,7 +294,7 @@ export default function DocsPage() {
 {`const { loadCredential, act } = require("@scopeguard/sdk");
 const cred = loadCredential("agent.json");
 const receipt = await act(cred, {
-  target: "mock-dex.sergeo-guard.testnet",
+  target: "sergeo-guard-dex.testnet",
   method: "swap",
   amount: "50",
   args: { token_in: "mUSD", amount_in: "50" }
@@ -462,7 +462,7 @@ const receipt = await act(cred, {
               Vault Custody &amp; Async Rollback
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Working funds (e.g. NEP-141 mUSD mock tokens) are deposited by the owner directly into the guard custody vault. When an agent executes a valid Transfer action, the guard debits the agent vault pot before dispatching the asynchronous ft_transfer promise.
+              Working funds (e.g. NEP-141 mUSD testnet tokens) are deposited by the owner directly into the guard custody vault. When an agent executes a valid Transfer action, the guard debits the agent vault pot before dispatching the asynchronous ft_transfer promise.
             </p>
             <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-xs space-y-2">
               <div className="text-slate-400 pb-2 border-b border-slate-800">
@@ -647,7 +647,7 @@ if !is_promise_success() {
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-amber-400">ElizaOS Security Plugin (packages/plugin-eliza)</span>
-                <p className="text-slate-600 dark:text-slate-400">Official security plugin for ElizaOS autonomous agents. Provides SCOPEGUARD_POLICY_PROVIDER to inject live policy rules and budget into the LLM prompt context, plus EXECUTE_ONCHAIN_ACTION, GET_WALLET_BUDGET, and SIMULATE_ONCHAIN_ACTION actions.</p>
+                <p className="text-slate-600 dark:text-slate-400">Official security plugin for ElizaOS autonomous agents. Provides SCOPEGUARD_POLICY_PROVIDER to inject live policy rules and budget into the LLM prompt context, plus EXECUTE_ONCHAIN_ACTION, GET_WALLET_BUDGET, and PREFLIGHT_ONCHAIN_ACTION actions.</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-emerald-400">LangChain & OpenAI Tool Adapters (sdk)</span>
