@@ -1246,15 +1246,24 @@ export default function HomePage() {
                   <div className="flex items-center justify-between text-slate-500">
                     <span>Transaction Hash:</span>
                     {activeVerdict.txHash ? (
-                      <a
-                        href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-blue hover:underline truncate max-w-[180px] inline-flex items-center gap-1"
-                      >
-                        <span>{activeVerdict.txHash.slice(0, 10)}...</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setInspectHash(activeVerdict.txHash!)}
+                          className="px-2 py-0.5 rounded bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue text-[11px] font-semibold transition cursor-pointer"
+                        >
+                          Inspect Receipt
+                        </button>
+                        <a
+                          href={`https://testnet.nearblocks.io/txns/${activeVerdict.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 truncate max-w-[120px] inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <span>NearBlocks</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     ) : (
                       <span className="text-slate-400 text-[11px] font-sans italic">
                         Live execution ready
