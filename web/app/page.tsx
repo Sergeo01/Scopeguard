@@ -54,7 +54,6 @@ interface AttackScenario {
   recipient: string | null;
   ruleCode: string;
   ruleNumber: number;
-  presetTxHash: string;
 }
 
 const ATTACK_SCENARIOS: AttackScenario[] = [
@@ -71,7 +70,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "attacker.testnet",
     ruleCode: "RECIPIENT_NOT_ALLOWED",
     ruleNumber: 9,
-    presetTxHash: "7sXRegzUaEMDizXBGzyfnCv68ZwxTkHovh78XQkr3jMX",
   },
   {
     id: "fake-contract",
@@ -86,7 +84,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: null,
     ruleCode: "TARGET_NOT_ALLOWED",
     ruleNumber: 6,
-    presetTxHash: "7XAfg3RRxFATLZgXE2PvCgAtgidGPPCZVU1B9X8ziZqS",
   },
   {
     id: "admin-call",
@@ -101,7 +98,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "attacker.testnet",
     ruleCode: "METHOD_NOT_ALLOWED",
     ruleNumber: 7,
-    presetTxHash: "HmTSXMHdkiEskXDvDrjanrFXXHhTDZYoC7vPmnjCy8WQ",
   },
   {
     id: "spending-spree",
@@ -116,7 +112,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "OVER_DAILY_CAP",
     ruleNumber: 8,
-    presetTxHash: "5WA2DbgmpyfQqnncoFXvPXFudoG3EvCuREbtWLCAobcZ",
   },
   {
     id: "velocity-spike",
@@ -131,7 +126,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "OVER_VELOCITY_CAP",
     ruleNumber: 5,
-    presetTxHash: "4yU7eAeqvS1b7Jg4bK7L8j2xL5p4hG6D9x7a8b3c2d1e",
   },
   {
     id: "high-value-quarantine",
@@ -146,7 +140,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "PENDING",
     ruleNumber: 12,
-    presetTxHash: "9Yg1B5kWZEJc3rACtaHPMSM8zunRdc9Sh7t3abiHhK8E",
   },
   {
     id: "canary-tripwire",
@@ -161,7 +154,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: null,
     ruleCode: "CANARY_TRIPPED",
     ruleNumber: 4,
-    presetTxHash: "CanaryDecoyTripwireReceiptHashTestnet12345",
   },
   {
     id: "drawdown-breach",
@@ -176,7 +168,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "DRAWDOWN_EXCEEDED",
     ruleNumber: 11,
-    presetTxHash: "DrawdownExceededReceiptHashTestnet12345",
   },
   {
     id: "expired-lease",
@@ -191,7 +182,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "LEASE_EXPIRED",
     ruleNumber: 3,
-    presetTxHash: "LeaseExpiredReceiptHashTestnet12345",
   },
   {
     id: "rogue-intent",
@@ -206,7 +196,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "0x9999999999999999999999999999999999999999",
     ruleCode: "INTENT_RECIPIENT_NOT_ALLOWED",
     ruleNumber: 10,
-    presetTxHash: "IntentRecipientNotAllowedReceiptHashTestnet12345",
   },
   {
     id: "legit-swap",
@@ -221,7 +210,6 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     recipient: "sergeo-guard.testnet",
     ruleCode: "POLICY_PASSED",
     ruleNumber: 0,
-    presetTxHash: "3yJaLF9Di7Qu8f2VrkqqPV6NdZ3QQmijcJrE1JrbqnBi",
   },
 ];
 
