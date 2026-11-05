@@ -230,9 +230,15 @@ export class ScopeGuardWatcher {
         return []; // Head did not advance, do not regress cursor
       }
 
+      const lag = currentHeight - this.lastBlockHeight;
+      if (lag > 50) {
+        console.log(`[Watcher] Block lag detected (${lag} blocks). Fast-forwarding cursor near tip.`);
+        this.lastBlockHeight = currentHeight - 5;
+      }
+
       const foundEvents: ScopeGuardEvent[] = [];
       const start = this.lastBlockHeight + 1;
-      const end = Math.min(currentHeight, start + 3); // process max 3 blocks per tick to reduce RPC load
+      const end = Math.min(currentHeight, start + (lag > 10 ? 15 : 4));
       let lastProcessed = this.lastBlockHeight;
 
       for (let h = start; h <= end; h++) {

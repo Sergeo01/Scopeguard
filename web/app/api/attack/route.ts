@@ -60,24 +60,44 @@ export async function POST(req: Request) {
     let args = body.args;
     const promptText = (body.promptText || body.prompt || "").trim();
 
-    // If target and method were not explicitly provided in the request body, parse prompt text
-    if (promptText && (!target || !method)) {
+    // Parse prompt text intelligently if provided
+    if (promptText) {
       const lower = promptText.toLowerCase();
-      const transferMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
-      if (transferMatch) {
-        amount = amount || (transferMatch[1] ? transferMatch[1].replace(/,/g, "") : "500");
-        recipient = recipient || transferMatch[2];
+      const nearMatch = promptText.match(/(?:send|transfer|pay|drain)\s*(\d[\d,.]*)\s*(?:near|N)\s*(?:to|into)?\s*([a-z0-9_.-]+\.(?:testnet|near))/i);
+      const ftMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
+      const intentMatch = promptText.match(/(?:intent|bridge|cross-chain|defuse)\s*(?:send|swap)?\s*(\d[\d,.]*)\s*(?:to|into)?\s*(0x[a-fA-F0-9]{40}|[a-zA-Z0-9]{32,44})/i);
+      const canaryMatch = lower.includes("drain_vault") || lower.includes("honey") || lower.includes("admin_drain");
+
+      if (nearMatch && (!target || target === "near" || body.fromPrompt)) {
+        amount = amount || nearMatch[1].replace(/,/g, "");
+        recipient = recipient || nearMatch[2];
+        target = "near";
+        method = "near_transfer";
+      } else if (ftMatch && (!target || target === "sergeo-guard-token.testnet" || body.fromPrompt)) {
+        amount = amount || (ftMatch[1] ? ftMatch[1].replace(/,/g, "") : "500");
+        recipient = recipient || ftMatch[2];
         target = "sergeo-guard-token.testnet";
         method = "ft_transfer";
-      } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
-        target = "evil_contract.testnet";
-        method = "drain";
-        amount = amount || "0";
-      } else if (lower.includes("swap") || lower.includes("trade")) {
-        const swapAmtMatch = promptText.match(/(\d[\d,]*)/);
-        amount = amount || (swapAmtMatch ? swapAmtMatch[1].replace(/,/g, "") : "10");
-        target = "sergeo-guard-dex.testnet";
-        method = "swap";
+      } else if (intentMatch && (!target || target === "intents.near" || body.fromPrompt)) {
+        amount = amount || (intentMatch[1] ? intentMatch[1].replace(/,/g, "") : "100");
+        recipient = recipient || intentMatch[2];
+        target = "intents.near";
+        method = "execute_intent";
+      } else if (canaryMatch && (!method || method === "drain_vault" || body.fromPrompt)) {
+        target = "guard2.sergeo-guard.testnet";
+        method = "drain_vault";
+        amount = "0";
+      } else if (!target || !method) {
+        if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {
+          target = "evil_contract.testnet";
+          method = "drain";
+          amount = amount || "0";
+        } else if (lower.includes("swap") || lower.includes("trade")) {
+          const swapAmtMatch = promptText.match(/(\d[\d,]*)/);
+          amount = amount || (swapAmtMatch ? swapAmtMatch[1].replace(/,/g, "") : "10");
+          target = "sergeo-guard-dex.testnet";
+          method = "swap";
+        }
       }
     } else if (promptText && !amount) {
       // If prompt contains an amount with commas and body omitted amount, parse it cleanly
@@ -134,7 +154,23 @@ export async function POST(req: Request) {
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});
     let action: any;
 
-    if (method === "swap") {
+    if (method === "near_transfer" || method === "transfer_near" || target === "near" || target === "NEAR") {
+      action = {
+        NearTransfer: {
+          to: recipient || "",
+          amount: amount || "0",
+        },
+      };
+    } else if (method === "execute_intent" || method === "intent_transfer" || target === "intents.near") {
+      action = {
+        IntentTransfer: {
+          deposit_address: target || "intents.near",
+          amount: amount || "0",
+          destination_asset: args?.destination_asset || "USDC",
+          recipient: recipient || "",
+        },
+      };
+    } else if (method === "swap") {
       action = {
         Swap: {
           dex: target,
@@ -208,12 +244,12 @@ export async function POST(req: Request) {
       METHOD_NOT_ALLOWED: 7,
       OVER_DAILY_CAP: 8,
       RECIPIENT_NOT_ALLOWED: 9,
-      OVER_MAX_DRAWDOWN: 10,
-      DRAWDOWN_EXCEEDED: 10,
-      CROSS_CHAIN_INTENT_NOT_ALLOWED: 11,
-      INTENT_RECIPIENT_NOT_ALLOWED: 11,
-      INSUFFICIENT_VAULT_BALANCE: 12,
-      PENDING_QUEUE_FULL: 13,
+      CROSS_CHAIN_INTENT_NOT_ALLOWED: 10,
+      INTENT_RECIPIENT_NOT_ALLOWED: 10,
+      OVER_MAX_DRAWDOWN: 11,
+      DRAWDOWN_EXCEEDED: 11,
+      INSUFFICIENT_VAULT_BALANCE: 13,
+      PENDING_QUEUE_FULL: 14,
     };
 
     return NextResponse.json({

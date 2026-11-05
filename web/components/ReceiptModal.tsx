@@ -19,6 +19,7 @@ interface ReceiptModalProps {
   txHash: string | null;
   onClose: () => void;
   accountId?: string;
+  ownerId?: string;
 }
 
 interface TxData {
@@ -41,6 +42,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   txHash,
   onClose,
   accountId = "agent.sergeo-guard.testnet",
+  ownerId = "sergeo-guard.testnet",
 }) => {
   const [loading, setLoading] = useState(true);
   const [txData, setTxData] = useState<TxData | null>(null);
@@ -50,7 +52,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   useEffect(() => {
     if (!txHash) return;
     setLoading(true);
-    fetch(`/api/tx?hash=${encodeURIComponent(txHash)}&account=${encodeURIComponent(accountId)}`)
+    fetch(`/api/tx?hash=${encodeURIComponent(txHash)}&account=${encodeURIComponent(accountId)}&owner=${encodeURIComponent(ownerId)}`)
       .then((res) => res.json())
       .then((data) => {
         setTxData(data);
@@ -67,7 +69,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         });
       })
       .finally(() => setLoading(false));
-  }, [txHash, accountId]);
+  }, [txHash, accountId, ownerId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

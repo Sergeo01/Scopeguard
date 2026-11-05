@@ -9,41 +9,49 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const hash = searchParams.get("hash");
   const accountId = searchParams.get("account") || "agent.sergeo-guard.testnet";
+  const ownerId = searchParams.get("owner") || "sergeo-guard.testnet";
 
   if (!hash) {
     return NextResponse.json({ success: false, error: "Missing hash parameter" }, { status: 400 });
   }
 
-  // 1. Try primary RPC, then fallback
+  // 1. Try primary RPC, then fallback, testing accountId then ownerId
   let rpcResult: any = null;
   const urls = [RPC_URL, FALLBACK_RPC];
+  const candidateSigners = [accountId];
+  if (ownerId && ownerId !== accountId) {
+    candidateSigners.push(ownerId);
+  }
 
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: "scopeguard-tx-query",
-          method: "tx",
-          params: {
-            tx_hash: hash,
-            sender_account_id: accountId,
-            wait_until: "NONE",
-          },
-        }),
-        signal: AbortSignal.timeout(4000),
-        cache: "no-store",
-      });
+  for (const signer of candidateSigners) {
+    if (rpcResult) break;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: "scopeguard-tx-query",
+            method: "tx",
+            params: {
+              tx_hash: hash,
+              sender_account_id: signer,
+              wait_until: "NONE",
+            },
+          }),
+          signal: AbortSignal.timeout(4000),
+          cache: "no-store",
+        });
 
-      const data = await res.json();
-      if (data && data.result) {
-        rpcResult = data.result;
-        break;
+        const data = await res.json();
+        if (data && data.result) {
+          rpcResult = data.result;
+          break;
+        }
+      } catch {
+        // Continue to fallback
       }
-    } catch {
-      // Continue to fallback
     }
   }
 

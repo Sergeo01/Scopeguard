@@ -3,7 +3,7 @@ $hostip = "root@76.13.255.164"
 
 Write-Host "Creating deployment archive..."
 Push-Location "d:\Hackathon\NEAR\web"
-tar -czf "..\deploy.tar.gz" app components context lib public
+tar -czf "..\deploy.tar.gz" app components context lib public package.json next.config.js tsconfig.json
 Pop-Location
 
 Write-Host "Transferring archive to VPS via scp..."

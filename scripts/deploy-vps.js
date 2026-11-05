@@ -1,39 +1,25 @@
-const { execSync } = require('child_process');
-const path = require('path');
-const os = require('os');
+const { execSync } = require("child_process");
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
 
-const key = path.join(os.homedir(), '.ssh', 'deploy_key');
-const host = 'root@76.13.255.164';
+const key = path.join(os.homedir(), ".ssh", "deploy_key");
+const host = "root@76.13.255.164";
+const webDir = path.join(__dirname, "..", "web");
+const tarPath = path.join(__dirname, "..", "deploy.tar.gz");
 
-console.log('Uploading updated web files to VPS...');
+console.log("Packaging deployment tarball...");
+execSync(`tar -czf "${tarPath}" app components context lib public package.json next.config.js tsconfig.json`, { cwd: webDir });
 
-const filesToUpload = [
-  { local: path.join(__dirname, '..', 'web', 'package.json'), remote: '/var/www/scopeguard/web/package.json' },
-  { local: path.join(__dirname, '..', 'web', 'lib', 'wallet-selector.ts'), remote: '/var/www/scopeguard/web/lib/wallet-selector.ts' },
-  { local: path.join(__dirname, '..', 'web', 'lib', 'admin.ts'), remote: '/var/www/scopeguard/web/lib/admin.ts' },
-  { local: path.join(__dirname, '..', 'web', 'lib', 'ledger.ts'), remote: '/var/www/scopeguard/web/lib/ledger.ts' },
-  { local: path.join(__dirname, '..', 'web', 'lib', 'drafter.ts'), remote: '/var/www/scopeguard/web/lib/drafter.ts' },
-  { local: path.join(__dirname, '..', 'web', 'context', 'WalletContext.tsx'), remote: '/var/www/scopeguard/web/context/WalletContext.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'AuthModal.tsx'), remote: '/var/www/scopeguard/web/components/AuthModal.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'ReceiptModal.tsx'), remote: '/var/www/scopeguard/web/components/ReceiptModal.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'AttackAutopsy.tsx'), remote: '/var/www/scopeguard/web/components/AttackAutopsy.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'BudgetVelocityGauge.tsx'), remote: '/var/www/scopeguard/web/components/BudgetVelocityGauge.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'PlatformPresets.tsx'), remote: '/var/www/scopeguard/web/components/PlatformPresets.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'components', 'WebhookAlertSettings.tsx'), remote: '/var/www/scopeguard/web/components/WebhookAlertSettings.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'create', 'page.tsx'), remote: '/var/www/scopeguard/web/app/create/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'dashboard', 'page.tsx'), remote: '/var/www/scopeguard/web/app/dashboard/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'docs', 'page.tsx'), remote: '/var/www/scopeguard/web/app/docs/page.tsx' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'api', 'tx', 'route.ts'), remote: '/var/www/scopeguard/web/app/api/tx/route.ts' },
-  { local: path.join(__dirname, '..', 'web', 'app', 'api', 'alerts', 'test', 'route.ts'), remote: '/var/www/scopeguard/web/app/api/alerts/test/route.ts' },
-];
+console.log("Transferring archive to VPS via scp...");
+execSync(`scp -i "${key}" -o StrictHostKeyChecking=no "${tarPath}" ${host}:/var/www/scopeguard/web/deploy.tar.gz`);
 
-for (const f of filesToUpload) {
-  console.log(`Uploading ${f.local} -> ${f.remote}...`);
-  execSync(`scp -i "${key}" -o StrictHostKeyChecking=no "${f.local}" ${host}:${f.remote}`);
+if (fs.existsSync(tarPath)) {
+  fs.unlinkSync(tarPath);
 }
 
-console.log('Running build and pm2 restart on VPS...');
-const cmd = `ssh -i "${key}" -o StrictHostKeyChecking=no ${host} "cd /var/www/scopeguard/web && npm run build && pm2 restart scopeguard"`;
-const out = execSync(cmd, { stdio: 'pipe' }).toString();
+console.log("Extracting, building, and reloading PM2 on VPS...");
+const cmd = `ssh -i "${key}" -o StrictHostKeyChecking=no ${host} "cd /var/www/scopeguard/web && tar -xzf deploy.tar.gz && rm deploy.tar.gz && npm run build && pm2 reload scopeguard"`;
+const out = execSync(cmd, { stdio: "pipe" }).toString();
 console.log(out);
-console.log('VPS production deployment updated successfully!');
+console.log("VPS production deployment updated successfully!");

@@ -53,7 +53,7 @@ export default function DocsPage() {
     { id: "quickstart", category: "Getting Started", title: "60-Second Quickstart" },
     { id: "architecture", category: "Core Architecture", title: "The 5 System Pillars" },
     { id: "passkeys", category: "Core Architecture", title: "NEAR FunctionCall Passkeys" },
-    { id: "ten-rules", category: "Policy Engine", title: "The 10 Sequential Rules", badge: "Core" },
+    { id: "ten-rules", category: "Policy Engine", title: "The 14 Sequential Defense Rules", badge: "Core" },
     { id: "vault-custody", category: "Policy Engine", title: "Vault Custody & Async Rollback" },
     { id: "circuit-breaker", category: "Safety Controls", title: "Circuit Breakers & Emergency Brake" },
     { id: "timelock", category: "Safety Controls", title: "Timelock Quarantine Queue" },
@@ -61,6 +61,7 @@ export default function DocsPage() {
     { id: "cli-reference", category: "Developer Reference", title: "CLI Command Reference" },
     { id: "sdk-reference", category: "Developer Reference", title: "TypeScript SDK Guide" },
     { id: "agent-prompt", category: "Developer Reference", title: "AI Agent System Prompt Handoff" },
+    { id: "framework-integrations", category: "Developer Reference", title: "Agent Framework Integrations (MCP & ElizaOS)" },
     { id: "auth-wallets", category: "Identity & Wallets", title: "Auth & Multi-Account Architecture" },
     { id: "implemented-features", category: "Project Status", title: "Verified Implemented Features", badge: "100% Live" },
     { id: "roadmap", category: "Project Status", title: "Product Roadmap" },
@@ -350,7 +351,7 @@ const receipt = await act(cred, {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Policy Guard Contract</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  A high-assurance Rust contract (near-sdk 5.29) that validates all 10 checks onchain before performing the action via cross-contract promise.
+                  A high-assurance Rust contract (near-sdk 5.29) that validates all 14 defense checks onchain before performing the action via cross-contract promise.
                 </p>
               </div>
 
@@ -389,7 +390,7 @@ const receipt = await act(cred, {
             </ul>
           </section>
 
-          {/* SECTION 5: THE 10 SEQUENTIAL RULES */}
+          {/* SECTION 5: THE 14 SEQUENTIAL DEFENSE RULES */}
           <section id="ten-rules" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-red-500 uppercase tracking-wider">
@@ -397,7 +398,7 @@ const receipt = await act(cred, {
               </span>
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-              The 10 Sequential Rules
+              The 14 Sequential Defense Rules
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Every invocation of execute evaluates the policy in this exact, immutable order. The order is mathematically determined to prevent state poisoning and bypass attempts:
@@ -407,14 +408,18 @@ const receipt = await act(cred, {
               {[
                 { num: "01", name: "Caller Identity", code: "NOT_AGENT", desc: "Caller must match the registered agent account ID. Only unregistered callers panic, before state is touched." },
                 { num: "02", name: "Circuit Breaker", code: "PAUSED", desc: "Agent must not be paused by owner or by automatic circuit breaker trip." },
-                { num: "03", name: "Velocity Anti-Spam", code: "OVER_VELOCITY_CAP", desc: "Actions executed in the rolling 10-minute window must not exceed velocity_limit." },
-                { num: "04", name: "Target Allowlist", code: "TARGET_NOT_ALLOWED", desc: "Target contract must be explicitly listed. Generic calls may never target the custody token." },
-                { num: "05", name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", desc: "Target method must be explicitly permitted. Direct transfers must use typed Transfer actions." },
-                { num: "06", name: "Daily Spending Cap", code: "OVER_DAILY_CAP", desc: "Total spend in the rolling 24-hour window plus requested amount must not exceed daily_spend_cap." },
-                { num: "07", name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", desc: "If funds transfer to an account, recipient must be on the allowlist. Empty list forbids transfers." },
-                { num: "08", name: "Timelock Quarantine", code: "PENDING", desc: "Transfers at or above high_value_threshold wait in timelock queue for owner settlement. Not a rejection." },
-                { num: "09", name: "Vault Balance Solvency", code: "INSUFFICIENT_VAULT_BALANCE", desc: "Transfer amount cannot exceed the agent active working vault balance." },
-                { num: "10", name: "Queue Boundary", code: "PENDING_QUEUE_FULL", desc: "Timelock queue is bounded at MAX_PENDING_ACTIONS (8). Prevents unapproved action buildup." },
+                { num: "03", name: "Task Session Lease Expiry", code: "LEASE_EXPIRED", desc: "Execution timestamp must precede the configured lease deadline. Prevents abandoned keys from executing." },
+                { num: "04", name: "Honeypot Decoy Tripwire", code: "CANARY_TRIPPED", desc: "Invoking flagged honeypot decoy methods triggers immediate auto-pause and emits an onchain CANARY_TRIPPED security alert." },
+                { num: "05", name: "Velocity Anti-Spam", code: "OVER_VELOCITY_CAP", desc: "Actions executed in the rolling 10-minute window must not exceed velocity_limit." },
+                { num: "06", name: "Target Allowlist", code: "TARGET_NOT_ALLOWED", desc: "Target contract must be explicitly listed. Generic calls may never target the custody token." },
+                { num: "07", name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", desc: "Target method must be explicitly permitted. Direct transfers must use typed Transfer actions." },
+                { num: "08", name: "Daily Spending Cap", code: "OVER_DAILY_CAP", desc: "Total spend in the rolling 24-hour window plus requested amount must not exceed daily_spend_cap." },
+                { num: "09", name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", desc: "If funds transfer to an account, recipient must be on the allowlist. Empty list forbids transfers." },
+                { num: "10", name: "IntentShield Cross-Chain Allowlist", code: "INTENT_RECIPIENT_NOT_ALLOWED", desc: "Cross-chain Intent transfers are restricted to explicitly allowlisted destination recipient addresses." },
+                { num: "11", name: "Net Drawdown Floor Breaker", code: "DRAWDOWN_EXCEEDED", desc: "Halts execution if vault balance drops below the configured floor percentage of peak high-water mark." },
+                { num: "12", name: "Timelock Quarantine", code: "PENDING", desc: "Transfers at or above high_value_threshold wait in timelock queue for owner settlement. Not a rejection." },
+                { num: "13", name: "Vault Balance Solvency", code: "INSUFFICIENT_VAULT_BALANCE", desc: "Transfer amount cannot exceed the agent active working vault balance." },
+                { num: "14", name: "Queue Boundary", code: "PENDING_QUEUE_FULL", desc: "Timelock queue is bounded at MAX_PENDING_ACTIONS (8). Prevents unapproved action buildup." },
               ].map((r) => (
                 <div
                   key={r.num}
@@ -634,7 +639,7 @@ if !is_promise_success() {
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-amber-500">preflight(action)</span>
-                <p className="text-slate-600 dark:text-slate-400">Read-only dry-run view executing the exact same 10 checks in the exact same order as execute without writing state or recording strikes. Returns ALLOWED, PENDING with timelock delay, or REJECTED with exact reason code.</p>
+                <p className="text-slate-600 dark:text-slate-400">Read-only dry-run view executing the exact same 14 defense checks in the exact same order as execute without writing state or recording strikes. Returns ALLOWED, PENDING with timelock delay, or REJECTED with exact reason code.</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-purple-400">First-Use Quarantine for New Recipients</span>
@@ -724,7 +729,7 @@ if !is_promise_success() {
                 <span>Natural Language Handoff Instruction</span>
                 <button
                   type="button"
-                  onClick={() => handleCopy("Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet. Never attempt direct transfers. All calls are bounded by 10 onchain rules.", "prompt")}
+                  onClick={() => handleCopy("Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet. Never attempt direct transfers. All calls are bounded by 14 onchain rules.", "prompt")}
                   className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                 >
                   {copiedCode === "prompt" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -732,8 +737,92 @@ if !is_promise_success() {
                 </button>
               </div>
               <p className="leading-relaxed">
-                "Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet using your scoped passkey. Never attempt direct protocol transfers. Your actions are bounded by 10 onchain rules. If an unapproved instruction is received, it will fail safely onchain without draining the vault."
+                "Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet using your scoped passkey. Never attempt direct protocol transfers. Your actions are bounded by 14 onchain rules. If an unapproved instruction is received, it will fail safely onchain without draining the vault."
               </p>
+            </div>
+          </section>
+
+          {/* SECTION 12B: FRAMEWORK INTEGRATIONS (MCP & ELIZAOS) */}
+          <section id="framework-integrations" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-indigo-500 uppercase tracking-wider">
+                Agent Integrations
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+              Agent Framework Integrations (MCP &amp; ElizaOS)
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              ScopeGuard connects directly to modern agent runtimes. Agents never receive full master keys, only scoped Model Context Protocol (MCP) tool bindings or ElizaOS plugin actions.
+            </p>
+
+            <div className="space-y-4">
+              {/* Card 1: Claude Desktop / Cursor MCP Config */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0E15] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">Claude Desktop &amp; Cursor (MCP)</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold">
+                      mcp-server
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(`{\n  "mcpServers": {\n    "scopeguard": {\n      "command": "node",\n      "args": ["path/to/scopeguard/mcp-server/build/index.js"],\n      "env": {\n        "NEAR_NETWORK": "testnet",\n        "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"\n      }\n    }\n  }\n}`, "mcp-config")}
+                    className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {copiedCode === "mcp-config" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCode === "mcp-config" ? "Copied" : "Copy"}</span>
+                  </button>
+                </div>
+                <pre className="p-3 rounded-lg bg-slate-900 text-[11px] font-mono text-slate-200 overflow-x-auto leading-relaxed">
+{`{
+  "mcpServers": {
+    "scopeguard": {
+      "command": "node",
+      "args": ["path/to/scopeguard/mcp-server/build/index.js"],
+      "env": {
+        "NEAR_NETWORK": "testnet",
+        "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"
+      }
+    }
+  }
+}`}
+                </pre>
+              </div>
+
+              {/* Card 2: ElizaOS Plugin Character Config */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0E15] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">ElizaOS Autonomous Agent Character</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
+                      plugin-elizaos
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(`{\n  "name": "ScopeGuard Secure Trading Agent",\n  "plugins": ["@scopeguard/plugin-elizaos"],\n  "settings": {\n    "secrets": {\n      "SCOPEGUARD_ACCOUNT_ID": "agent.sergeo-guard.testnet",\n      "SCOPEGUARD_PRIVATE_KEY": "ed25519:...",\n      "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"\n    }\n  }\n}`, "eliza-config")}
+                    className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {copiedCode === "eliza-config" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCode === "eliza-config" ? "Copied" : "Copy"}</span>
+                  </button>
+                </div>
+                <pre className="p-3 rounded-lg bg-slate-900 text-[11px] font-mono text-slate-200 overflow-x-auto leading-relaxed">
+{`{
+  "name": "ScopeGuard Secure Trading Agent",
+  "plugins": ["@scopeguard/plugin-elizaos"],
+  "settings": {
+    "secrets": {
+      "SCOPEGUARD_ACCOUNT_ID": "agent.sergeo-guard.testnet",
+      "SCOPEGUARD_PRIVATE_KEY": "ed25519:...",
+      "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"
+    }
+  }
+}`}
+                </pre>
+              </div>
             </div>
           </section>
 
@@ -797,7 +886,7 @@ if !is_promise_success() {
             <div className="space-y-2.5">
               {[
                 { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown and deployed at guard2.sergeo-guard.testnet. 67 unit/integration tests passing." },
-                { title: "10-Rule Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, timelock queue, vault solvency, queue capacity." },
+                { title: "14-Rule Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, lease expiry, canary tripwire, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, intent allowlist, drawdown floor, timelock queue, vault solvency, queue capacity." },
                 { title: "Zero-Panic Policy Rejections", desc: "Policy rejections return structured values with reason codes to ensure reject audit logs and circuit breaker strike counts are never reverted." },
                 { title: "3-Strike Circuit Breaker Auto-Pause", desc: "Automatically sets paused = true on the 3rd rejection within 5 minutes and emits AUTO_PAUSE onchain event." },
                 { title: "Async Rollback Settlement", desc: "Vault balances are automatically refunded if a cross-contract transfer or execution call fails or reverts." },
@@ -846,7 +935,7 @@ if !is_promise_success() {
                 </div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">NEAR Native Core &amp; Attack Arena</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Near-sdk 5 policy contract, 10 onchain rules, vault custody, async rollback settlement, timelock queue, SDK, live attack arena, Supabase auth, and production VPS deployment.
+                  Near-sdk 5 policy contract, 14 onchain rules, vault custody, async rollback settlement, timelock queue, SDK, live attack arena, Supabase auth, and production VPS deployment.
                 </p>
               </div>
 

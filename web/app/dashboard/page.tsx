@@ -67,6 +67,25 @@ interface PendingActionItem {
   secondsRemaining?: number;
 }
 
+function formatNearBalance(raw: string): string {
+  if (!raw || raw === "0") return "0";
+  try {
+    const b = BigInt(raw);
+    if (b === BigInt(0)) return "0";
+    const oneNear = BigInt("1000000000000000000000000"); // 10^24
+    if (b < BigInt("1000000000000000000")) {
+      return b.toString();
+    }
+    const whole = b / oneNear;
+    const factor = BigInt("100000000000000000000"); // 10^20
+    const rem = (b % oneNear) / factor;
+    const remStr = rem.toString().padStart(4, "0").replace(/0+$/, "");
+    return remStr ? `${whole}.${remStr}` : `${whole}`;
+  } catch {
+    return "0";
+  }
+}
+
 export default function DashboardPage() {
   const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
@@ -107,6 +126,9 @@ export default function DashboardPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
   const [vaultBalance, setVaultBalance] = useState("350");
+  const [nearVaultBalance, setNearVaultBalance] = useState("0");
+  const [rawNearVaultBalance, setRawNearVaultBalance] = useState("0");
+  const [fleetAgents, setFleetAgents] = useState<string[]>([]);
   const [highWaterMark, setHighWaterMark] = useState<string>("350");
   const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(1500);
   const [leaseExpiresAt, setLeaseExpiresAt] = useState<number | string | null>(null);
@@ -129,6 +151,8 @@ export default function DashboardPage() {
     10: true,
     11: true,
     12: true,
+    13: true,
+    14: true,
   });
   const [loading, setLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -162,6 +186,26 @@ export default function DashboardPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    const fetchFleet = async () => {
+      const effectiveOwner = (isWalletConnected && connectedWalletId)
+        ? connectedWalletId
+        : (queriedOwner || ownerId);
+      if (!effectiveOwner) return;
+      try {
+        const resp = await fetch(`/api/agents?owner=${encodeURIComponent(effectiveOwner)}`);
+        const data = await resp.json();
+        if (data.success && Array.isArray(data.agents)) {
+          const list = data.agents.map((a: any) => a.account);
+          setFleetAgents(list);
+        }
+      } catch (e) {
+        console.warn("Could not fetch fleet agents", e);
+      }
+    };
+    fetchFleet();
+  }, [ownerId, connectedWalletId, isWalletConnected, queriedOwner]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -231,6 +275,9 @@ export default function DashboardPage() {
           setDailyCapSpent(data.budget.spent !== undefined ? Number(data.budget.spent) : 0);
           const vBalance = data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "350";
           setVaultBalance(vBalance);
+          const rawNear = data.budget.near_vault_balance !== undefined ? String(data.budget.near_vault_balance) : "0";
+          setRawNearVaultBalance(rawNear);
+          setNearVaultBalance(formatNearBalance(rawNear));
           setHighWaterMark(data.budget.high_water_mark !== undefined ? String(data.budget.high_water_mark) : vBalance);
           if (data.budget.max_drawdown_bps !== undefined) {
             setMaxDrawdownBps(data.budget.max_drawdown_bps);
@@ -345,6 +392,19 @@ export default function DashboardPage() {
       command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "withdraw",
       args: { agent_account: agentId, amount: vaultBalance },
+      isDanger: true,
+    });
+  };
+
+  const handleWithdrawNear = async () => {
+    setActionTxHash(null);
+    setActionError(null);
+    setActiveOwnerModal({
+      title: "Withdraw Native NEAR to Owner",
+      description: "Empties 100% of the native NEAR pot back into your owner wallet. Destination is strictly forced to the verified owner account onchain.",
+      command: `near call ${guardId} withdraw_near '{"agent_account":"${agentId}","amount":"${rawNearVaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
+      method: "withdraw_near",
+      args: { agent_account: agentId, amount: rawNearVaultBalance },
       isDanger: true,
     });
   };
@@ -515,7 +575,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="rounded-full px-2.5 py-0.5 text-xs font-mono bg-mint-green/10 text-mint-greenDark dark:text-mint-green border border-mint-green/20 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-mint-green" />
-            <span>10 Rules</span>
+            <span>14 Rules</span>
           </span>
         </div>
       </div>
@@ -584,13 +644,23 @@ export default function DashboardPage() {
                 Onchain Custody
               </span>
             </div>
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                {isInitialLoading ? "--" : `$${vaultBalance}.00`}
-              </span>
-              <span className="text-xs font-mono text-slate-500">
-                mUSD Working Pot
-              </span>
+            <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  {isInitialLoading ? "--" : `$${vaultBalance}.00`}
+                </span>
+                <span className="text-xs font-mono text-slate-500">
+                  mUSD Working Pot
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 border-l border-slate-200 dark:border-obsidian-800 pl-4 sm:pl-6">
+                <span className="text-3xl sm:text-4xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400 tabular-nums">
+                  {isInitialLoading ? "--" : `${nearVaultBalance} NEAR`}
+                </span>
+                <span className="text-xs font-mono text-slate-500">
+                  Native Pot
+                </span>
+              </div>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
               Money custodied exclusively in the Guard contract. The absolute maximum loss boundary if the agent is fully compromised.
@@ -614,7 +684,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 block">
-              10 onchain rules verified
+              14 onchain rules verified
             </span>
           </div>
         </div>
@@ -741,6 +811,32 @@ export default function DashboardPage() {
                 {copiedAgent ? <Check className="w-3.5 h-3.5 text-mint-green" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
               </button>
             </span>
+
+            {fleetAgents.length > 1 && (
+              <div className="flex items-center gap-1.5 ml-1 sm:ml-3">
+                <span className="text-xs text-slate-500">Fleet Switcher:</span>
+                <select
+                  aria-label="Select Guarded Agent"
+                  value={agentId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setAgentId(next);
+                    if (typeof window !== "undefined") {
+                      const sp = new URLSearchParams(window.location.search);
+                      sp.set("agent", next);
+                      window.history.replaceState({}, "", `/dashboard?${sp.toString()}`);
+                    }
+                  }}
+                  className="bg-slate-100 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-800 dark:text-slate-200 text-xs rounded-lg px-2.5 py-1 font-mono focus:outline-none focus:border-brand-blue cursor-pointer"
+                >
+                  {fleetAgents.map((acc) => (
+                    <option key={acc} value={acc}>
+                      {acc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <button
@@ -1021,20 +1117,38 @@ export default function DashboardPage() {
             },
             {
               num: 11,
-              name: "Vault Custody Balance Enforcement",
-              code: "INSUFFICIENT_VAULT_BALANCE",
-              desc: `Transfers cannot exceed internal custodied balance ($${vaultBalance} mUSD available in agent vault).`,
-              config: `$${vaultBalance} in Vault`,
-              badge: "Vault Bounded",
-              isLocked: false,
-            },
-            {
-              num: 12,
               name: "Net Drawdown Floor Breaker",
               code: "DRAWDOWN_EXCEEDED",
               desc: `Halts execution if vault drops below ${((10000 - (maxDrawdownBps ?? 1500)) / 100).toFixed(0)}% of peak high-water mark ($${highWaterMark}).`,
               config: `${((maxDrawdownBps ?? 1500) / 100).toFixed(1)}% Max Drop`,
               badge: "Floor Protected",
+              isLocked: false,
+            },
+            {
+              num: 12,
+              name: "Timelock Quarantine Queue",
+              code: "PENDING",
+              desc: "Transfers at or above high-value threshold enter timelock quarantine for explicit owner settlement.",
+              config: "High-Value Delayed",
+              badge: "Timelock Queue",
+              isLocked: false,
+            },
+            {
+              num: 13,
+              name: "Vault Custody Balance Enforcement",
+              code: "INSUFFICIENT_VAULT_BALANCE",
+              desc: `Transfers cannot exceed internal custodied balance ($${vaultBalance} mUSD / ${nearVaultBalance} NEAR in vault).`,
+              config: `$${vaultBalance} mUSD | ${nearVaultBalance} NEAR`,
+              badge: "Vault Bounded",
+              isLocked: false,
+            },
+            {
+              num: 14,
+              name: "Timelock Capacity Boundary",
+              code: "PENDING_QUEUE_FULL",
+              desc: "Timelock quarantine is strictly capped at 8 pending actions to prevent queue overload and unapproved buildup.",
+              config: `${pendingActions.length} / 8 Queued`,
+              badge: `${pendingActions.length}/8 Queue`,
               isLocked: false,
             },
           ].map((rule) => {
@@ -1410,7 +1524,7 @@ export default function DashboardPage() {
             <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block">
               Owner Controls
             </span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {isPaused ? (
                 <button
                   type="button"
@@ -1445,9 +1559,20 @@ export default function DashboardPage() {
                 type="button"
                 onClick={handleWithdrawVault}
                 className="py-2 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Withdraw custodied mUSD vault back to owner"
               >
                 <DownloadCloud className="w-3.5 h-3.5" />
-                <span>Withdraw</span>
+                <span>Drain mUSD</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleWithdrawNear}
+                className="py-2 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Withdraw custodied native NEAR vault back to owner"
+              >
+                <DownloadCloud className="w-3.5 h-3.5" />
+                <span>Drain NEAR</span>
               </button>
             </div>
           </div>
@@ -1571,7 +1696,12 @@ export default function DashboardPage() {
       />
 
       {/* Direct In-App Onchain Receipt Inspector */}
-      <ReceiptModal txHash={inspectHash} onClose={() => setInspectHash(null)} />
+      <ReceiptModal
+        txHash={inspectHash}
+        accountId={agentId}
+        ownerId={ownerId}
+        onClose={() => setInspectHash(null)}
+      />
     </div>
   );
 }
