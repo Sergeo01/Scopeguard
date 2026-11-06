@@ -267,11 +267,11 @@ export async function POST(req: Request) {
       if ((telegramToken && telegramChat) || webhookUrl) {
         let alertMessage: string | null = null;
         if (parsedOutcome.reason === "PAUSED") {
-          alertMessage = `🛑 ScopeGuard Emergency Brake: Circuit breaker tripped onchain for agent ${cred.agentAccountId}! The agent is PAUSED on NEAR Testnet.`;
+          alertMessage = `[EMERGENCY BRAKE] ScopeGuard Emergency Brake: Circuit breaker tripped onchain for agent ${cred.agentAccountId}! The agent is PAUSED on NEAR Testnet.`;
         } else if (parsedOutcome.status === "REJECTED") {
-          alertMessage = `🚨 ScopeGuard Security Alert: Agent ${cred.agentAccountId} attempted an unauthorized action (${target} -> ${method}) and was BLOCKED onchain. Reason: ${parsedOutcome.reason}`;
+          alertMessage = `[ALERT] ScopeGuard Security Alert: Agent ${cred.agentAccountId} attempted an unauthorized action (${target} -> ${method}) and was BLOCKED onchain. Reason: ${parsedOutcome.reason}`;
         } else if (parsedOutcome.status === "PENDING") {
-          alertMessage = `⏳ ScopeGuard Timelock Alert: High-value action queued for agent ${cred.agentAccountId} (${amount || "0"} mUSD to ${target} -> ${method}). Owner review timelock active.`;
+          alertMessage = `[TIMELOCK] ScopeGuard Timelock Alert: High-value action queued for agent ${cred.agentAccountId} (${amount || "0"} mUSD to ${target} -> ${method}). Owner review timelock active.`;
         }
 
         if (alertMessage) {

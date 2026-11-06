@@ -12,7 +12,7 @@ import path from "path";
 export interface ActivityItem {
   id: string;
   txHash?: string;
-  type: "ALLOW" | "REJECT" | "AUTO_PAUSE" | "SETTLED" | "CANCELLED" | "PAUSE" | "UNPAUSE" | "PENDING";
+  type: "ALLOW" | "REJECT" | "AUTO_PAUSE" | "SETTLED" | "CANCELLED" | "PAUSE" | "UNPAUSE" | "PENDING" | "RESET";
   timestamp: number;
   agent: string;
   target?: string;

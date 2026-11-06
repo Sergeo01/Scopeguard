@@ -91,8 +91,41 @@ export async function POST(req: Request) {
     let unpauseTxHash: string | null = null;
     let resetTxHash: string | null = null;
 
+    // Check if anything needs resetting
+    const isPaused = Boolean(budget?.paused);
+    const hasSpentToken = Boolean(budget?.spent && BigInt(budget.spent) > BigInt(0));
+    const hasSpentNear = Boolean(budget?.near_spent && BigInt(budget.near_spent) > BigInt(0));
+    const hasStrikes = Boolean(budget?.auto_pause_strikes && Number(budget.auto_pause_strikes) > 0);
+    const hasVelocity = Boolean(budget?.velocity_count && Number(budget.velocity_count) > 0);
+
+    let pendingActions: any[] = [];
+    try {
+      const actions = await ownerAccount.viewFunction({
+        contractId: GUARD_ID,
+        methodName: "get_pending_actions",
+        args: { agent_account: AGENT_ID },
+      });
+      if (Array.isArray(actions)) {
+        pendingActions = actions;
+      }
+    } catch {
+      // Non-blocking view query
+    }
+
+    const needsReset = isPaused || hasSpentToken || hasSpentNear || hasStrikes || hasVelocity || pendingActions.length > 0;
+
+    if (!needsReset) {
+      return NextResponse.json({
+        success: true,
+        message: `Agent ${AGENT_ID} is already in a clean, active state with full budget. No reset needed.`,
+        resetNeeded: false,
+        unpaused: false,
+        budget,
+      });
+    }
+
     // 2. Unpause if paused
-    if (budget?.paused) {
+    if (isPaused) {
       const unpauseRes = await ownerAccount.functionCall({
         contractId: GUARD_ID,
         methodName: "unpause",
@@ -102,38 +135,35 @@ export async function POST(req: Request) {
       unpauseTxHash = unpauseRes.transaction.hash;
     }
 
-    // 3. Reset rolling windows for fresh evaluation
-    try {
-      const resetRes = await ownerAccount.functionCall({
-        contractId: GUARD_ID,
-        methodName: "reset_windows",
-        args: { agent_account: AGENT_ID },
-        gas: BigInt("30000000000000"),
-      });
-      resetTxHash = resetRes.transaction.hash;
-    } catch (resetErr: any) {
-      console.warn("reset_windows notice:", resetErr.message);
+    // 3. Reset rolling windows if spend, strikes, or velocity counters are populated
+    if (hasSpentToken || hasSpentNear || hasStrikes || hasVelocity) {
+      try {
+        const resetRes = await ownerAccount.functionCall({
+          contractId: GUARD_ID,
+          methodName: "reset_windows",
+          args: { agent_account: AGENT_ID },
+          gas: BigInt("30000000000000"),
+        });
+        resetTxHash = resetRes.transaction.hash;
+      } catch (resetErr: any) {
+        console.warn("reset_windows notice:", resetErr.message);
+      }
     }
 
     // 4. Cancel any lingering pending timelock actions
-    try {
-      const pendingActions = await ownerAccount.viewFunction({
-        contractId: GUARD_ID,
-        methodName: "get_pending_actions",
-        args: { agent_account: AGENT_ID },
-      });
-      if (Array.isArray(pendingActions)) {
-        for (const action of pendingActions) {
+    if (pendingActions.length > 0) {
+      for (const action of pendingActions) {
+        try {
           await ownerAccount.functionCall({
             contractId: GUARD_ID,
             methodName: "cancel_pending",
             args: { agent_account: AGENT_ID, id: action.id },
             gas: BigInt("30000000000000"),
           });
+        } catch {
+          // Non-blocking
         }
       }
-    } catch {
-      // Non-blocking
     }
 
     // 5. Query updated budget
@@ -143,23 +173,22 @@ export async function POST(req: Request) {
       args: { agent_account: AGENT_ID },
     });
 
-    if (unpauseTxHash) {
-      recordActivity({
-        id: `act-${Date.now()}-reset`,
-        txHash: unpauseTxHash,
-        type: "UNPAUSE",
-        timestamp: Date.now(),
-        agent: AGENT_ID,
-        target: GUARD_ID,
-        method: "unpause",
-        reason: "Demo agent unpaused and velocity windows reset for evaluation replay",
-      });
-    }
+    recordActivity({
+      id: `act-${Date.now()}-reset`,
+      txHash: resetTxHash || unpauseTxHash || "onchain-reset",
+      type: "RESET",
+      timestamp: Date.now(),
+      agent: AGENT_ID,
+      target: GUARD_ID,
+      method: isPaused ? "unpause" : "reset_windows",
+      reason: `Agent reset: unpaused=${isPaused}, windows_reset=${Boolean(resetTxHash)}, pending_cleared=${pendingActions.length}`,
+    });
 
     return NextResponse.json({
       success: true,
       message: `Demo agent ${AGENT_ID} is now active and reset on NEAR Testnet.`,
-      unpaused: Boolean(budget?.paused),
+      resetNeeded: true,
+      unpaused: isPaused,
       unpauseTxHash,
       resetTxHash,
       budget: finalBudget,

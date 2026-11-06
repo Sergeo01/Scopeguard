@@ -18,7 +18,7 @@ export const PRESET_PLATFORMS: PresetPlatform[] = [
     name: "ScopeGuard Testnet DEX",
     contract: "sergeo-guard-dex.testnet",
     methods: "swap",
-    description: "Verified Hackathon demo exchange for mUSD trading",
+    description: "Testnet mock exchange for mUSD trading",
     category: "DEX",
   },
   {
@@ -39,10 +39,10 @@ export const PRESET_PLATFORMS: PresetPlatform[] = [
   },
   {
     id: "preset-intents",
-    name: "NEAR Intents",
+    name: "NEAR Intents (Mock Deposit)",
     contract: "intents.near",
     methods: "execute_intent",
-    description: "Cross-chain automated solver and market routing",
+    description: "Mock deposit contract for cross-chain intent testing on testnet",
     category: "Intents",
   },
 ];

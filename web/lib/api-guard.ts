@@ -38,6 +38,49 @@ export function isSameOrigin(req: Request): boolean {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Rate Limiting for Hosted Demo Endpoints
+// ---------------------------------------------------------------------------
+interface RateLimitBucket {
+  count: number;
+  resetAt: number;
+}
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+export function checkRateLimit(key: string, limit = 10, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(key);
+  if (!bucket || now > bucket.resetAt) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (bucket.count >= limit) {
+    return false;
+  }
+  bucket.count++;
+  return true;
+}
+
+export function resetRateLimits(): void {
+  rateLimitBuckets.clear();
+}
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.headers.get("x-real-ip") || "127.0.0.1";
+}
+
+/**
+ * Validates request safety for privileged signing routes:
+ * 1. Blocks cross-origin browser requests with 403.
+ * 2. Requires shared secret for non-browser callers if SCOPEGUARD_SHARED_SECRET is set (401).
+ * 3. Falls back safely to manual CLI command if server signing is disabled (200).
+ * 4. Applies rate limiting when server signing is enabled (429).
+ */
 export function guardSigningRequest(req: Request, fallbackCommand: string): NextResponse | null {
   if (!isSameOrigin(req)) {
     return NextResponse.json(
@@ -45,6 +88,22 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
       { status: 403 }
     );
   }
+
+  // Non-browser caller check (curl, scripts, direct HTTP): require shared secret if configured
+  const origin = req.headers.get("origin");
+  const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  if (!origin && sharedSecret) {
+    const authHeader = req.headers.get("authorization") || "";
+    const customHeader = req.headers.get("x-scopeguard-secret") || "";
+    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (customHeader !== sharedSecret && bearer !== sharedSecret) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Missing or invalid shared secret." },
+        { status: 401 }
+      );
+    }
+  }
+
   if (!serverSigningEnabled()) {
     return NextResponse.json({
       success: false,
@@ -54,5 +113,15 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
       command: fallbackCommand,
     });
   }
+
+  // Rate limiting for enabled server signing
+  const ip = getClientIp(req);
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded. Please wait before retrying." },
+      { status: 429 }
+    );
+  }
+
   return null;
 }

@@ -24,7 +24,7 @@ export class NaiveAgent {
 
   /**
    * Interprets user instruction using real LLM if an API key is available.
-   * ponytail: Native fetch to Gemini or OpenAI REST endpoints, avoiding heavy SDK dependencies.
+   * Uses native fetch to Gemini or OpenAI REST endpoints without external SDK dependencies.
    */
   private async interpretWithLLM(instruction: string): Promise<Partial<InboxTask> | null> {
     const geminiKey = process.env.GEMINI_API_KEY;

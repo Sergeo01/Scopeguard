@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       }
 
       const payload = {
-        content: `🚨 **ScopeGuard Security Alert Test** for \`${agentName}\``,
+        content: `[ALERT] **ScopeGuard Security Alert Test** for \`${agentName}\``,
         embeds: [
           {
             title: "ScopeGuard Emergency Channel Connected",
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       }
 
       const telegramUrl = `https://api.telegram.org/bot${botToken.trim()}/sendMessage`;
-      const messageText = `🚨 ScopeGuard Security Alert Test\n\nAgent: ${agentName}\nStatus: Armed and Connected\n\nYour emergency brake notification channel is live. You will receive immediate alerts whenever the onchain circuit breaker trips or unauthorized transactions are blocked on NEAR.`;
+      const messageText = `[ALERT] ScopeGuard Security Alert Test\n\nAgent: ${agentName}\nStatus: Armed and Connected\n\nYour emergency brake notification channel is live. You will receive immediate alerts whenever the onchain circuit breaker trips or unauthorized transactions are blocked on NEAR.`;
 
       const res = await fetch(telegramUrl, {
         method: "POST",

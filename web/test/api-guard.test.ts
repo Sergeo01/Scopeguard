@@ -107,3 +107,87 @@ test("api-guard: guardSigningRequest blocks cross-origin and disables signing sa
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
   }
 });
+
+test("api-guard: requires shared secret for non-browser callers when configured", async () => {
+  const fallbackCommand = "near call guard2 register_agent ...";
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+
+  try {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "super-secret-token-123";
+
+    // Non-browser caller without secret is rejected with 401
+    const noSecretReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: { host: "scopeguard.blockframe.cloud" },
+    });
+    const noSecretRes = guardSigningRequest(noSecretReq, fallbackCommand);
+    assert.ok(noSecretRes !== null);
+    assert.strictEqual(noSecretRes.status, 401);
+
+    // Non-browser caller with wrong secret is rejected with 401
+    const wrongSecretReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        host: "scopeguard.blockframe.cloud",
+        "x-scopeguard-secret": "wrong-secret",
+      },
+    });
+    const wrongSecretRes = guardSigningRequest(wrongSecretReq, fallbackCommand);
+    assert.ok(wrongSecretRes !== null);
+    assert.strictEqual(wrongSecretRes.status, 401);
+
+    // Non-browser caller with valid custom header passes
+    const validHeaderReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        host: "scopeguard.blockframe.cloud",
+        "x-scopeguard-secret": "super-secret-token-123",
+      },
+    });
+    const validHeaderRes = guardSigningRequest(validHeaderReq, fallbackCommand);
+    assert.strictEqual(validHeaderRes, null);
+
+    // Non-browser caller with valid Bearer token passes
+    const validBearerReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        host: "scopeguard.blockframe.cloud",
+        authorization: "Bearer super-secret-token-123",
+      },
+    });
+    const validBearerRes = guardSigningRequest(validBearerReq, fallbackCommand);
+    assert.strictEqual(validBearerRes, null);
+  } finally {
+    process.env.SCOPEGUARD_SHARED_SECRET = origSecret;
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
+  }
+});
+
+test("api-guard: rate limiting rejects burst requests with 429", () => {
+  const fallbackCommand = "near call guard2 register_agent ...";
+  const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+
+  try {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+
+    const makeReq = () =>
+      new Request("https://scopeguard.blockframe.cloud/api/register", {
+        headers: {
+          origin: "https://scopeguard.blockframe.cloud",
+          host: "scopeguard.blockframe.cloud",
+          "x-forwarded-for": "198.51.100.42",
+        },
+      });
+
+    // Send requests up to rate limit (10)
+    for (let i = 0; i < 10; i++) {
+      const res = guardSigningRequest(makeReq(), fallbackCommand);
+      assert.strictEqual(res, null);
+    }
+
+    // 11th request exceeds limit and receives 429
+    const blockedRes = guardSigningRequest(makeReq(), fallbackCommand);
+    assert.ok(blockedRes !== null);
+    assert.strictEqual(blockedRes.status, 429);
+  } finally {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
+  }
+});

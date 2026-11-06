@@ -64,40 +64,40 @@ export function parseEventFromLog(logLine: string): ScopeGuardEvent | null {
 
 export function formatAlertMessage(event: ScopeGuardEvent): string | null {
   if (event.event === "REJECT") {
-    return `🚨 ScopeGuard Security Alert: Agent ${event.agent} attempted an unauthorized action and was BLOCKED. Reason: ${event.reason}`;
+    return `[ALERT] ScopeGuard Security Alert: Agent ${event.agent} attempted an unauthorized action and was BLOCKED. Reason: ${event.reason}`;
   }
   if (event.event === "AUTO_PAUSE") {
-    return `🛑 ScopeGuard Emergency Brake: Circuit breaker tripped for agent ${event.agent}! ${event.rejects} rejections within ${event.window_minutes} minutes. The agent is now PAUSED onchain.`;
+    return `[EMERGENCY BRAKE] ScopeGuard Emergency Brake: Circuit breaker tripped for agent ${event.agent}! ${event.rejects} rejections within ${event.window_minutes} minutes. The agent is now PAUSED onchain.`;
   }
   if (event.event === "PENDING") {
-    return `⏳ ScopeGuard Timelock Alert: High-value action queued for agent ${event.agent} (ID: ${event.id}, Amount: ${event.amount} mUSD). Executable at timestamp ${event.executable_at}. Owner veto is available.`;
+    return `[TIMELOCK] ScopeGuard Timelock Alert: High-value action queued for agent ${event.agent} (ID: ${event.id}, Amount: ${event.amount} mUSD). Executable at timestamp ${event.executable_at}. Owner veto is available.`;
   }
   if (event.event === "SETTLED") {
-    return `✅ ScopeGuard Notice: High-value action ${event.id} settled for agent ${event.agent} (${event.amount} mUSD).`;
+    return `[NOTICE] ScopeGuard Notice: High-value action ${event.id} settled for agent ${event.agent} (${event.amount} mUSD).`;
   }
   if (event.event === "CANCELLED") {
-    return `🚫 ScopeGuard Notice: Pending action ${event.id} cancelled by owner for agent ${event.agent}.`;
+    return `[NOTICE] ScopeGuard Notice: Pending action ${event.id} cancelled by owner for agent ${event.agent}.`;
   }
   if (event.event === "POLICY_STAGED") {
-    return `⚠️ ScopeGuard Notice: Policy change staged for agent ${event.agent}. Effective at timestamp ${event.effective_at}.`;
+    return `[NOTICE] ScopeGuard Notice: Policy change staged for agent ${event.agent}. Effective at timestamp ${event.effective_at}.`;
   }
   if (event.event === "POLICY_APPLIED") {
-    return `📋 ScopeGuard Notice: Staged policy applied onchain for agent ${event.agent}.`;
+    return `[NOTICE] ScopeGuard Notice: Staged policy applied onchain for agent ${event.agent}.`;
   }
   if (event.event === "POLICY_CHANGE_CANCELLED") {
-    return `↩️ ScopeGuard Notice: Staged policy change cancelled by owner for agent ${event.agent}.`;
+    return `[NOTICE] ScopeGuard Notice: Staged policy change cancelled by owner for agent ${event.agent}.`;
   }
   if (event.event === "PAUSE") {
-    return `⏸ ScopeGuard Notice: Agent ${event.agent} has been paused by the owner.`;
+    return `[NOTICE] ScopeGuard Notice: Agent ${event.agent} has been paused by the owner.`;
   }
   if (event.event === "UNPAUSE") {
-    return `▶ ScopeGuard Notice: Agent ${event.agent} has been unpaused. Normal operations resumed.`;
+    return `[NOTICE] ScopeGuard Notice: Agent ${event.agent} has been unpaused. Normal operations resumed.`;
   }
   if (event.event === "REVOKE") {
-    return `🚨 ScopeGuard Security Alert: Agent ${event.agent} has been PERMANENTLY REVOKED by the owner. All access keys and allowlists deleted.`;
+    return `[ALERT] ScopeGuard Security Alert: Agent ${event.agent} has been PERMANENTLY REVOKED by the owner. All access keys and allowlists deleted.`;
   }
   if (event.event === "CANARY_TRIPPED" || event.event === "CANARY_TRIGGERED") {
-    return `🚨 ScopeGuard Trap Alert: Honeypot decoy method tripped by agent ${event.agent}! The agent attempted an unauthorized call and was immediately locked out.`;
+    return `[TRAP] ScopeGuard Trap Alert: Honeypot decoy method tripped by agent ${event.agent}! The agent attempted an unauthorized call and was immediately locked out.`;
   }
   return null;
 }

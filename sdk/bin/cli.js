@@ -199,7 +199,7 @@ async function runSetup() {
         gas: "100000000000000",
       });
 
-      console.log(`✓ Policy registered onchain! Tx: ${outcome.transaction.hash}`);
+      console.log(`[OK] Policy registered onchain! Tx: ${outcome.transaction.hash}`);
       console.log(`  View Receipt: https://testnet.nearblocks.io/txns/${outcome.transaction.hash}`);
 
       // Add function-call access key for agent
@@ -225,9 +225,9 @@ async function runSetup() {
   console.log("\n================================================================");
   console.log("  AGENT ONBOARDING COMPLETE");
   console.log("================================================================");
-  console.log(`✓ Scoped Passkey saved to: ${resolvedOut}`);
-  console.log(`✓ Daily Spending Limit   : $${dailyCap} mUSD`);
-  console.log("✓ Protocol Enforcement   : Native NEAR FunctionCall key");
+  console.log(`[OK] Scoped Passkey saved to: ${resolvedOut}`);
+  console.log(`[OK] Daily Spending Limit   : $${dailyCap} mUSD`);
+  console.log("[OK] Protocol Enforcement   : Native NEAR FunctionCall key");
   console.log("The agent cannot exceed these rules or increase its own limits.");
   console.log("================================================================");
 }
@@ -277,11 +277,11 @@ async function runConnect() {
   console.log("==================================================");
   console.log("  SCOPEGUARD: Agent Connected Successfully");
   console.log("==================================================");
-  console.log(`✓ Agent Account : ${account}`);
-  console.log(`✓ Public Key    : ${publicKey}`);
-  console.log(`✓ Scoped Passkey: ${key.slice(0, 18)}...`);
-  console.log(`✓ Policy Guard  : ${guard}`);
-  console.log(`✓ Credential File: ${resolvedOut}`);
+  console.log(`[OK] Agent Account : ${account}`);
+  console.log(`[OK] Public Key    : ${publicKey}`);
+  console.log(`[OK] Scoped Passkey: ${key.slice(0, 18)}...`);
+  console.log(`[OK] Policy Guard  : ${guard}`);
+  console.log(`[OK] Credential File: ${resolvedOut}`);
   console.log("--------------------------------------------------");
   console.log("Status: READY FOR AUTONOMOUS OPERATION");
   console.log("Enforcement: Native NEAR protocol-level security.");
