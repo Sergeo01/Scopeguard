@@ -52,15 +52,41 @@ export async function POST(req: Request) {
     const keyStore = new keyStores.InMemoryKeyStore();
     await keyStore.setKey(NETWORK_ID, OWNER_ID, KeyPair.fromString(ownerPrivateKey as any));
 
-    const near = await connect({ networkId: NETWORK_ID, nodeUrl: RPC_URL, keyStore });
-    const ownerAccount = await near.account(OWNER_ID);
+    const rpcUrls = Array.from(
+      new Set(
+        [
+          process.env.NEAR_TESTNET_RPC,
+          RPC_URL,
+          "https://test.rpc.fastnear.com",
+          "https://rpc.testnet.near.org",
+        ].filter(Boolean) as string[]
+      )
+    );
 
-    // 1. Inspect current onchain budget & pause state
-    const budget = await ownerAccount.viewFunction({
-      contractId: GUARD_ID,
-      methodName: "get_budget",
-      args: { agent_account: AGENT_ID },
-    });
+    let ownerAccount: any = null;
+    let budget: any = null;
+    let lastError: any = null;
+
+    for (const nodeUrl of rpcUrls) {
+      try {
+        const near = await connect({ networkId: NETWORK_ID, nodeUrl, keyStore });
+        const acct = await near.account(OWNER_ID);
+        budget = await acct.viewFunction({
+          contractId: GUARD_ID,
+          methodName: "get_budget",
+          args: { agent_account: AGENT_ID },
+        });
+        ownerAccount = acct;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`RPC ${nodeUrl} error in /api/demo/reset: ${err.message}. Retrying with alternate provider...`);
+      }
+    }
+
+    if (!ownerAccount) {
+      throw lastError || new Error("Failed to connect to NEAR Testnet RPC endpoints");
+    }
 
     let unpauseTxHash: string | null = null;
     let resetTxHash: string | null = null;

@@ -191,6 +191,9 @@ export default function DashboardPage() {
   const [editVelocityMax, setEditVelocityMax] = useState<number>(5);
   const [editRecipients, setEditRecipients] = useState<string>("");
   const [editTargets, setEditTargets] = useState<string>("sergeo-guard-dex.testnet");
+  const [editCanaryMethods, setEditCanaryMethods] = useState<string>("");
+  const [editMaxDrawdown, setEditMaxDrawdown] = useState<number | "">("");
+  const [editIntentRecipients, setEditIntentRecipients] = useState<string>("");
   const [isSigningPolicy, setIsSigningPolicy] = useState(false);
   const [policyUpdateTxHash, setPolicyUpdateTxHash] = useState<string | null>(null);
   const [policyUpdateError, setPolicyUpdateError] = useState<string | null>(null);
@@ -630,6 +633,20 @@ export default function DashboardPage() {
       ? Object.keys(policy.targets).join(", ")
       : "sergeo-guard-dex.testnet";
     setEditTargets(existingTargets);
+    const existingCanaries = Array.isArray(policy?.canary_methods)
+      ? policy.canary_methods.join(", ")
+      : canaryMethods.join(", ");
+    setEditCanaryMethods(existingCanaries);
+    const existingDrawdown = policy?.max_drawdown_bps !== undefined && policy?.max_drawdown_bps !== null
+      ? Number(policy.max_drawdown_bps) / 100
+      : maxDrawdownBps !== null
+      ? Number(maxDrawdownBps) / 100
+      : "";
+    setEditMaxDrawdown(existingDrawdown);
+    const existingIntents = Array.isArray(policy?.intent_recipients)
+      ? policy.intent_recipients.join(", ")
+      : intentRecipients.join(", ");
+    setEditIntentRecipients(existingIntents);
     setPolicyUpdateTxHash(null);
     setPolicyUpdateError(null);
     setIsEditPolicyOpen(true);
@@ -656,6 +673,11 @@ export default function DashboardPage() {
       }
 
       const recipientsList = editRecipients.split(",").map((s) => s.trim()).filter(Boolean);
+      const canaryList = editCanaryMethods.split(",").map((s) => s.trim()).filter(Boolean);
+      const intentRecipientsList = editIntentRecipients.split(",").map((s) => s.trim()).filter(Boolean);
+      const drawdownBps = typeof editMaxDrawdown === "number" && editMaxDrawdown > 0
+        ? Math.round(editMaxDrawdown * 100)
+        : null;
 
       const updatedPolicy = {
         token: policy?.token || "sergeo-guard-token.testnet",
@@ -668,10 +690,10 @@ export default function DashboardPage() {
         high_value_threshold: policy?.high_value_threshold !== undefined ? String(policy.high_value_threshold) : "250",
         high_value_delay_seconds: policy?.high_value_delay_seconds !== undefined ? Number(policy.high_value_delay_seconds) : 60,
         policy_change_delay_seconds: policy?.policy_change_delay_seconds !== undefined ? Number(policy.policy_change_delay_seconds) : 60,
-        max_drawdown_bps: maxDrawdownBps,
+        max_drawdown_bps: drawdownBps,
         lease_expires_at: leaseExpiresAt ? Number(leaseExpiresAt) : null,
-        canary_methods: canaryMethods,
-        intent_recipients: intentRecipients,
+        canary_methods: canaryList,
+        intent_recipients: intentRecipientsList,
       };
 
       const action = transactions.functionCall(
@@ -2088,6 +2110,95 @@ export default function DashboardPage() {
               />
             </div>
 
+            {/* Canary Decoy Honeypot Methods */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Honeypot Decoy Tripwire Methods</span>
+                <span className="text-[11px] text-rose-500 font-mono font-medium">Auto-Pause Lockout</span>
+              </label>
+              <input
+                type="text"
+                placeholder="drain_vault, emergency_withdraw_all, admin_drain"
+                value={editCanaryMethods}
+                onChange={(e) => setEditCanaryMethods(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {["drain_vault", "emergency_withdraw_all", "admin_drain"].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      const cur = editCanaryMethods.split(",").map((s) => s.trim()).filter(Boolean);
+                      if (!cur.includes(m)) {
+                        setEditCanaryMethods([...cur, m].join(", "));
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:border-rose-500 transition cursor-pointer"
+                  >
+                    + {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Max Portfolio Drawdown Floor */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Max Portfolio Drawdown Floor (%)</span>
+                <span className="text-[11px] font-mono text-brand-blue font-bold">
+                  {typeof editMaxDrawdown === "number" && editMaxDrawdown > 0 ? `${editMaxDrawdown}% Floor` : "None"}
+                </span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="20 (means 20% max loss from high-water mark)"
+                value={editMaxDrawdown}
+                onChange={(e) => setEditMaxDrawdown(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[10, 15, 20, 25].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setEditMaxDrawdown(pct)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition cursor-pointer ${
+                      editMaxDrawdown === pct
+                        ? "bg-brand-blue text-white border-brand-blue"
+                        : "bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-obsidian-700 hover:border-brand-blue"
+                    }`}
+                  >
+                    {pct}% Max Loss
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setEditMaxDrawdown("")}
+                  className="px-2 py-1 rounded-md text-[10px] font-mono text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* IntentShield Cross-Chain Allowlist */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>IntentShield Cross-Chain Allowlist</span>
+                <span className="text-[11px] text-slate-400">Comma-separated EVM/Solana addresses</span>
+              </label>
+              <input
+                type="text"
+                placeholder="0x1111111111111111111111111111111111111111"
+                value={editIntentRecipients}
+                onChange={(e) => setEditIntentRecipients(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
+              />
+            </div>
+
             {/* Action Buttons */}
             <div className="pt-2 space-y-2">
               {isWalletConnected ? (
@@ -2151,6 +2262,8 @@ export default function DashboardPage() {
                     const targetsObj: Record<string, string[]> = {};
                     for (const t of targetsList) targetsObj[t] = ["swap", "ft_transfer_call"];
                     const recList = editRecipients.split(",").map((s) => s.trim()).filter(Boolean);
+                    const canaryList = editCanaryMethods.split(",").map((s) => s.trim()).filter(Boolean);
+                    const intentList = editIntentRecipients.split(",").map((s) => s.trim()).filter(Boolean);
                     const pol = {
                       token: policy?.token || "sergeo-guard-token.testnet",
                       targets: Object.keys(targetsObj).length > 0 ? targetsObj : { "sergeo-guard-dex.testnet": ["swap"] },
@@ -2162,6 +2275,9 @@ export default function DashboardPage() {
                       high_value_threshold: "250",
                       high_value_delay_seconds: 60,
                       policy_change_delay_seconds: 60,
+                      max_drawdown_bps: typeof editMaxDrawdown === "number" && editMaxDrawdown > 0 ? Math.round(editMaxDrawdown * 100) : null,
+                      canary_methods: canaryList,
+                      intent_recipients: intentList,
                     };
                     const cmd = `near call ${guardId} set_policy '{"agent_account":"${agentId}","policy":${JSON.stringify(pol)}}' --accountId ${connectedWalletId || ownerId} --gas 100000000000000`;
                     navigator.clipboard.writeText(cmd);

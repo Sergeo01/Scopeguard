@@ -142,14 +142,6 @@ export async function POST(req: Request) {
     const keyStore = new keyStores.InMemoryKeyStore();
     await keyStore.setKey(cred.networkId || "testnet", cred.agentAccountId, KeyPair.fromString(cred.privateKey));
 
-    const near = await connect({
-      networkId: cred.networkId || "testnet",
-      nodeUrl: process.env.NEAR_TESTNET_RPC || cred.nodeUrl || "https://test.rpc.fastnear.com",
-      keyStore,
-    });
-
-    const agentAccount = await near.account(cred.agentAccountId);
-
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});
     let action: any;
@@ -202,12 +194,44 @@ export async function POST(req: Request) {
       };
     }
 
-    const callResult = await agentAccount.functionCall({
-      contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
-      methodName: "execute",
-      args: { action },
-      gas: BigInt("100000000000000"), // 100 TGas
-    });
+    const rpcUrls = Array.from(
+      new Set(
+        [
+          process.env.NEAR_TESTNET_RPC,
+          cred.nodeUrl,
+          "https://test.rpc.fastnear.com",
+          "https://rpc.testnet.near.org",
+        ].filter(Boolean) as string[]
+      )
+    );
+
+    let callResult: any = null;
+    let lastError: any = null;
+
+    for (const rpcUrl of rpcUrls) {
+      try {
+        const near = await connect({
+          networkId: cred.networkId || "testnet",
+          nodeUrl: rpcUrl,
+          keyStore,
+        });
+        const agentAccount = await near.account(cred.agentAccountId);
+        callResult = await agentAccount.functionCall({
+          contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
+          methodName: "execute",
+          args: { action },
+          gas: BigInt("100000000000000"), // 100 TGas
+        });
+        if (callResult) break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`RPC ${rpcUrl} encountered error: ${err.message}. Retrying with alternate testnet provider...`);
+      }
+    }
+
+    if (!callResult) {
+      throw lastError || new Error("Failed to execute on NEAR Testnet across all available RPC endpoints.");
+    }
 
     const txHash = callResult.transaction.hash;
     const parsedOutcome = JSON.parse(
