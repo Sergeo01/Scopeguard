@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ContractCall Value-Moving Denylist:** Generic `ContractCall` actions are prohibited from invoking value-moving methods (`ft_transfer`, `nft_transfer`, `mt_transfer`, `withdraw`, `near_withdraw`, `storage_withdraw`, `storage_unregister`). Attached deposits are debited from the native NEAR vault and count against native spend caps.
 - **Root Setup & Test Runners:** Added cross-platform `scripts/setup.js` and `scripts/test-all.js` entry points ensuring proper build ordering and unified testing across all components.
 - **API Guard Enhancements:** Added sliding window rate limiting and optional shared secret validation for non-browser callers accessing hosted demo endpoints.
-- **Technical Documentation:** Added comprehensive architecture, policy reference, and threat model guides in `docs/`.
+- **Technical Documentation:** Added comprehensive architecture, policy reference, threat model, and deployment guides in `docs/`.
 
 ### Changed
 - Bumped policy contract version to 0.4.0 with backward-compatible deserialization for legacy v0.3.0 records.

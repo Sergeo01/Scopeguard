@@ -88,6 +88,7 @@ Scopeguard/
 │   ├── policy/         # Guard contract (Rust, near-sdk 5.29)
 │   ├── mock-token/     # Minimal NEP-141 token (mUSD) with faucet
 │   └── mock-dex/       # Fixed-rate swap contract (agent demo target)
+├── docs/               # Technical architecture, policy reference, threat model, and deployment guides
 ├── sdk/                # TypeScript SDK (@scopeguard/sdk)
 ├── drafter/            # AI scope drafter with JSON Schema validation and lint
 ├── packages/
@@ -97,6 +98,12 @@ Scopeguard/
 ├── demo-agent/         # Naive inbox-driven demo agent for adversarial testing
 └── web/                # Next.js 15 studio console with live attack testing
 ```
+
+For detailed specifications and operational guides:
+- [Architecture Guide](docs/architecture.md): System invariants, state layout, and execution flow.
+- [Policy Reference](docs/policy-reference.md): Specification of policy rules, validation schema, and reason codes.
+- [Threat Model](docs/threat-model.md): Threat vectors, isolation boundaries, and fail-safe mechanisms.
+- [Deployment Guide](docs/deployment.md): Commands for building, deploying, configuring, and verifying on testnet.
 
 ---
 
