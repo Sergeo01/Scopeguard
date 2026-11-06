@@ -66,7 +66,7 @@ Generic smart contract call targeting an allowlisted contract.
 - Invariant: Calldata must be value-neutral. Attached deposits count against native NEAR budget.
 
 ### 4. `IntentTransfer`
-Cross-chain solver deposit targeting a mock intent deposit contract on testnet.
+Cross-chain solver deposit targeting a mock intent deposit contract on testnet (not real NEAR Intents).
 - Checked against: `intent_recipients`, `daily_cap`, `high_value_threshold`, `vault_balance`.
 
 ### 5. `NearTransfer`

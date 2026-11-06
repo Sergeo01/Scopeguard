@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert";
 import { POST } from "../app/api/demo/reset/route";
 import { resetRateLimits } from "../lib/api-guard";
+import { recordActivity, getRecentActivities, ActivityItem } from "../lib/ledger";
 
 test("demo-reset route: rejects cross-origin requests with 403", async () => {
   const req = new Request("https://scopeguard.blockframe.cloud/api/demo/reset", {
@@ -110,3 +111,21 @@ test("demo-reset route: rate limits repeated burst requests with 429", async () 
     resetRateLimits();
   }
 });
+
+test("demo-reset route: recordActivity logs reset operations to the activity ledger", () => {
+  const initial = getRecentActivities();
+  const testId = "test-reset-act-" + Date.now();
+  recordActivity({
+    id: testId,
+    timestamp: Date.now(),
+    agent: "agent.sergeo-guard.testnet",
+    target: "guard2.sergeo-guard.testnet",
+    method: "reset_windows",
+    type: "RESET",
+    reason: "Self-healing circuit breaker reset",
+  });
+  const updated = getRecentActivities();
+  assert.strictEqual(updated.length, initial.length + 1);
+  assert.strictEqual(updated[0].method, "reset_windows");
+});
+

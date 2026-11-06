@@ -48,6 +48,7 @@ jobs:
           npm test --prefix packages/ironclaw-mcp
           npm test --prefix packages/plugin-eliza
           npm test --prefix web
+          npm run typecheck --prefix web
 
       - name: Build Web application
         run: npm run build --prefix web

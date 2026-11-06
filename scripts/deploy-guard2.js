@@ -35,7 +35,7 @@ function saveKey(accountId, keyPair) {
 
 async function main() {
   console.log("==================================================================");
-  console.log(" ScopeGuard: Fresh Deployment of Hardened Guard Contract (v2)");
+  console.log(" ScopeGuard: Fresh Deployment of Policy Guard Contract (v2)");
   console.log("==================================================================");
   console.log(`RPC: ${RPC_URL}`);
   console.log(`Owner: ${OWNER_ID}`);
@@ -110,8 +110,8 @@ async function main() {
     console.log("Contract may already be initialized:", err.message);
   }
 
-  // 4. Register Agent on guard2 with Hardened Policy
-  console.log("\nRegistering agent with hardened policy (single-token v1, typed actions, no wildcards)...");
+  // 4. Register Agent on guard2 with Strict Policy
+  console.log("\nRegistering agent with strict policy (single-token v1, typed actions, no wildcards)...");
   const policy = {
     token: TOKEN_ID,
     targets: {

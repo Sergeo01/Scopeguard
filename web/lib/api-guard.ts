@@ -48,6 +48,53 @@ interface RateLimitBucket {
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
+let lastAttackTimestamp = 0;
+let isAttackInProgress = false;
+const attackTimestamps: number[] = [];
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const MAX_ATTACKS_PER_WINDOW = 12;
+
+export function resetAttackThrottles(): void {
+  lastAttackTimestamp = 0;
+  isAttackInProgress = false;
+  attackTimestamps.length = 0;
+}
+
+export function checkAttackThrottle(): { allowed: boolean; status?: number; error?: string } {
+  const now = Date.now();
+  if (isAttackInProgress) {
+    return {
+      allowed: false,
+      status: 409,
+      error: "An attack scenario is currently running. Please wait for completion.",
+    };
+  }
+  if (now - lastAttackTimestamp < 1500) {
+    return {
+      allowed: false,
+      status: 429,
+      error: "Rate limit: please wait 1.5 seconds between onchain calls.",
+    };
+  }
+  while (attackTimestamps.length > 0 && now - attackTimestamps[0] > RATE_LIMIT_WINDOW_MS) {
+    attackTimestamps.shift();
+  }
+  if (attackTimestamps.length >= MAX_ATTACKS_PER_WINDOW) {
+    return {
+      allowed: false,
+      status: 429,
+      error: "Attack rate limit reached (max 12 per minute). Please wait.",
+    };
+  }
+  attackTimestamps.push(now);
+  lastAttackTimestamp = now;
+  return { allowed: true };
+}
+
+export function setAttackInProgress(inProgress: boolean): void {
+  isAttackInProgress = inProgress;
+}
+
 export function checkRateLimit(key: string, limit = 10, windowMs = 60_000): boolean {
   const now = Date.now();
   const bucket = rateLimitBuckets.get(key);

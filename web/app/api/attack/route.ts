@@ -3,19 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
-import { isSameOrigin } from "@/lib/api-guard";
-
-let lastAttackTimestamp = 0;
-let isAttackInProgress = false;
-const attackTimestamps: number[] = [];
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const MAX_ATTACKS_PER_WINDOW = 12;
-
-export function resetAttackThrottles() {
-  lastAttackTimestamp = 0;
-  isAttackInProgress = false;
-  attackTimestamps.length = 0;
-}
+import { isSameOrigin, checkAttackThrottle, setAttackInProgress } from "@/lib/api-guard";
 
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
@@ -40,37 +28,16 @@ export async function POST(req: Request) {
     }
   }
 
-  if (isAttackInProgress) {
+  const throttle = checkAttackThrottle();
+  if (!throttle.allowed) {
     return NextResponse.json({
       success: false,
-      error: "Another attack execution is currently processing onchain. Please wait a moment.",
-    }, { status: 429 });
+      error: throttle.error,
+    }, { status: throttle.status || 429 });
   }
 
-  const now = Date.now();
-  // Clean expired timestamps from sliding window
-  while (attackTimestamps.length > 0 && attackTimestamps[0] < now - RATE_LIMIT_WINDOW_MS) {
-    attackTimestamps.shift();
-  }
-  if (attackTimestamps.length >= MAX_ATTACKS_PER_WINDOW) {
-    return NextResponse.json({
-      success: false,
-      error: "Rate limit: maximum 12 live attack executions per minute to conserve testnet gas. Please wait a moment.",
-    }, { status: 429 });
-  }
-
-  isAttackInProgress = true;
+  setAttackInProgress(true);
   try {
-    // Basic spacing throttle between rapid sequential calls
-    if (now - lastAttackTimestamp < 1500) {
-      return NextResponse.json({
-        success: false,
-        error: "Rate limit: please wait 1.5 seconds between onchain calls.",
-      }, { status: 429 });
-    }
-    lastAttackTimestamp = now;
-    attackTimestamps.push(now);
-
     const body = await req.json();
     let target = body.target;
     let method = body.method;
@@ -351,6 +318,6 @@ export async function POST(req: Request) {
       error: err.message,
     }, { status: 500 });
   } finally {
-    isAttackInProgress = false;
+    setAttackInProgress(false);
   }
 }

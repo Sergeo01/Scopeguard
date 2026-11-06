@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated demo reset endpoint to verify whether state actually requires resetting before dispatching onchain transactions, and record reset events to the activity ledger.
 
 ### Removed
-- Removed evaluator-specific scripts and guides in favor of standard developer workflows and automated continuous integration.
+- Removed legacy evaluation scripts and guides in favor of standard developer workflows and automated continuous integration.
+- **Strict Bot Proxy (`proxy/`):** Removed standalone HTTP bot proxy package in favor of direct `@scopeguard/sdk` and `@scopeguard/ironclaw-mcp` integration, eliminating redundant process overhead and proxy credential management.
 - Removed legacy unreferenced scratch artifacts and development logs.
 
 ---

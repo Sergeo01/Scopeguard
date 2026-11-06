@@ -123,5 +123,5 @@ To prevent autonomous agents from running indefinitely without supervision, poli
 Client runtimes and the web console maintain an active pool of NEAR RPC endpoints (FastNEAR, official NEAR Testnet RPC, and secondary backups). If an RPC node encounters rate limits, timeouts, or network splits, the client fails over automatically across the fleet.
 
 ### Multi-Framework Integrations
-- **IronClaw MCP Server:** Exposes policy-guarded actions to any Model Context Protocol host (Cursor, Claude Desktop, Antigravity).
+- **IronClaw MCP Server:** Exposes policy-guarded actions to any Model Context Protocol host (Cursor, Claude Desktop, standard MCP clients).
 - **ElizaOS Plugin:** Integrates directly with Eliza autonomous agent runtimes, exposing balance providers, preflight simulations, and policy-checked actions.

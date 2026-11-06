@@ -661,53 +661,6 @@ if !is_promise_success() {
                 <span className="font-mono font-bold text-rose-400">Real-Time Watcher & Webhooks (watcher/)</span>
                 <p className="text-slate-600 dark:text-slate-400">Stateless event watcher service tailing NEAR block outcomes for REJECT, AUTO_PAUSE, PENDING, and CANARY_TRIPPED logs. Delivers instant notifications to Discord webhooks and Telegram chats with zero key storage and zero signing authority.</p>
               </div>
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-3">
-                <div>
-                  <span className="font-mono font-bold text-mint-green">Strict Bot Proxy (proxy/)</span>
-                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">Adapter for trading bots whose code cannot be modified. Holds strictly an agent sub-account scoped key (never an owner key), enforces inbound Bearer token authentication, translates direct-style trades without widening scope, and logs every translation with the resulting Guard consensus receipt hash.</p>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                  <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 block">
-                    Example 1: Authorized Trade Request (HTTP 200 OK)
-                  </span>
-                  <pre className="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
-{`curl -X POST http://localhost:8788/rpc \\
-  -H "Authorization: Bearer <BOT_PROXY_API_KEY>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "receiver_id": "sergeo-guard-dex.testnet",
-    "method_name": "swap",
-    "args_json": { "amount": "10", "min_out": "8" }
-  }'`}
-                  </pre>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                  <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 block">
-                    Example 2: Out-of-Policy Trade Blocked Onchain (HTTP 403 Forbidden)
-                  </span>
-                  <pre className="p-3 rounded-lg bg-slate-900 text-slate-200 font-mono text-[11px] overflow-x-auto leading-relaxed border border-slate-800">
-{`curl -X POST http://localhost:8788/rpc \\
-  -H "Authorization: Bearer <BOT_PROXY_API_KEY>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "receiver_id": "sergeo-guard-token.testnet",
-    "method_name": "ft_transfer",
-    "args_json": { "receiver_id": "attacker.testnet", "amount": "100" }
-  }'
-
-# Response Body (HTTP 403):
-# {
-#   "success": false,
-#   "status": "REJECTED",
-#   "reason": "RECIPIENT_NOT_ALLOWED",
-#   "agent": "agent.sergeo-guard.testnet",
-#   "guard": "guard2.sergeo-guard.testnet"
-# }`}
-                  </pre>
-                </div>
-              </div>
             </div>
           </section>
 
@@ -722,7 +675,7 @@ if !is_promise_success() {
               AI Agent System Prompt Handoff
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              For LLM agent frameworks (Claude, OpenClaw, Antigravity, ChatGPT), paste this system prompt into the agent instruction block:
+              For LLM agent frameworks (Claude, OpenClaw, ElizaOS, ChatGPT), paste this system prompt into the agent instruction block:
             </p>
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 p-4 font-mono text-xs text-slate-300 relative space-y-2">
               <div className="flex items-center justify-between text-slate-500 pb-2 border-b border-slate-800">
@@ -896,7 +849,7 @@ if !is_promise_success() {
                 { title: "Interactive Attack Arena", desc: "Live attack console dispatching real onchain prompt injection transactions to testnet contracts with verified explorer links." },
                 { title: "ElizaOS Security Plugin (@scopeguard/plugin-eliza)", desc: "Full agent plugin for ElizaOS providing prompt policy context injection, passkey-restricted execution, budget checks, and preflight policy evaluation." },
                 { title: "LangChain & Tool-Calling Adapters", desc: "createScopeGuardTools export returning standardized OpenAI function declarations and LangChain structured tools." },
-                { title: "IronClaw MCP Server (packages/ironclaw-mcp)", desc: "Standard Model Context Protocol stdio server providing 6 autonomous self-awareness tools for desktop LLMs like Claude, Cursor, and Antigravity." },
+                { title: "IronClaw MCP Server (packages/ironclaw-mcp)", desc: "Standard Model Context Protocol stdio server providing 6 autonomous self-awareness tools for desktop LLMs like Claude, Cursor, and standard MCP clients." },
                 { title: "Real-Time Watcher & Webhooks (watcher/)", desc: "Background event monitoring daemon delivering instant Telegram and Discord alerts on policy rejections and circuit breaker triggers." },
                 { title: "Operations Security Console", desc: "Comprehensive Next.js dashboard featuring spend gauge, velocity bar, circuit breaker banner, and real-time activity feed." },
                 { title: "Supabase & Multi-Wallet Authentication", desc: "Google OAuth, Email OTP, and direct NEAR Web3 wallet connection (MyNearWallet, Meteor, Here, Sender) with hidden admin protection." },

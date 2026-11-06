@@ -150,6 +150,7 @@ let activityLog: ActivityItem[] = (() => {
 })();
 
 function persistLedger(): void {
+  if (process.env.NODE_ENV === "test") return;
   try {
     const filePath = getLedgerFilePath();
     fs.writeFileSync(filePath, JSON.stringify(activityLog, null, 2), "utf-8");

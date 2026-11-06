@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert";
-import { POST, resetAttackThrottles } from "../app/api/attack/route";
+import { POST } from "../app/api/attack/route";
+import { resetAttackThrottles } from "../lib/api-guard";
 
 test("attack route: rejects cross-origin requests with 403", async () => {
   resetAttackThrottles();

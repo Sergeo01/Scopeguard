@@ -111,13 +111,13 @@ For detailed specifications and operational guides:
 
 Transparency regarding boundaries and threat models:
 
-1. **Loss Bound:** Maximum financial loss is bounded by `min(vault balance, rolling 24h cap)` per asset. An attacker cannot drain external balances or exceed the configured cap, but legitimate allowed actions within the daily budget could still be triggered if the agent is manipulated.
+1. **Loss Bound:** Maximum financial loss is bounded by `min(vault balance, rolling 24h cap)` per asset across an effective 24-25 hour rolling window (1-hour buckets with a 24-hour lookback). An attacker cannot drain external balances or exceed the configured cap, but legitimate allowed actions within the daily budget could still be triggered if the agent is manipulated.
 2. **Independent Budgets:** Native NEAR and NEP-141 token assets maintain independent rolling spend windows and timelock thresholds. Native NEAR operations fail closed by default if no native cap is configured.
 3. **Rolling Window Semantics:** Spend caps use a rolling window of 1-hour buckets with a 24-hour lookback (effective window: 24 to 25 hours). This prevents boundary double-spend attacks where a daily budget is spent immediately before and after a fixed midnight reset.
-4. **ContractCall Restrictions:** Generic `ContractCall` actions cannot target the custody token and cannot call value-moving methods (`ft_transfer`, `nft_transfer`, `mt_transfer`, `withdraw`, `storage_withdraw`, etc.). Calldata actions must be value-neutral, and attached deposits count against the native NEAR budget.
+4. **ContractCall Value-Neutral Trust Assumption:** Generic `ContractCall` actions carry no token transfer accounting. Therefore, allowlisted methods on target contracts must be value-neutral (queries, state pings, storage registrations). They cannot target the custody token and cannot call value-moving methods (`ft_transfer`, `nft_transfer`, `mt_transfer`, `withdraw`, `near_withdraw`, `storage_withdraw`, `storage_unregister`). Attached deposits debit the agent's NEAR vault balance and count against the native NEAR budget.
 5. **Single Owner Key:** Owner administrative controls (pause, unpause, withdraw, revoke, reset) require the owner's cryptographic signature.
 6. **Asynchronous Settlement & Rollback:** Downstream cross-contract failures trigger internal refund callbacks, returning funds to the agent vault and rolling back the recorded spend in the original bucket.
-7. **Mock Contracts & Testnet:** The current deployment operates on NEAR Testnet using mock token and mock DEX contracts. Intent transfers route to a mock deposit contract.
+7. **Mock Contracts & Testnet:** The current deployment operates on NEAR Testnet using mock token and mock DEX contracts. IntentTransfer targets a mock deposit contract, not real NEAR Intents.
 
 ---
 
