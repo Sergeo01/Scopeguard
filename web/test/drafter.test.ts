@@ -103,6 +103,37 @@ test("drafter: lintPolicy flags dangerous administrative methods, open recipient
   assert.ok(warnings.some((w) => w.field === "high_value_threshold"));
 });
 
+test("drafter: lintPolicy flags value-moving denylist methods and validatePolicyShape validates near fields", () => {
+  const denylistPolicy: DrafterPolicy = {
+    token: "sergeo-guard-token.testnet",
+    targets: {
+      "sergeo-guard-dex.testnet": ["swap", "ft_transfer", "near_withdraw", "storage_withdraw"],
+    },
+    daily_cap: 100,
+    recipients: [],
+    max_actions_per_10min: 5,
+    auto_pause_rejects: 5,
+    auto_pause_window_minutes: 10,
+    high_value_threshold: 50,
+    high_value_delay_seconds: 3600,
+    policy_change_delay_seconds: 600,
+    near_daily_cap: 1000,
+    near_high_value_threshold: 500,
+  };
+
+  const warnings = lintPolicy(denylistPolicy);
+  const targetWarnings = warnings.filter((w) => w.field === "targets" && w.severity === "danger");
+  assert.ok(targetWarnings.length >= 3);
+  assert.ok(targetWarnings.some((w) => w.message.includes("ft_transfer")));
+  assert.ok(targetWarnings.some((w) => w.message.includes("near_withdraw")));
+  assert.ok(targetWarnings.some((w) => w.message.includes("storage_withdraw")));
+
+  assert.deepStrictEqual(validatePolicyShape(denylistPolicy), []);
+
+  const invalidNear = { ...denylistPolicy, near_daily_cap: -5 };
+  assert.ok(validatePolicyShape(invalidNear).some((e) => e.includes("near_daily_cap")));
+});
+
 test("drafter: getSafeDefaultPolicy returns least-privilege baseline", () => {
   const def = getSafeDefaultPolicy(150);
   assert.strictEqual(def.daily_cap, 150);

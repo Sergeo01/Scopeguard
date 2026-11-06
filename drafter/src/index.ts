@@ -11,6 +11,8 @@ export interface DrafterPolicy {
   high_value_threshold: number;
   high_value_delay_seconds: number;
   policy_change_delay_seconds: number;
+  near_daily_cap?: number | null;
+  near_high_value_threshold?: number | null;
 }
 
 export interface LintWarning {
@@ -51,6 +53,8 @@ const policySchema: JSONSchemaType<DrafterPolicy> = {
     high_value_threshold: { type: "integer", minimum: 0 },
     high_value_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
     policy_change_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
+    near_daily_cap: { type: "integer", nullable: true },
+    near_high_value_threshold: { type: "integer", nullable: true },
   },
   required: [
     "token",
@@ -101,14 +105,33 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
     });
   }
 
-  // Check 2: Dangerous methods in targets
+  // Check 2: Dangerous and value-moving methods in targets
   const dangerousPatterns = ["upgrade", "delete_account", "set_owner", "kill"];
+  const valueMovingDenylist = [
+    "ft_transfer",
+    "ft_transfer_call",
+    "nft_transfer",
+    "nft_transfer_call",
+    "mt_transfer",
+    "mt_transfer_call",
+    "storage_unregister",
+    "storage_withdraw",
+    "near_withdraw",
+    "withdraw",
+  ];
   for (const [target, methods] of Object.entries(policy.targets)) {
     for (const m of methods) {
       if (dangerousPatterns.some((pattern) => m.toLowerCase().includes(pattern))) {
         warnings.push({
           field: "targets",
           message: `Target ${target} includes potentially dangerous administrative method: ${m}`,
+          severity: "danger",
+        });
+      }
+      if (valueMovingDenylist.includes(m)) {
+        warnings.push({
+          field: "targets",
+          message: `Target ${target} includes forbidden value-moving method: ${m}. Calldata transfers must use typed Guard actions.`,
           severity: "danger",
         });
       }

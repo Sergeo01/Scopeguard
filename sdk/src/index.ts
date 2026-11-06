@@ -256,6 +256,10 @@ export interface BudgetView {
   high_water_mark?: string;
   max_drawdown_bps?: number | null;
   near_vault_balance?: string;
+  near_high_water_mark?: string;
+  near_cap?: string | null;
+  near_spent?: string | null;
+  near_remaining?: string | null;
 }
 
 export interface Policy {
@@ -273,6 +277,8 @@ export interface Policy {
   lease_expires_at?: number | string | null;
   intent_recipients?: string[];
   canary_methods?: string[];
+  near_daily_cap?: number | string | null;
+  near_high_value_threshold?: number | string | null;
 }
 
 export interface PendingAction {

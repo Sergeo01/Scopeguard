@@ -13,6 +13,8 @@ export interface DrafterPolicy {
   lease_expires_at?: number | null;
   intent_recipients?: string[];
   canary_methods?: string[];
+  near_daily_cap?: number | string | null;
+  near_high_value_threshold?: number | string | null;
 }
 
 export interface LintWarning {
@@ -105,6 +107,22 @@ export function validatePolicyShape(p: any): string[] {
       errors.push("canary_methods must be an array of method name strings");
     }
   }
+  if (p.near_daily_cap !== undefined && p.near_daily_cap !== null) {
+    const isNum = typeof p.near_daily_cap === "number" && Number.isInteger(p.near_daily_cap) && p.near_daily_cap >= 0;
+    const isStr = typeof p.near_daily_cap === "string" && /^\d+$/.test(p.near_daily_cap.trim());
+    const isBig = typeof p.near_daily_cap === "bigint" && p.near_daily_cap >= BigInt(0);
+    if (!isNum && !isStr && !isBig) {
+      errors.push("near_daily_cap must be a non-negative integer");
+    }
+  }
+  if (p.near_high_value_threshold !== undefined && p.near_high_value_threshold !== null) {
+    const isNum = typeof p.near_high_value_threshold === "number" && Number.isInteger(p.near_high_value_threshold) && p.near_high_value_threshold >= 0;
+    const isStr = typeof p.near_high_value_threshold === "string" && /^\d+$/.test(p.near_high_value_threshold.trim());
+    const isBig = typeof p.near_high_value_threshold === "bigint" && p.near_high_value_threshold >= BigInt(0);
+    if (!isNum && !isStr && !isBig) {
+      errors.push("near_high_value_threshold must be a non-negative integer");
+    }
+  }
 
   return errors;
 }
@@ -144,14 +162,33 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
     });
   }
 
-  // Check 2: Dangerous methods in targets
+  // Check 2: Dangerous and value-moving methods in targets
   const dangerousPatterns = ["upgrade", "delete_account", "set_owner", "kill"];
+  const valueMovingDenylist = [
+    "ft_transfer",
+    "ft_transfer_call",
+    "nft_transfer",
+    "nft_transfer_call",
+    "mt_transfer",
+    "mt_transfer_call",
+    "storage_unregister",
+    "storage_withdraw",
+    "near_withdraw",
+    "withdraw",
+  ];
   for (const [target, methods] of Object.entries(policy.targets)) {
     for (const m of methods) {
       if (dangerousPatterns.some((pattern) => m.toLowerCase().includes(pattern))) {
         warnings.push({
           field: "targets",
           message: `Target ${target} includes potentially dangerous administrative method: ${m}`,
+          severity: "danger",
+        });
+      }
+      if (valueMovingDenylist.includes(m)) {
+        warnings.push({
+          field: "targets",
+          message: `Target ${target} includes forbidden value-moving method: ${m}. Calldata transfers must use typed Guard actions.`,
           severity: "danger",
         });
       }
