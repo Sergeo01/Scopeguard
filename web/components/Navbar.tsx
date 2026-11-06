@@ -16,6 +16,7 @@ import {
   Shield,
   Activity,
   Terminal,
+  BookOpen,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { WalletButton } from "@/components/WalletButton";
@@ -39,6 +40,7 @@ export const Navbar: React.FC = () => {
     { href: "/#arena", label: "Attack Arena", icon: Terminal },
     { href: "/dashboard", label: "Security Console", icon: LayoutDashboard },
     { href: "/create", label: "Issue Passkey", icon: PlusCircle },
+    { href: "/docs", label: "Docs", icon: BookOpen },
     ...(isAdmin ? [{ href: "/admin", label: "Platform Admin", icon: Shield }] : []),
   ];
 

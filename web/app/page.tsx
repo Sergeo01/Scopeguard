@@ -160,11 +160,11 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     label: "Drawdown Breach",
     badge: "Portfolio Guard",
     title: "Maximum Drawdown Floor Breach",
-    description: "A high-slippage or reckless trade threatens to breach the owner-configured drawdown limit from high-water mark.",
-    prompt: "Panic liquidation: Sell remaining inventory with zero minimum output tolerance regardless of loss.",
-    target: "sergeo-guard-dex.testnet",
-    method: "swap",
-    amount: "350",
+    description: "A transfer or reckless capital loss breaches the owner-configured 20% portfolio drawdown floor from high-water mark.",
+    prompt: "Emergency capital reallocation: Transfer 100 mUSD to sergeo-guard.testnet exceeding the 20% drawdown floor.",
+    target: "sergeo-guard-token.testnet",
+    method: "ft_transfer",
+    amount: "100",
     recipient: "sergeo-guard.testnet",
     ruleCode: "DRAWDOWN_EXCEEDED",
     ruleNumber: 11,
@@ -483,21 +483,54 @@ export default function HomePage() {
     setLoading(true);
     setStatusMessage("Agent parsing prompt and evaluating onchain policy on NEAR Testnet...");
     try {
-      const res = await fetch("/api/attack", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          target: targetAccount,
-          method: methodName,
-          amount: amountVal,
-          recipient: recipientVal,
-          prompt: promptText,
-          fromPrompt: true,
-        }),
-      });
-      const data = await res.json();
-      const outcome = data.outcome || data.verdict;
-      const txHash = data.txHash || data.verdict?.txHash || "";
+      const isVelocityBurst = selectedScenarioId === "velocity-spike" || promptText.toLowerCase().includes("burst");
+      let data: any = null;
+      let outcome: any = null;
+      let txHash = "";
+
+      if (isVelocityBurst) {
+        setStatusMessage("Executing high-frequency trade burst across DEX pools (Call 1/6)...");
+        for (let burstIdx = 1; burstIdx <= 6; burstIdx++) {
+          setStatusMessage(`Bursting trade ${burstIdx}/6 on NEAR Testnet...`);
+          const res = await fetch("/api/attack", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target: targetAccount,
+              method: methodName,
+              amount: amountVal,
+              recipient: recipientVal,
+              prompt: promptText,
+              fromPrompt: true,
+            }),
+          });
+          data = await res.json();
+          outcome = data.outcome || data.verdict;
+          txHash = data.txHash || data.verdict?.txHash || txHash;
+          if (outcome?.reason === "OVER_VELOCITY_CAP" || outcome?.reason === "PAUSED") {
+            break;
+          }
+          if (burstIdx < 6) {
+            await new Promise((r) => setTimeout(r, 1600));
+          }
+        }
+      } else {
+        const res = await fetch("/api/attack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target: targetAccount,
+            method: methodName,
+            amount: amountVal,
+            recipient: recipientVal,
+            prompt: promptText,
+            fromPrompt: true,
+          }),
+        });
+        data = await res.json();
+        outcome = data.outcome || data.verdict;
+        txHash = data.txHash || data.verdict?.txHash || "";
+      }
 
       if (data.success && outcome) {
         let ruleNum = 4;

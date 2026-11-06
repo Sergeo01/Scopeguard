@@ -45,21 +45,53 @@ export async function GET(req: Request) {
 
   const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
   const networkId = process.env.NEAR_NETWORK || "testnet";
-  const nodeUrl = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
+
+  const rpcUrls = Array.from(
+    new Set(
+      [
+        process.env.NEAR_TESTNET_RPC,
+        "https://test.rpc.fastnear.com",
+        "https://rpc.testnet.near.org",
+        "https://testnet.rpc.fastnear.com",
+      ].filter(Boolean) as string[]
+    )
+  );
 
   const started = Date.now();
   try {
-    const near = await connect({
-      networkId,
-      nodeUrl,
-      keyStore: new keyStores.InMemoryKeyStore(),
-    });
-    const account = await near.account(guardId);
+    let accounts: string[] | null = null;
+    let viewAccount: any = null;
+    let usedRpcUrl = rpcUrls[0] || "https://test.rpc.fastnear.com";
+    let lastError: any = null;
+
+    for (const rpcUrl of rpcUrls) {
+      try {
+        const near = await connect({
+          networkId,
+          nodeUrl: rpcUrl,
+          keyStore: new keyStores.InMemoryKeyStore(),
+        });
+        const account = await near.account(guardId);
+        accounts = await account.viewFunction({
+          contractId: guardId,
+          methodName: "get_agents",
+          args: { owner },
+        });
+        viewAccount = account;
+        usedRpcUrl = rpcUrl;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`RPC ${rpcUrl} error in /api/agents: ${err.message}. Retrying with alternate provider...`);
+      }
+    }
+
+    if (!accounts || !viewAccount) {
+      throw lastError || new Error("Failed to query get_agents across all RPC providers");
+    }
 
     const view = (methodName: string, args: Record<string, unknown>) =>
-      account.viewFunction({ contractId: guardId, methodName, args });
-
-    const accounts: string[] = await view("get_agents", { owner });
+      viewAccount.viewFunction({ contractId: guardId, methodName, args });
 
     const agents: AgentRow[] = await Promise.all(
       accounts.map(async (agent) => {
@@ -112,7 +144,7 @@ export async function GET(req: Request) {
       owner,
       guardId,
       networkId,
-      nodeUrl,
+      nodeUrl: usedRpcUrl,
       contractVersion: version,
       rpcLatencyMs,
       fetchedAt: new Date().toISOString(),
