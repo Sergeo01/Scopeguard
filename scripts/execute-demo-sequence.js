@@ -477,7 +477,7 @@ async function main() {
   });
 
   // Post-suite cleanup: leave agent in pristine unpaused state with fresh budget
-  console.log("\n[Post-Suite Cleanup] Restoring fresh windows for future judge inspection...");
+  console.log("\n[Post-Suite Cleanup] Restoring fresh windows...");
   const finalReset = await ownerAccount.functionCall({
     contractId: GUARD_ID,
     methodName: "reset_windows",

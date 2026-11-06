@@ -20,7 +20,7 @@ const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
  * 2. Resets rolling spend and velocity windows to full capacity.
  * 3. Cancels any stale pending timelock actions.
  *
- * This provides reliable self-healing for evaluators and judges testing
+ * This provides reliable self-healing for testing
  * multiple attacks without needing manual command-line intervention.
  */
 export async function POST(req: Request) {

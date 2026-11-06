@@ -1,0 +1,19 @@
+{
+  "name": "scopeguard",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Smart contract guard rails and scoped function-call access keys for AI agents on NEAR Protocol",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "build:sdk": "npm --prefix sdk run build",
+    "build:contracts": "cargo check --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown",
+    "build:web": "npm --prefix web run build",
+    "test:contracts": "cargo test --manifest-path contracts/Cargo.toml",
+    "test:sdk": "npm test --prefix sdk",
+    "test:web": "npm test --prefix web",
+    "test:watcher": "npm test --prefix watcher",
+    "test:mcp": "npm test --prefix packages/ironclaw-mcp",
+    "test:eliza": "npm test --prefix packages/plugin-eliza",
+    "test": "node scripts/test-all.js"
+  }
+}
