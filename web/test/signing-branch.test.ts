@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert";
 import { KeyPair } from "near-api-js";
-import { POST as registerHandler } from "../app/api/register/route.ts";
+import { POST as registerHandler } from "../app/api/register/route";
 
 test("register-route: input validation rejects missing parameters", async () => {
   const req = new Request("https://scopeguard.blockframe.cloud/api/register", {

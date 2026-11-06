@@ -1,6 +1,6 @@
 # ScopeGuard Threat Model & Honest Limits
 
-This document details the threat landscape, trust boundaries, defensive guarantees, and honest operational limits of the ScopeGuard security architecture.
+This document details the threat landscape, trust boundaries, defensive properties, and honest operational limits of the ScopeGuard security architecture.
 
 ---
 

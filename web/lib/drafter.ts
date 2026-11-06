@@ -171,6 +171,8 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
     "nft_transfer_call",
     "mt_transfer",
     "mt_transfer_call",
+    "mt_batch_transfer",
+    "mt_batch_transfer_call",
     "storage_unregister",
     "storage_withdraw",
     "near_withdraw",
@@ -251,7 +253,7 @@ export function generatePlainEnglish(
     ? `Task lease expires at block timestamp ${policy.lease_expires_at}.`
     : "";
   const intentDesc = policy.intent_recipients && policy.intent_recipients.length > 0
-    ? `IntentShield protects cross-chain transfers to: ${policy.intent_recipients.join(", ")}.`
+    ? `IntentShield protects cross-chain transfers (targeting mock deposit contract, not real NEAR Intents) to: ${policy.intent_recipients.join(", ")}.`
     : "";
   const canaryDesc = policy.canary_methods && policy.canary_methods.length > 0
     ? `Canary tripwires active on: ${policy.canary_methods.join(", ")}.`

@@ -47,6 +47,7 @@ import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 import { IncidentExportModal } from "@/components/IncidentExportModal";
 import { BudgetVelocityGauge } from "@/components/BudgetVelocityGauge";
 import { WebhookAlertSettings } from "@/components/WebhookAlertSettings";
+import { PolicyEditorModal } from "@/components/PolicyEditorModal";
 
 interface ActivityItem {
   id: string;
@@ -194,10 +195,11 @@ export default function DashboardPage() {
   const [editCanaryMethods, setEditCanaryMethods] = useState<string>("");
   const [editMaxDrawdown, setEditMaxDrawdown] = useState<number | "">("");
   const [editIntentRecipients, setEditIntentRecipients] = useState<string>("");
+  const [editNearDailyCap, setEditNearDailyCap] = useState<string>("");
+  const [editNearHighValueThreshold, setEditNearHighValueThreshold] = useState<string>("");
   const [isSigningPolicy, setIsSigningPolicy] = useState(false);
   const [policyUpdateTxHash, setPolicyUpdateTxHash] = useState<string | null>(null);
   const [policyUpdateError, setPolicyUpdateError] = useState<string | null>(null);
-  const [copiedPolicyCmd, setCopiedPolicyCmd] = useState(false);
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -647,6 +649,14 @@ export default function DashboardPage() {
       ? policy.intent_recipients.join(", ")
       : intentRecipients.join(", ");
     setEditIntentRecipients(existingIntents);
+    const existingNearCap = policy?.near_daily_cap !== undefined && policy?.near_daily_cap !== null
+      ? String(policy.near_daily_cap)
+      : "";
+    setEditNearDailyCap(existingNearCap);
+    const existingNearThresh = policy?.near_high_value_threshold !== undefined && policy?.near_high_value_threshold !== null
+      ? String(policy.near_high_value_threshold)
+      : "";
+    setEditNearHighValueThreshold(existingNearThresh);
     setPolicyUpdateTxHash(null);
     setPolicyUpdateError(null);
     setIsEditPolicyOpen(true);
@@ -694,6 +704,8 @@ export default function DashboardPage() {
         lease_expires_at: leaseExpiresAt ? Number(leaseExpiresAt) : null,
         canary_methods: canaryList,
         intent_recipients: intentRecipientsList,
+        near_daily_cap: editNearDailyCap.trim() ? editNearDailyCap.trim() : null,
+        near_high_value_threshold: editNearHighValueThreshold.trim() ? editNearHighValueThreshold.trim() : null,
       };
 
       const action = transactions.functionCall(
@@ -1099,7 +1111,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-brand-blue" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                IntentShield: Cross-Chain Allowlist
+                IntentShield: Cross-Chain Allowlist (Mock Deposit)
               </h3>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
@@ -1108,7 +1120,7 @@ export default function DashboardPage() {
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains.
+            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains. IntentTransfer targets a mock deposit contract, not real NEAR Intents.
           </p>
 
           <div className="space-y-1.5 pt-1">
@@ -1321,7 +1333,7 @@ export default function DashboardPage() {
               num: 10,
               name: "IntentShield Cross-Chain Allowlist",
               code: "INTENT_RECIPIENT_NOT_ALLOWED",
-              desc: "Cross-chain Intent transfers are restricted to explicitly allowlisted destination recipient addresses.",
+              desc: "Cross-chain Intent transfers (targeting mock deposit contract, not real NEAR Intents) are restricted to explicitly allowlisted destination recipient addresses.",
               config: isInitialLoading
                 ? "Syncing..."
                 : intentRecipients.length > 0
@@ -1958,342 +1970,39 @@ export default function DashboardPage() {
       )}
 
       {/* Interactive Onchain Policy Editor Modal */}
-      {isEditPolicyOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsEditPolicyOpen(false);
-          }}
-        >
-          <div className="w-full max-w-xl rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-brand-blue" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Update Onchain Policy Rules
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsEditPolicyOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Reconfigures spending caps, velocity throttles, targets, and allowlisted recipients. Policy updates are staged onchain with a mandatory 60-second timelock delay via set_policy before taking effect.
-            </p>
-
-            {/* Daily Cap */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Daily Spending Cap ($ mUSD)</span>
-                <span className="text-[11px] font-mono text-mint-greenDark dark:text-mint-green font-bold">
-                  ${editDailyCap} Max
-                </span>
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  value={editDailyCap}
-                  onChange={(e) => setEditDailyCap(Math.max(1, Number(e.target.value)))}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[100, 250, 500, 1000, 2500].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setEditDailyCap(amt)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition cursor-pointer ${
-                      editDailyCap === amt
-                        ? "bg-brand-blue text-white border-brand-blue"
-                        : "bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-obsidian-700 hover:border-brand-blue"
-                    }`}
-                  >
-                    ${amt}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Velocity Throttle */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Velocity Throttle (Actions / 10 Minutes)</span>
-                <span className="text-[11px] font-mono text-brand-blue font-bold">
-                  {editVelocityMax} Actions Max
-                </span>
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={editVelocityMax}
-                  onChange={(e) => setEditVelocityMax(Math.max(1, Number(e.target.value)))}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[3, 5, 10, 20, 50].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setEditVelocityMax(v)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition cursor-pointer ${
-                      editVelocityMax === v
-                        ? "bg-brand-blue text-white border-brand-blue"
-                        : "bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-obsidian-700 hover:border-brand-blue"
-                    }`}
-                  >
-                    {v} actions
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Allowlisted Target Contracts */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Allowlisted Target Contracts</span>
-                <span className="text-[11px] text-slate-400">Comma-separated</span>
-              </label>
-              <input
-                type="text"
-                placeholder="sergeo-guard-dex.testnet, wrap.testnet"
-                value={editTargets}
-                onChange={(e) => setEditTargets(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-              />
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[
-                  { label: "Testnet DEX", contract: "sergeo-guard-dex.testnet" },
-                  { label: "Wrapped NEAR", contract: "wrap.testnet" },
-                  { label: "NEAR Intents", contract: "intents.near" },
-                ].map((item) => (
-                  <button
-                    key={item.contract}
-                    type="button"
-                    onClick={() => {
-                      const current = editTargets.split(",").map((s) => s.trim()).filter(Boolean);
-                      if (!current.includes(item.contract)) {
-                        setEditTargets([...current, item.contract].join(", "));
-                      }
-                    }}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-700 hover:border-brand-blue transition cursor-pointer"
-                  >
-                    + {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Allowlisted Recipient Accounts */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Destination Recipient Allowlist</span>
-                <span className="text-[11px] text-slate-400">Leave empty to forbid external transfers</span>
-              </label>
-              <input
-                type="text"
-                placeholder="alice.testnet, sergeo-guard.testnet"
-                value={editRecipients}
-                onChange={(e) => setEditRecipients(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-              />
-            </div>
-
-            {/* Canary Decoy Honeypot Methods */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Honeypot Decoy Tripwire Methods</span>
-                <span className="text-[11px] text-rose-500 font-mono font-medium">Auto-Pause Lockout</span>
-              </label>
-              <input
-                type="text"
-                placeholder="drain_vault, emergency_withdraw_all, admin_drain"
-                value={editCanaryMethods}
-                onChange={(e) => setEditCanaryMethods(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-              />
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {["drain_vault", "emergency_withdraw_all", "admin_drain"].map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      const cur = editCanaryMethods.split(",").map((s) => s.trim()).filter(Boolean);
-                      if (!cur.includes(m)) {
-                        setEditCanaryMethods([...cur, m].join(", "));
-                      }
-                    }}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:border-rose-500 transition cursor-pointer"
-                  >
-                    + {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Max Portfolio Drawdown Floor */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Max Portfolio Drawdown Floor (%)</span>
-                <span className="text-[11px] font-mono text-brand-blue font-bold">
-                  {typeof editMaxDrawdown === "number" && editMaxDrawdown > 0 ? `${editMaxDrawdown}% Floor` : "None"}
-                </span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                placeholder="20 (means 20% max loss from high-water mark)"
-                value={editMaxDrawdown}
-                onChange={(e) => setEditMaxDrawdown(e.target.value === "" ? "" : Number(e.target.value))}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-              />
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[10, 15, 20, 25].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => setEditMaxDrawdown(pct)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition cursor-pointer ${
-                      editMaxDrawdown === pct
-                        ? "bg-brand-blue text-white border-brand-blue"
-                        : "bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-obsidian-700 hover:border-brand-blue"
-                    }`}
-                  >
-                    {pct}% Max Loss
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setEditMaxDrawdown("")}
-                  className="px-2 py-1 rounded-md text-[10px] font-mono text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            {/* IntentShield Cross-Chain Allowlist */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>IntentShield Cross-Chain Allowlist</span>
-                <span className="text-[11px] text-slate-400">Comma-separated EVM/Solana addresses</span>
-              </label>
-              <input
-                type="text"
-                placeholder="0x1111111111111111111111111111111111111111"
-                value={editIntentRecipients}
-                onChange={(e) => setEditIntentRecipients(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="pt-2 space-y-2">
-              {isWalletConnected ? (
-                <button
-                  type="button"
-                  onClick={handleSavePolicyOnchain}
-                  disabled={isSigningPolicy}
-                  className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
-                >
-                  {isSigningPolicy ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Broadcasting set_policy to NEAR...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>Sign &amp; Stage Policy on NEAR ({connectedWalletId})</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (openAuthModal) openAuthModal();
-                  }}
-                  className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>Connect Owner Wallet to Sign on NEAR</span>
-                </button>
-              )}
-
-              {policyUpdateTxHash && (
-                <div className="p-3 rounded-lg bg-mint-green/10 border border-mint-green/20 text-center space-y-1">
-                  <p className="text-xs font-semibold text-mint-greenDark dark:text-mint-green">
-                    Policy update staged on NEAR! Timelock countdown initiated.
-                  </p>
-                  <p className="text-[11px] font-mono text-slate-500">
-                    Tx: {policyUpdateTxHash}
-                  </p>
-                </div>
-              )}
-
-              {policyUpdateError && (
-                <p className="text-xs font-mono text-center text-rose-500">
-                  {policyUpdateError}
-                </p>
-              )}
-            </div>
-
-            {/* CLI Fallback */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-obsidian-800">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span>Or run in terminal:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetsList = editTargets.split(",").map((s) => s.trim()).filter(Boolean);
-                    const targetsObj: Record<string, string[]> = {};
-                    for (const t of targetsList) targetsObj[t] = ["swap", "ft_transfer_call"];
-                    const recList = editRecipients.split(",").map((s) => s.trim()).filter(Boolean);
-                    const canaryList = editCanaryMethods.split(",").map((s) => s.trim()).filter(Boolean);
-                    const intentList = editIntentRecipients.split(",").map((s) => s.trim()).filter(Boolean);
-                    const pol = {
-                      token: policy?.token || "sergeo-guard-token.testnet",
-                      targets: Object.keys(targetsObj).length > 0 ? targetsObj : { "sergeo-guard-dex.testnet": ["swap"] },
-                      daily_cap: String(editDailyCap),
-                      recipients: recList,
-                      max_actions_per_10min: Number(editVelocityMax),
-                      auto_pause_rejects: 3,
-                      auto_pause_window_minutes: 10,
-                      high_value_threshold: "250",
-                      high_value_delay_seconds: 60,
-                      policy_change_delay_seconds: 60,
-                      max_drawdown_bps: typeof editMaxDrawdown === "number" && editMaxDrawdown > 0 ? Math.round(editMaxDrawdown * 100) : null,
-                      canary_methods: canaryList,
-                      intent_recipients: intentList,
-                    };
-                    const cmd = `near call ${guardId} set_policy '{"agent_account":"${agentId}","policy":${JSON.stringify(pol)}}' --accountId ${connectedWalletId || ownerId} --gas 100000000000000`;
-                    navigator.clipboard.writeText(cmd);
-                    setCopiedPolicyCmd(true);
-                    setTimeout(() => setCopiedPolicyCmd(false), 2000);
-                  }}
-                  className="inline-flex items-center gap-1 text-brand-blue font-medium cursor-pointer"
-                >
-                  {copiedPolicyCmd ? <Check className="w-3 h-3 text-mint-green" /> : <Copy className="w-3 h-3" />}
-                  <span>{copiedPolicyCmd ? "Copied" : "Copy Command"}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PolicyEditorModal
+        isOpen={isEditPolicyOpen}
+        onClose={() => setIsEditPolicyOpen(false)}
+        editDailyCap={editDailyCap}
+        setEditDailyCap={setEditDailyCap}
+        editVelocityMax={editVelocityMax}
+        setEditVelocityMax={setEditVelocityMax}
+        editTargets={editTargets}
+        setEditTargets={setEditTargets}
+        editRecipients={editRecipients}
+        setEditRecipients={setEditRecipients}
+        editCanaryMethods={editCanaryMethods}
+        setEditCanaryMethods={setEditCanaryMethods}
+        editMaxDrawdown={editMaxDrawdown}
+        setEditMaxDrawdown={setEditMaxDrawdown}
+        editIntentRecipients={editIntentRecipients}
+        setEditIntentRecipients={setEditIntentRecipients}
+        editNearDailyCap={editNearDailyCap}
+        setEditNearDailyCap={setEditNearDailyCap}
+        editNearHighValueThreshold={editNearHighValueThreshold}
+        setEditNearHighValueThreshold={setEditNearHighValueThreshold}
+        isWalletConnected={isWalletConnected}
+        connectedWalletId={connectedWalletId}
+        ownerId={ownerId}
+        agentId={agentId}
+        guardId={guardId}
+        policy={policy}
+        handleSavePolicyOnchain={handleSavePolicyOnchain}
+        isSigningPolicy={isSigningPolicy}
+        policyUpdateTxHash={policyUpdateTxHash}
+        policyUpdateError={policyUpdateError}
+        openAuthModal={openAuthModal}
+      />
 
       {/* Policy Provenance & Incident Export Modal */}
       <IncidentExportModal

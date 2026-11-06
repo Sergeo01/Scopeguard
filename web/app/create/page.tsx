@@ -67,6 +67,8 @@ export default function CreateAgentPage() {
   const [canaryMethodsInput, setCanaryMethodsInput] = useState<string>(
     "drain_vault, admin_transfer, emergency_withdraw"
   );
+  const [nearDailyCap, setNearDailyCap] = useState<string>("");
+  const [nearHighValueThreshold, setNearHighValueThreshold] = useState<string>("");
 
   const [activeView, setActiveView] = useState<"visual" | "json">("visual");
   const [isDeploying, setIsDeploying] = useState(false);
@@ -188,6 +190,8 @@ export default function CreateAgentPage() {
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s.length > 0),
+    near_daily_cap: nearDailyCap.trim() ? nearDailyCap.trim() : null,
+    near_high_value_threshold: nearHighValueThreshold.trim() ? nearHighValueThreshold.trim() : null,
   };
 
   const policyValidationErrors = validatePolicyShape(compiledPolicyJson);
@@ -954,7 +958,7 @@ export default function CreateAgentPage() {
                 <div className="flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-brand-blue" />
                   <span className="font-semibold text-slate-900 dark:text-white">
-                    IntentShield: Cross-Chain Destination Allowlist
+                    IntentShield: Cross-Chain Destination Allowlist (Mock Deposit)
                   </span>
                 </div>
                 <input
@@ -967,7 +971,7 @@ export default function CreateAgentPage() {
                   className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                  Comma-separated destination addresses for NEAR Intents transfers. Unlisted destinations are rejected onchain.
+                  Comma-separated destination addresses for IntentTransfer actions (targets mock deposit contract, not real NEAR Intents). Unlisted destinations are rejected onchain.
                 </span>
               </div>
 
@@ -1121,10 +1125,10 @@ export default function CreateAgentPage() {
                     </div>
                   </div>
 
-                  {/* Policy Guarantees */}
+                  {/* Policy Invariants */}
                   <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs text-slate-700 dark:text-slate-300">
                     <span className="font-bold text-slate-900 dark:text-white block mb-1">
-                      Enforceable Guarantees
+                      Enforceable Invariants
                     </span>
                     <div className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />

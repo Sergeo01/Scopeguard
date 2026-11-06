@@ -23,10 +23,10 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                FORMAL SAFETY GUARANTEE
+                LOSS BOUND
               </span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Mathematical Bound
+                Enforced Bound
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
@@ -46,7 +46,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
       {/* Primary Explicit Invariant Statement */}
       <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50">
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-          Without any human intervention, the maximum theoretical loss is mathematically bounded at the daily cap (${dailyCap} mUSD) because all high-value actions are held in timelock quarantine requiring explicit owner settlement.
+          Without human intervention, the maximum loss is bounded by min(vault balance, rolling 24h cap) per asset because all high-value actions enter timelock quarantine requiring explicit owner settlement.
         </p>
       </div>
 
@@ -76,7 +76,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
           </div>
         </div>
 
-        {/* With ScopeGuard (Mathematically Bounded) */}
+        {/* With ScopeGuard (Enforced Bound) */}
         <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-2">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">

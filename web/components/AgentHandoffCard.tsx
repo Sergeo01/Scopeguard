@@ -480,7 +480,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
                   Conversational Agent Instructions
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Paste this prompt into your LLM agent chat (Antigravity, Cursor, Codex, Claude, ChatGPT).
+                  Paste this prompt into your LLM agent chat (Cursor, Claude, ChatGPT).
                 </p>
               </div>
 

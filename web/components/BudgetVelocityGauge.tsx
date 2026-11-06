@@ -244,9 +244,9 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="IntentTransfer targets mock deposit contract, not real NEAR Intents">
             <Shield className="w-3.5 h-3.5 text-brand-blue" />
-            <span className="text-slate-600 dark:text-slate-400">IntentShield:</span>
+            <span className="text-slate-600 dark:text-slate-400">IntentShield (Mock):</span>
             <span className="font-mono font-semibold text-slate-900 dark:text-white">
               {intentRecipientsCount > 0 ? `${intentRecipientsCount} allowlisted` : "Restricted"}
             </span>

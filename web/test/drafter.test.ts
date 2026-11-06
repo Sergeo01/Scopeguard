@@ -7,7 +7,7 @@ import {
   generatePlainEnglish,
   draftPolicyFromText,
   DrafterPolicy,
-} from "../lib/drafter.ts";
+} from "../lib/drafter";
 
 test("drafter: validatePolicyShape accepts valid policies and rejects malformed ones", () => {
   const validPolicy: DrafterPolicy = {
@@ -107,7 +107,7 @@ test("drafter: lintPolicy flags value-moving denylist methods and validatePolicy
   const denylistPolicy: DrafterPolicy = {
     token: "sergeo-guard-token.testnet",
     targets: {
-      "sergeo-guard-dex.testnet": ["swap", "ft_transfer", "near_withdraw", "storage_withdraw"],
+      "sergeo-guard-dex.testnet": ["swap", "ft_transfer", "near_withdraw", "storage_withdraw", "mt_batch_transfer"],
     },
     daily_cap: 100,
     recipients: [],
@@ -123,10 +123,11 @@ test("drafter: lintPolicy flags value-moving denylist methods and validatePolicy
 
   const warnings = lintPolicy(denylistPolicy);
   const targetWarnings = warnings.filter((w) => w.field === "targets" && w.severity === "danger");
-  assert.ok(targetWarnings.length >= 3);
+  assert.ok(targetWarnings.length >= 4);
   assert.ok(targetWarnings.some((w) => w.message.includes("ft_transfer")));
   assert.ok(targetWarnings.some((w) => w.message.includes("near_withdraw")));
   assert.ok(targetWarnings.some((w) => w.message.includes("storage_withdraw")));
+  assert.ok(targetWarnings.some((w) => w.message.includes("mt_batch_transfer")));
 
   assert.deepStrictEqual(validatePolicyShape(denylistPolicy), []);
 

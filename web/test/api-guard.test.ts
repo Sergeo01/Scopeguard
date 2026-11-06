@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert";
-import { isSameOrigin, serverSigningEnabled, agentSigningEnabled, guardSigningRequest } from "../lib/api-guard.ts";
+import { isSameOrigin, serverSigningEnabled, agentSigningEnabled, guardSigningRequest } from "../lib/api-guard";
 
 test("api-guard: isSameOrigin validates origin and host headers", () => {
   // Same origin passes

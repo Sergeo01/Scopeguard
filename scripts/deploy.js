@@ -114,7 +114,7 @@ async function main() {
     console.log("Contract may already be initialized:", err.message);
   }
 
-  // 4. Register Agent on guard with v0.4.0 Hardened Policy
+  // 4. Register Agent on guard with v0.4.0 Policy
   console.log("\nRegistering agent with v0.4.0 policy (rolling window, independent NEAR budget)...");
   const nearDailyCap = utils.format.parseNearAmount("5"); // 5 NEAR in yoctoNEAR
   const nearHighValueThreshold = utils.format.parseNearAmount("1"); // 1 NEAR in yoctoNEAR

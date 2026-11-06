@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert";
-import { GET as txHandler } from "../app/api/tx/route.ts";
+import { GET as txHandler } from "../app/api/tx/route";
 import { NextRequest } from "next/server";
 
 test("tx-route: rejects missing hash parameter with 400", async () => {

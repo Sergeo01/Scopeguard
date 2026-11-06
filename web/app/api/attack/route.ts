@@ -1,8 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
 import { isSameOrigin } from "@/lib/api-guard";
@@ -13,12 +11,33 @@ const attackTimestamps: number[] = [];
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_ATTACKS_PER_WINDOW = 12;
 
+export function resetAttackThrottles() {
+  lastAttackTimestamp = 0;
+  isAttackInProgress = false;
+  attackTimestamps.length = 0;
+}
+
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
     return NextResponse.json(
       { success: false, error: "Cross-origin request rejected." },
       { status: 403 }
     );
+  }
+
+  // Non-browser caller check: require shared secret if configured
+  const origin = req.headers.get("origin");
+  const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  if (!origin && sharedSecret) {
+    const authHeader = req.headers.get("authorization") || "";
+    const customHeader = req.headers.get("x-scopeguard-secret") || "";
+    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (customHeader !== sharedSecret && bearer !== sharedSecret) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Missing or invalid shared secret." },
+        { status: 401 }
+      );
+    }
   }
 
   if (isAttackInProgress) {
@@ -111,36 +130,27 @@ export async function POST(req: Request) {
     if (!method) method = "swap";
     if (!amount) amount = "0";
 
-    let cred: any = null;
-    const rootPath = fs.existsSync(path.join(process.cwd(), "demo-agent"))
-      ? process.cwd()
-      : path.join(process.cwd(), "..");
-    const credPath = path.join(rootPath, "demo-agent", "credentials", "agent.json");
-
-    // Standardized environment variables with seamless fallbacks
     const envAgentKey = process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || process.env.AGENT_PRIVATE_KEY;
     const envAgentAccount = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID;
 
-    if (envAgentKey && envAgentAccount) {
-      cred = {
-        agentAccountId: envAgentAccount,
-        policyContractId: process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet",
-        publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
-        privateKey: envAgentKey,
-        networkId: process.env.NEAR_NETWORK || "testnet",
-        nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
-      };
-    } else if (fs.existsSync(credPath)) {
-      cred = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-    } else {
+    if (!envAgentKey || !envAgentAccount) {
       return NextResponse.json({
         success: false,
-        error: "Agent credentials not found on server. Set SCOPEGUARD_AGENT_PRIVATE_KEY and SCOPEGUARD_AGENT_ACCOUNT.",
+        error: "Agent credentials not found in environment. Set SCOPEGUARD_AGENT_PRIVATE_KEY and SCOPEGUARD_AGENT_ACCOUNT.",
       }, { status: 500 });
     }
 
+    const cred = {
+      agentAccountId: envAgentAccount,
+      policyContractId: process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet",
+      publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
+      privateKey: envAgentKey,
+      networkId: process.env.NEAR_NETWORK || "testnet",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
+    };
+
     const keyStore = new keyStores.InMemoryKeyStore();
-    await keyStore.setKey(cred.networkId || "testnet", cred.agentAccountId, KeyPair.fromString(cred.privateKey));
+    await keyStore.setKey(cred.networkId || "testnet", cred.agentAccountId, KeyPair.fromString(cred.privateKey as any));
 
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});

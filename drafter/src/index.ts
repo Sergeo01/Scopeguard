@@ -3,16 +3,16 @@ import Ajv, { JSONSchemaType } from "ajv";
 export interface DrafterPolicy {
   token: string;
   targets: Record<string, string[]>;
-  daily_cap: number;
+  daily_cap: number | string;
   recipients: string[];
   max_actions_per_10min: number;
   auto_pause_rejects: number;
   auto_pause_window_minutes: number;
-  high_value_threshold: number;
+  high_value_threshold: number | string;
   high_value_delay_seconds: number;
   policy_change_delay_seconds: number;
-  near_daily_cap?: number | null;
-  near_high_value_threshold?: number | null;
+  near_daily_cap?: number | string | null;
+  near_high_value_threshold?: number | string | null;
 }
 
 export interface LintWarning {
@@ -30,7 +30,7 @@ export interface DraftResult {
 
 const ajv = new Ajv();
 
-const policySchema: JSONSchemaType<DrafterPolicy> = {
+const policySchema = {
   type: "object",
   properties: {
     token: { type: "string" },
@@ -42,7 +42,12 @@ const policySchema: JSONSchemaType<DrafterPolicy> = {
         items: { type: "string" },
       },
     },
-    daily_cap: { type: "integer", minimum: 1 },
+    daily_cap: {
+      anyOf: [
+        { type: "integer", minimum: 1 },
+        { type: "string", pattern: "^[1-9][0-9]*$" },
+      ],
+    },
     recipients: {
       type: "array",
       items: { type: "string" },
@@ -50,11 +55,28 @@ const policySchema: JSONSchemaType<DrafterPolicy> = {
     max_actions_per_10min: { type: "integer", minimum: 1, maximum: 100 },
     auto_pause_rejects: { type: "integer", minimum: 1, maximum: 50 },
     auto_pause_window_minutes: { type: "integer", minimum: 1, maximum: 1440 },
-    high_value_threshold: { type: "integer", minimum: 0 },
+    high_value_threshold: {
+      anyOf: [
+        { type: "integer", minimum: 0 },
+        { type: "string", pattern: "^[0-9]+$" },
+      ],
+    },
     high_value_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
     policy_change_delay_seconds: { type: "integer", minimum: 1, maximum: 604800 },
-    near_daily_cap: { type: "integer", nullable: true },
-    near_high_value_threshold: { type: "integer", nullable: true },
+    near_daily_cap: {
+      anyOf: [
+        { type: "integer", minimum: 0 },
+        { type: "string", pattern: "^[0-9]+$" },
+        { type: "null" },
+      ],
+    },
+    near_high_value_threshold: {
+      anyOf: [
+        { type: "integer", minimum: 0 },
+        { type: "string", pattern: "^[0-9]+$" },
+        { type: "null" },
+      ],
+    },
   },
   required: [
     "token",
@@ -114,6 +136,8 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
     "nft_transfer_call",
     "mt_transfer",
     "mt_transfer_call",
+    "mt_batch_transfer",
+    "mt_batch_transfer_call",
     "storage_unregister",
     "storage_withdraw",
     "near_withdraw",

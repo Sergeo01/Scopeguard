@@ -401,7 +401,7 @@ const receipt = await act(cred, {
               The 14 Sequential Defense Rules
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Every invocation of execute evaluates the policy in this exact, immutable order. The order is mathematically determined to prevent state poisoning and bypass attempts:
+              Every invocation of execute evaluates the policy in this exact, immutable order. The order is strictly designed to prevent state poisoning and bypass attempts:
             </p>
 
             <div className="space-y-3">
@@ -415,7 +415,7 @@ const receipt = await act(cred, {
                 { num: "07", name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", desc: "Target method must be explicitly permitted. Direct transfers must use typed Transfer actions." },
                 { num: "08", name: "Daily Spending Cap", code: "OVER_DAILY_CAP", desc: "Total spend in the rolling 24-hour window plus requested amount must not exceed daily_spend_cap." },
                 { num: "09", name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", desc: "If funds transfer to an account, recipient must be on the allowlist. Empty list forbids transfers." },
-                { num: "10", name: "IntentShield Cross-Chain Allowlist", code: "INTENT_RECIPIENT_NOT_ALLOWED", desc: "Cross-chain Intent transfers are restricted to explicitly allowlisted destination recipient addresses." },
+                { num: "10", name: "IntentShield Cross-Chain Allowlist", code: "INTENT_RECIPIENT_NOT_ALLOWED", desc: "Cross-chain Intent transfers (targeting mock deposit contract on testnet) are restricted to explicitly allowlisted destination recipient addresses." },
                 { num: "11", name: "Net Drawdown Floor Breaker", code: "DRAWDOWN_EXCEEDED", desc: "Halts execution if vault balance drops below the configured floor percentage of peak high-water mark." },
                 { num: "12", name: "Timelock Quarantine", code: "PENDING", desc: "Transfers at or above high_value_threshold wait in timelock queue for owner settlement. Not a rejection." },
                 { num: "13", name: "Vault Balance Solvency", code: "INSUFFICIENT_VAULT_BALANCE", desc: "Transfer amount cannot exceed the agent active working vault balance." },
