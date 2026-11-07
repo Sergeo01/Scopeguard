@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert";
 
-process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "test-policy-contract.testnet";
 
 import { POST } from "../app/api/demo/reset/route";
 import { resetRateLimits } from "../lib/api-guard";
@@ -158,7 +158,7 @@ test("demo-reset route: recordActivity logs reset operations to the activity led
       id: testId,
       timestamp: Date.now(),
       agent: "agent.sergeo-guard.testnet",
-      target: "guard2.sergeo-guard.testnet",
+      target: "test-policy-contract.testnet",
       method: "reset_windows",
       type: "RESET",
       reason: "Self-healing circuit breaker reset",

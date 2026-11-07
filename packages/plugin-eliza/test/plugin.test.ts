@@ -15,7 +15,7 @@ import {
 
 const mockCredential = {
   agentAccountId: "agent.sergeo-guard.testnet",
-  policyContractId: "guard2.sergeo-guard.testnet",
+  policyContractId: "test-policy-contract.testnet",
   privateKey: "ed25519:3D5qZ9u8zF6G7H8J9K0L1M2N3P4Q5R6S7T8U9V0W1X2Y3Z4A5B6C7D8E9F0G1H2J",
   publicKey: "ed25519:4w5e6r7t8y9u0i1o2p3a4s5d6f7g8h9j0k1l2z3x4c5v",
   networkId: "testnet" as const,
@@ -53,7 +53,7 @@ describe("ScopeGuard ElizaOS Plugin", () => {
     });
     const cred = resolveScopeGuardCredential(runtime);
     assert.equal(cred.agentAccountId, "agent.sergeo-guard.testnet");
-    assert.equal(cred.policyContractId, "guard2.sergeo-guard.testnet");
+    assert.equal(cred.policyContractId, "test-policy-contract.testnet");
   });
 
   it("throws clear error when credential is missing", () => {

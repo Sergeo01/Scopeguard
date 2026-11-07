@@ -21,7 +21,7 @@ export interface ActivityItem {
   reason?: string;
 }
 
-// 100% verified NEAR testnet transactions executed on guard2.sergeo-guard.testnet
+// Recorded NEAR testnet transactions executed during testnet trials
 const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
   {
     id: "act-onchain-auto-pause",

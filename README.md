@@ -62,7 +62,7 @@ To run the local web studio console:
    cp web/.env.local.example web/.env.local
    ```
 2. Set the policy contract ID in `web/.env.local`:
-   - `NEXT_PUBLIC_POLICY_CONTRACT_ID`: The canonical public variable inlined into client browser bundles (e.g. `guard2.sergeo-guard.testnet`).
+   - `NEXT_PUBLIC_POLICY_CONTRACT_ID`: The canonical public variable inlined into client browser bundles (e.g. `YOUR_POLICY_CONTRACT.testnet`).
    - `SCOPEGUARD_POLICY_CONTRACT`: The canonical variable for server-side API routes and CLI operations.
 3. Start the Next.js development server:
    ```bash

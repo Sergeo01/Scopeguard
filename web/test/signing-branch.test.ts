@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert";
 import { KeyPair } from "near-api-js";
 
-process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "test-policy-contract.testnet";
 
 import { POST as registerHandler } from "../app/api/register/route";
 
@@ -76,7 +76,7 @@ test("register-route: default disabled mode safely yields fallback CLI command",
     const data = await res.json();
     assert.strictEqual(data.success, false);
     assert.strictEqual(data.requiresOwnerSignature, true);
-    assert.ok(data.command.includes("near call guard2.sergeo-guard.testnet register_agent"));
+    assert.ok(data.command.includes("near call test-policy-contract.testnet register_agent"));
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
   }

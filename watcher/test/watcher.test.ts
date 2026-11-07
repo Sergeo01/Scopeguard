@@ -185,7 +185,7 @@ describe("ScopeGuard Watcher: Lifecycle", () => {
   it("initializes with valid config and controls running flag", () => {
     const watcher = new ScopeGuardWatcher({
       rpcUrl: "https://test.rpc.fastnear.com",
-      policyContractId: "guard2.sergeo-guard.testnet",
+      policyContractId: "test-policy-contract.testnet",
       pollIntervalMs: 1000,
     });
     assert.ok(watcher);

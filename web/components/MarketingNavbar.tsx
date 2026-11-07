@@ -93,7 +93,7 @@ export const MarketingNavbar: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 transition"
             >
               <span className="w-2 h-2 rounded-full bg-mint-green inline-block" />
-              <span className="text-slate-500 dark:text-slate-400">guard2.sergeo...</span>
+              <span className="text-slate-500 dark:text-slate-400">{contractId ? `${contractId.slice(0, 14)}...` : "guard contract"}</span>
               {copied ? (
                 <Check className="w-3 h-3 text-mint-green" />
               ) : (

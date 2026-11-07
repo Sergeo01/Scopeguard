@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  SCOPEGUARD_POLICY_CONTRACT: guard2.sergeo-guard.testnet
-  NEXT_PUBLIC_POLICY_CONTRACT_ID: guard2.sergeo-guard.testnet
+  SCOPEGUARD_POLICY_CONTRACT: ci-placeholder.testnet
+  NEXT_PUBLIC_POLICY_CONTRACT_ID: ci-placeholder.testnet
 
 jobs:
   contracts:
@@ -69,7 +69,7 @@ jobs:
       - name: Build Web application
         run: npm run build --prefix web
         env:
-          NEXT_PUBLIC_POLICY_CONTRACT_ID: guard2.sergeo-guard.testnet
+          NEXT_PUBLIC_POLICY_CONTRACT_ID: ci-placeholder.testnet
           NEXT_PUBLIC_OWNER_ACCOUNT_ID: sergeo-guard.testnet
           NEXT_PUBLIC_TOKEN_CONTRACT: sergeo-guard-token.testnet
           NEXT_PUBLIC_DEX_CONTRACT: sergeo-guard-dex.testnet

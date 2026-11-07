@@ -720,7 +720,7 @@ if !is_promise_success() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleCopy(`{\n  "mcpServers": {\n    "scopeguard": {\n      "command": "node",\n      "args": ["path/to/scopeguard/mcp-server/build/index.js"],\n      "env": {\n        "NEAR_NETWORK": "testnet",\n        "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"\n      }\n    }\n  }\n}`, "mcp-config")}
+                    onClick={() => handleCopy(`{\n  "mcpServers": {\n    "scopeguard": {\n      "command": "node",\n      "args": ["path/to/scopeguard/mcp-server/build/index.js"],\n      "env": {\n        "NEAR_NETWORK": "testnet",\n        "SCOPEGUARD_POLICY_CONTRACT": "YOUR_POLICY_CONTRACT.testnet"\n      }\n    }\n  }\n}`, "mcp-config")}
                     className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                   >
                     {copiedCode === "mcp-config" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -735,7 +735,7 @@ if !is_promise_success() {
       "args": ["path/to/scopeguard/mcp-server/build/index.js"],
       "env": {
         "NEAR_NETWORK": "testnet",
-        "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"
+        "SCOPEGUARD_POLICY_CONTRACT": "YOUR_POLICY_CONTRACT.testnet"
       }
     }
   }
@@ -754,7 +754,7 @@ if !is_promise_success() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleCopy(`{\n  "name": "ScopeGuard Secure Trading Agent",\n  "plugins": ["@scopeguard/plugin-elizaos"],\n  "settings": {\n    "secrets": {\n      "SCOPEGUARD_ACCOUNT_ID": "agent.sergeo-guard.testnet",\n      "SCOPEGUARD_PRIVATE_KEY": "ed25519:...",\n      "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"\n    }\n  }\n}`, "eliza-config")}
+                    onClick={() => handleCopy(`{\n  "name": "ScopeGuard Secure Trading Agent",\n  "plugins": ["@scopeguard/plugin-elizaos"],\n  "settings": {\n    "secrets": {\n      "SCOPEGUARD_ACCOUNT_ID": "agent.sergeo-guard.testnet",\n      "SCOPEGUARD_PRIVATE_KEY": "ed25519:...",\n      "SCOPEGUARD_POLICY_CONTRACT": "YOUR_POLICY_CONTRACT.testnet"\n    }\n  }\n}`, "eliza-config")}
                     className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                   >
                     {copiedCode === "eliza-config" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -769,7 +769,7 @@ if !is_promise_success() {
     "secrets": {
       "SCOPEGUARD_ACCOUNT_ID": "agent.sergeo-guard.testnet",
       "SCOPEGUARD_PRIVATE_KEY": "ed25519:...",
-      "SCOPEGUARD_POLICY_CONTRACT": "guard2.sergeo-guard.testnet"
+      "SCOPEGUARD_POLICY_CONTRACT": "YOUR_POLICY_CONTRACT.testnet"
     }
   }
 }`}
