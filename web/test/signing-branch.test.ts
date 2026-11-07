@@ -76,7 +76,8 @@ test("register-route: default disabled mode safely yields fallback CLI command",
     const data = await res.json();
     assert.strictEqual(data.success, false);
     assert.strictEqual(data.requiresOwnerSignature, true);
-    assert.ok(data.command.includes("near call test-policy-contract.testnet register_agent"));
+    const expectedContract = process.env.SCOPEGUARD_POLICY_CONTRACT || "test-policy-contract.testnet";
+    assert.ok(data.command.includes(`near call ${expectedContract} register_agent`));
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
   }
