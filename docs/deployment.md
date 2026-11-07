@@ -259,6 +259,26 @@ For web endpoints executing owner transactions (`/api/register`, `/api/fund`, `/
 - `SCOPEGUARD_SHARED_SECRET`: Required whenever `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`. Verified against incoming headers via timing-safe comparison (`crypto.timingSafeEqual`).
 - **Fail-Closed Guarantee:** If `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` but `SCOPEGUARD_SHARED_SECRET` is unset, the endpoints fail closed with HTTP status 500.
 
+In any production or public deployment, both `SCOPEGUARD_ALLOW_SERVER_SIGNING` and `SCOPEGUARD_SHARED_SECRET` must remain unset. The browser UI sends no shared secret, and the attack demonstration route operates strictly via the restricted agent key. Leaving these variables unset guarantees that no server routes can execute owner-level transactions.
+
+### Nginx Reverse Proxy Configuration
+
+When deploying the web studio behind an Nginx reverse proxy, configure the location block as follows:
+
+```nginx
+location / {
+    proxy_pass http://localhost:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+#### Why `proxy_set_header X-Forwarded-For $remote_addr;`
+
+We explicitly set `proxy_set_header X-Forwarded-For $remote_addr;` instead of `$proxy_add_x_forwarded_for`. Using `$proxy_add_x_forwarded_for` appends incoming client-supplied headers, allowing an attacker to spoof arbitrary client IP addresses or rotate them to bypass rate limits. By setting `X-Forwarded-For` strictly to `$remote_addr`, the trusted reverse proxy overwrites any client-supplied spoofed headers with the real client IP address seen at the network layer.
+
 ---
 
 ## 6. End-to-End Testnet Verification

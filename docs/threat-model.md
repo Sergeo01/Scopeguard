@@ -63,3 +63,23 @@ Transparency regarding boundaries is a core engineering principle:
 
 4. **Testnet Operation & Mock Contracts:**
    The current deployment operates on NEAR Testnet using a mock token (mUSD), a mock DEX, and a mock intent deposit contract. Real mainnet deployments will target canonical production tokens and live intent solvers.
+
+---
+
+## 4. Policy Contract Account Key Management & Immutability
+
+The policy contract account holds the custody tokens and NEAR balances deposited into internal agent vaults. Under NEAR Protocol rules, any full-access key on the contract account can redeploy the contract code via DeployContract action or execute arbitrary calls, enabling an attacker who gains that key to take custody tokens.
+
+### Mitigation: Lock Contract Account via Full-Access Key Deletion
+
+To eliminate this vector, operators should lock the policy contract account immediately following deployment by deleting its full-access keys. Once locked, contract bytecode cannot be overwritten, and custody funds can only move according to the immutable onchain rules.
+
+To delete the full-access key on NEAR Testnet, run the following NEAR CLI commands:
+
+```bash
+# 1. View keys on the contract account to identify the full-access public key
+near keys <POLICY_CONTRACT_ID> --networkId testnet
+
+# 2. Delete the full-access key to lock the contract account permanently
+near delete-key <POLICY_CONTRACT_ID> <FULL_ACCESS_PUBLIC_KEY> --networkId testnet
+```
