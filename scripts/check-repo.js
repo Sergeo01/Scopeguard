@@ -14,18 +14,19 @@ function fail(msg) {
 }
 
 // ---------------------------------------------------------------------------
-// Check A: No tracked files contain "guard2.sergeo-guard.testnet"
+// Check A: No tracked files contain legacy hardcoded contract ID
 // (except web/data/activity-ledger.json which holds real historical entries)
 // ---------------------------------------------------------------------------
-console.log("Checking A: No tracked files contain 'guard2.sergeo-guard.testnet' (except ledger)...");
+const legacyContract = ["guard2", "sergeo-guard", "testnet"].join(".");
+console.log(`Checking A: No tracked files contain '${legacyContract}' (except ledger)...`);
 try {
-  const stdout = execSync('git grep -n "guard2.sergeo-guard.testnet" -- . ":!web/data/activity-ledger.json"', {
+  const stdout = execSync(`git grep -n "${legacyContract}" -- . ":!web/data/activity-ledger.json" ":!scripts/check-repo.js"`, {
     cwd: rootDir,
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
   });
   if (stdout.trim().length > 0) {
-    fail("Check A: Found 'guard2.sergeo-guard.testnet' in tracked files:\n" + stdout.trim());
+    fail(`Check A: Found '${legacyContract}' in tracked files:\n` + stdout.trim());
   }
 } catch (err) {
   if (err.status !== 1) {
