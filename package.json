@@ -5,6 +5,7 @@
   "description": "Smart contract guard rails and scoped function-call access keys for AI agents on NEAR Protocol",
   "scripts": {
     "setup": "node scripts/setup.js",
+    "check": "node scripts/check-repo.js",
     "build:sdk": "npm --prefix sdk run build",
     "build:contracts": "cargo check --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown",
     "build:web": "npm --prefix web run build",

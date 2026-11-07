@@ -55,6 +55,12 @@ jobs:
           npm test --prefix web
           npm run typecheck --prefix web
 
+      - name: Run linter
+        run: npm run lint --prefix web
+
+      - name: Run repository integrity checks
+        run: npm run check
+
       - name: Build Web application with NO env vars
         run: npm run build --prefix web
         env:
