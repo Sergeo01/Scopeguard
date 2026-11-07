@@ -3,9 +3,48 @@
 [![ScopeGuard CI](https://github.com/Sergeo01/Scopeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sergeo01/Scopeguard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+**Track:** AI Security & Defense
+
 Give every person who runs an AI agent a way to hand that agent power over money without handing it the power to lose everything.
 
-Live Console: [https://scopeguard.blockframe.cloud](https://scopeguard.blockframe.cloud)
+- **Live Console:** [https://scopeguard.blockframe.cloud](https://scopeguard.blockframe.cloud)
+- **Interactive Attack Comparison:** [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)
+- **Deployed Testnet Contract:** `guard-v4.sergeo-guard.testnet`
+
+---
+
+## Try it in 60 seconds
+
+1. Open [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)
+2. Click "Run unprotected agent" and observe it drains the working balance in a simulated exploit sequence.
+3. Click "Run ScopeGuard agent" with the exact same injected adversarial prompt, and observe it blocked onchain at the policy boundary.
+
+**Expected Outcome:** Identical prompt injection produces opposite outcomes. The protected run displays live onchain preflight evaluations and structured rejection reason codes (`TARGET_NOT_ALLOWED`, `METHOD_NOT_ALLOWED`, `OVER_DAILY_CAP`, `RECIPIENT_NOT_ALLOWED`).
+
+---
+
+## Verify on-chain
+
+Query the deployed policy contract directly using NEAR CLI:
+
+```bash
+# Verify contract deployment and version
+near view guard-v4.sergeo-guard.testnet get_version
+# Expected output: "0.4.0"
+
+# Query registered agent budget and policy status
+near view guard-v4.sergeo-guard.testnet get_budget '{"agent_account": "agent.sergeo-guard.testnet"}'
+# Expected output:
+# {
+#   "vault_balance": "1000",
+#   "near_vault_balance": "1000000000000000000000000",
+#   "actions_in_window": 0,
+#   "paused": false,
+#   "revoked": false,
+#   "high_water_mark": "1000",
+#   "near_high_water_mark": "1000000000000000000000000"
+# }
+```
 
 ---
 
@@ -121,6 +160,15 @@ For detailed specifications and operational guides:
 - [Threat Model](docs/threat-model.md): Threat vectors, isolation boundaries, and fail-safe mechanisms.
 - [Deployment Guide](docs/deployment.md): Commands for building, deploying, configuring, and verifying on testnet.
 
+### NEAR Tech Stack
+
+- **NEAR Smart Contracts (Rust, near-sdk 5.29):** Policy evaluation engine, circuit breaker strike tracking, rolling 24-25h spend accounting, timelock queue, and native NEAR drawdown floor protection.
+- **NEAR Function-Call Access Keys:** Scoped keys restricted by protocol consensus to `receiver = Policy Contract`, `methods = ["execute"]`. Agent machine never holds owner keys or transfer permissions.
+- **NEAR JSON-RPC & near-api-js:** Direct RPC integration for preflight simulation, transaction submission, receipt decoding, and event tailing.
+- **Model Context Protocol (IronClaw MCP Server):** Guarded tool boundary exposing audited NEAR actions to LLM agent runtimes.
+- **ElizaOS Plugin (`@scopeguard/plugin-eliza`):** Guardrail action provider and evaluator for autonomous agents.
+- **Testnet Mock Contracts:** `mock-token` (test NEP-141 token) and `mock-dex` (test swap contract). Note: `IntentTransfer` targets a mock deposit contract for testing solver flows, not live mainnet NEAR Intents.
+
 ---
 
 ## 5. Security Model & Honest Limits
@@ -136,6 +184,7 @@ Transparency regarding boundaries and threat models:
 7. **Mock Contracts & Testnet:** The current deployment operates on NEAR Testnet using mock token and mock DEX contracts. IntentTransfer targets a mock deposit contract, not real NEAR Intents.
 8. **EVM & Chain Signatures Scope:** Cross-chain foreign EVM signing via NEAR MPC and HTTP x402 micro-allowances are future roadmap milestones; the current release strictly governs NEAR native operations and NEP-141 token custody.
 9. **Indexer Architecture:** The web console and watcher query NEAR testnet RPC endpoints directly with automatic fleet failover; a dedicated NearLake indexer is not required for testnet operation.
+10. **Attack Arena Demo Keys:** In the hosted web demo (`/api/attack`), `SCOPEGUARD_AGENT_PRIVATE_KEY` is maintained server-side solely to execute live testnet transactions on demand for evaluators. In production deployments, agent keys reside exclusively in the agent's local environment, and server signing should remain disabled (`SCOPEGUARD_ALLOW_SERVER_SIGNING` unset).
 
 ---
 
