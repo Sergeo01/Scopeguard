@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert";
 
-import { GET, clearCompareCache, setNearConnectForTest } from "../app/api/compare/route";
+import { GET } from "../app/api/compare/route";
+import { clearCompareCache, setNearConnectForTest } from "../lib/compare-service";
 import { resetRateLimits } from "../lib/api-guard";
 import { computeComparisonSummary } from "../lib/compare-scenario";
 

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { connect, keyStores } from "near-api-js";
+import { keyStores } from "near-api-js";
 import { tryGetPolicyContractId } from "@/lib/config";
 import { checkRateLimit, getClientIp } from "@/lib/api-guard";
 import {
@@ -10,27 +10,11 @@ import {
   ComparisonStepResult,
   BudgetInfo,
 } from "@/lib/compare-scenario";
-
-interface CacheEntry {
-  timestamp: number;
-  payload: {
-    steps: ComparisonStepResult[];
-    budget: BudgetInfo | null;
-  };
-}
-
-let cachedResponse: CacheEntry | null = null;
-const CACHE_TTL_MS = 10_000;
-
-export let nearConnect = connect;
-
-export function setNearConnectForTest(fn: ((...args: any[]) => Promise<any>) | null): void {
-  nearConnect = (fn as any) || connect;
-}
-
-export function clearCompareCache(): void {
-  cachedResponse = null;
-}
+import {
+  nearConnect,
+  getCachedComparison,
+  setCachedComparison,
+} from "@/lib/compare-service";
 
 export async function GET(req: Request) {
   // 1. Check if policy contract ID is configured
@@ -52,9 +36,9 @@ export async function GET(req: Request) {
   }
 
   // 3. In-memory cache check (10s)
-  const now = Date.now();
-  if (cachedResponse && now - cachedResponse.timestamp < CACHE_TTL_MS) {
-    return NextResponse.json(cachedResponse.payload);
+  const cached = getCachedComparison();
+  if (cached) {
+    return NextResponse.json(cached.payload);
   }
 
   // 4. Resolve demo agent and token/dex targets
@@ -160,10 +144,7 @@ export async function GET(req: Request) {
     budget,
   };
 
-  cachedResponse = {
-    timestamp: now,
-    payload,
-  };
+  setCachedComparison(payload);
 
   return NextResponse.json(payload);
 }
