@@ -44,7 +44,12 @@ export async function GET(req: Request) {
     process.env.OWNER_ACCOUNT_ID ||
     "sergeo-guard.testnet";
 
-  const guardId = getPolicyContractId();
+  let guardId: string;
+  try {
+    guardId = getPolicyContractId();
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
   const networkId = process.env.NEAR_NETWORK || "testnet";
 
   const rpcUrls = Array.from(
