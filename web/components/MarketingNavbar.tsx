@@ -75,6 +75,13 @@ export const MarketingNavbar: React.FC = () => {
               </a>
             ))}
             <Link
+              href="/compare"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
+            >
+              <Shield className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Compare</span>
+            </Link>
+            <Link
               href="/docs"
               className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
             >
@@ -161,6 +168,14 @@ export const MarketingNavbar: React.FC = () => {
                   {link.label}
                 </a>
               ))}
+              <Link
+                href="/compare"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-900 flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4 text-emerald-500" />
+                <span>Attack Comparison</span>
+              </Link>
               <Link
                 href="/docs"
                 onClick={() => setMobileMenuOpen(false)}

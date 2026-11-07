@@ -760,6 +760,14 @@ export default function HomePage() {
               </Link>
 
               <Link
+                href="/compare"
+                className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                <span>See it block an attack</span>
+              </Link>
+
+              <Link
                 href="/docs"
                 className="px-5 py-2.5 rounded-lg bg-white dark:bg-obsidian-900 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-semibold border border-slate-200 dark:border-obsidian-800 transition flex items-center gap-1.5"
               >
