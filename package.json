@@ -15,6 +15,7 @@
     "test:watcher": "npm test --prefix watcher",
     "test:mcp": "npm test --prefix packages/ironclaw-mcp",
     "test:eliza": "npm test --prefix packages/plugin-eliza",
-    "test": "node scripts/test-all.js"
+    "test": "node scripts/test-all.js",
+    "verify": "node scripts/verify.js"
   }
 }
