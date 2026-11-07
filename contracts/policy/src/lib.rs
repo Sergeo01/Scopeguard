@@ -44,8 +44,8 @@ impl Contract {
             "max_actions_per_10min must be greater than zero"
         );
         assert!(
-            policy.auto_pause_rejects > 0,
-            "auto_pause_rejects must be greater than zero"
+            policy.auto_pause_rejects > 0 && policy.auto_pause_rejects as usize <= MAX_REJECT_TIMES_KEPT,
+            "auto_pause_rejects must be between 1 and 64"
         );
         assert!(
             policy.auto_pause_window_minutes > 0,
@@ -127,6 +127,7 @@ impl Contract {
                 near_high_water_mark: U128(0),
                 spend_buckets: Vec::new(),
                 near_spend_buckets: Vec::new(),
+                revoked: false,
             },
         );
         let mut list = self
@@ -187,6 +188,9 @@ impl Contract {
         assert_eq!(sender, rec.owner, "Only owner can deposit into agent vault");
 
         rec.near_vault_balance = rec.near_vault_balance.saturating_add(deposit_amount);
+        if rec.near_vault_balance > rec.near_high_water_mark.0 {
+            rec.near_high_water_mark = U128(rec.near_vault_balance);
+        }
         self.agents.insert(agent_account.clone(), rec);
         emit(&format!(
             "{{\"event\":\"DEPOSIT_NEAR\",\"agent\":\"{}\",\"amount\":\"{}\"}}",
@@ -198,6 +202,7 @@ impl Contract {
     /// Does not apply immediately. Strictly validates policy before staging.
     pub fn set_policy(&mut self, agent_account: AccountId, policy: Policy) {
         let mut rec = self.load_owned(&agent_account);
+        assert!(!rec.revoked, "Cannot stage policy for a permanently revoked agent");
         Self::validate_policy(&policy);
         let now_sec = env::block_timestamp() / 1_000_000_000;
         let effective_at = now_sec + rec.policy.policy_change_delay_seconds;
@@ -329,6 +334,7 @@ impl Contract {
     /// key, so the owner cannot delete it from consensus.
     pub fn revoke_agent(&mut self, agent_account: AccountId) {
         let mut rec = self.load_owned(&agent_account);
+        rec.revoked = true;
         rec.paused = true;
         rec.staged_policy = None;
         rec.pending_actions.clear();
@@ -352,7 +358,7 @@ impl Contract {
     pub fn reset_windows(&mut self, agent_account: AccountId) {
         let mut rec = self.load_owned(&agent_account);
         assert!(
-            !rec.policy.targets.is_empty(),
+            !rec.revoked && !rec.policy.targets.is_empty(),
             "agent is revoked: nothing to reset"
         );
         let now = env::block_timestamp();
@@ -726,6 +732,16 @@ impl Contract {
         };
 
         if !is_near_transfer {
+            if let GuardAction::Transfer { ref token, .. } = &pending_action.action {
+                if token != &rec.policy.token {
+                    return self.reject_pending_settlement(&agent, rec, id, REASON_TARGET);
+                }
+            }
+            if let GuardAction::ContractCall { target: ref cc_target, .. } = &pending_action.action {
+                if cc_target == &rec.policy.token {
+                    return self.reject_pending_settlement(&agent, rec, id, REASON_TARGET);
+                }
+            }
             let methods = match rec.policy.targets.get(&pending_action.target) {
                 Some(m) => m.clone(),
                 None => {
@@ -891,7 +907,7 @@ impl Contract {
                 actions_in_window: r.actions_in_window,
                 paused: r.paused,
                 vault_balance: U128(r.vault_balance),
-                revoked: r.policy.targets.is_empty() && r.policy.recipients.is_empty(),
+                revoked: r.revoked || (r.policy.targets.is_empty() && r.policy.recipients.is_empty()),
                 high_water_mark: r.high_water_mark,
                 max_drawdown_bps: r.policy.max_drawdown_bps,
                 near_vault_balance: Some(U128(r.near_vault_balance)),
@@ -1003,7 +1019,7 @@ impl Contract {
             actions_in_window: rec.actions_in_window,
             paused: rec.paused,
             vault_balance,
-            revoked: rec.policy.targets.is_empty() && rec.policy.recipients.is_empty(),
+            revoked: rec.revoked || (rec.policy.targets.is_empty() && rec.policy.recipients.is_empty()),
             high_water_mark: rec.high_water_mark,
             max_drawdown_bps: rec.policy.max_drawdown_bps,
             near_vault_balance,

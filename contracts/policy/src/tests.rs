@@ -2050,6 +2050,7 @@
             near_high_water_mark: U128(200),
             spend_buckets: vec![SpendBucket { bucket: 10, amount: 100 }],
             near_spend_buckets: vec![SpendBucket { bucket: 10, amount: 50 }],
+            revoked: false,
         };
         let serialized = near_sdk::borsh::to_vec(&sample_record).unwrap();
         let deserialized = AgentRecord::try_from_slice(&serialized).expect("Valid 0.4.0 AgentRecord must deserialize cleanly");
@@ -2518,7 +2519,7 @@
 
         let target_contract: AccountId = "target.near".parse().unwrap();
         let mut p = sample_policy();
-        p.auto_pause_rejects = 100;
+        p.auto_pause_rejects = 64;
         // Allow all denylisted methods in target policy to verify denylist rejection overrides allowlist
         let mut all_methods: Vec<String> = VALUE_MOVING_DENYLIST.iter().map(|s| s.to_string()).collect();
         all_methods.push("safe_query".to_string());
@@ -2680,10 +2681,121 @@
                 SpendBucket { bucket: 10, amount: 150 },
                 SpendBucket { bucket: 25, amount: 300 }, // future relative to now=15
             ],
+            revoked: false,
         };
 
         // At t = 15 hours, bucket 20 and 25 must NOT be counted as rolling spend
         let now = 15 * HOUR_NS;
         assert_eq!(rec.rolling_spend(now), 100);
         assert_eq!(rec.rolling_near_spend(now), 150);
+    }
+
+    #[test]
+    fn test_deposit_near_advances_high_water_mark_and_enforces_drawdown() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+
+        // Update policy with 20% max drawdown (2000 bps) and 1000 NEAR cap
+        let mut policy = sample_policy();
+        policy.max_drawdown_bps = Some(2000);
+        policy.near_daily_cap = Some(1000);
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        contract.set_policy(agent(), policy);
+        testing_env!(builder.block_timestamp(now + 700 * 1_000_000_000).build());
+
+        // Deposit 1000 yoctoNEAR
+        builder.attached_deposit(NearToken::from_yoctonear(1000));
+        testing_env!(builder.build());
+        contract.deposit_near(agent());
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert_eq!(budget.near_vault_balance.unwrap().0, 1000);
+        assert_eq!(budget.near_high_water_mark.unwrap().0, 1000, "deposit_near must advance near_high_water_mark");
+
+        // Attempt to transfer 300 yoctoNEAR (drawdown > 20%, projected = 700, floor = 800)
+        builder.predecessor_account_id(agent());
+        builder.attached_deposit(NearToken::from_yoctonear(0));
+        testing_env!(builder.build());
+        let outcome = contract.execute(GuardAction::NearTransfer {
+            to: recipient(),
+            amount: U128(300),
+        });
+        assert_eq!(outcome.status, "REJECTED");
+        assert_eq!(outcome.reason, Some(REASON_DRAWDOWN_EXCEEDED.to_string()));
+    }
+
+    #[test]
+    #[should_panic(expected = "auto_pause_rejects must be between 1 and 64")]
+    fn test_validate_policy_rejects_auto_pause_above_64() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+        let mut p = sample_policy();
+        p.auto_pause_rejects = 65;
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.build());
+        contract.set_policy(agent(), p);
+    }
+
+    #[test]
+    fn test_revoke_agent_permanently_blocks_set_policy() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_contract(now);
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        contract.revoke_agent(agent());
+
+        let budget = contract.get_budget(agent()).unwrap();
+        assert!(budget.revoked);
+
+        // Attempting to stage a new policy on a revoked agent must panic
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            contract.set_policy(agent(), sample_policy());
+        }));
+        assert!(res.is_err(), "set_policy on permanently revoked agent must panic");
+    }
+
+    #[test]
+    fn test_settle_pending_rechecks_token_and_target_allowlist() {
+        let now = 1_000_000_000;
+        let (mut contract, mut builder) = setup_fresh_contract(now);
+        contract.register_agent(agent(), timelocked_policy(500));
+
+        // Deposit 1000 tokens
+        builder.predecessor_account_id("token.near".parse().unwrap());
+        testing_env!(builder.clone().build());
+        let _ = contract.ft_on_transfer(owner(), U128(1000), agent().to_string());
+
+        // Queue high value transfer
+        builder.predecessor_account_id(agent());
+        testing_env!(builder.clone().build());
+        let outcome = contract.execute(GuardAction::Transfer {
+            token: "token.near".parse().unwrap(),
+            to: recipient(),
+            amount: U128(600),
+            memo: None,
+        });
+        assert_eq!(outcome.status, "PENDING");
+        let id = outcome.pending_id.expect("expected pending_id");
+
+        // Owner stages policy changing custody token to token2.near
+        builder.predecessor_account_id(owner());
+        testing_env!(builder.clone().build());
+        let mut new_policy = timelocked_policy(500);
+        new_policy.token = "token2.near".parse().unwrap();
+        contract.set_policy(agent(), new_policy);
+
+        // Fast forward past delay (effective_at and executable_at)
+        let later = now + 3700 * 1_000_000_000;
+        builder.block_timestamp(later);
+        testing_env!(builder.clone().build());
+
+        // Settle pending action: the queued transfer targets token.near, which is no longer policy.token!
+        let settle_outcome = contract.settle_pending(Some(agent()), None, id);
+        assert_eq!(settle_outcome.status, "REJECTED");
+        assert_eq!(
+            settle_outcome.reason,
+            Some(REASON_TARGET.to_string()),
+            "settle_pending must re-validate that Transfer targets the active policy.token"
+        );
     }

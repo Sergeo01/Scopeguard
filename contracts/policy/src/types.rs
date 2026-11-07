@@ -396,6 +396,7 @@ pub struct AgentRecord {
     pub near_high_water_mark: U128,
     pub spend_buckets: Vec<SpendBucket>,
     pub near_spend_buckets: Vec<SpendBucket>,
+    pub revoked: bool,
 }
 
 impl AgentRecord {
