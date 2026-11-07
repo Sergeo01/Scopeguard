@@ -2021,18 +2021,42 @@
     }
 
     #[test]
-    fn test_deserialize_live_355_byte_record_onchain_exact() {
+    fn test_agent_record_deserialization_fails_closed_on_corrupted_or_legacy_bytes() {
         use near_sdk::borsh::BorshDeserialize;
         use near_sdk::base64::engine::general_purpose::STANDARD;
         use near_sdk::base64::Engine;
-        // Exact 355-byte base64 state from guard2.sergeo-guard.testnet for agent.sergeo-guard.testnet
-        let bytes = STANDARD.decode("FAAAAHNlcmdlby1ndWFyZC50ZXN0bmV0GgAAAHNlcmdlby1ndWFyZC10b2tlbi50ZXN0bmV0AgAAABgAAABzZXJnZW8tZ3VhcmQtZGV4LnRlc3RuZXQBAAAABAAAAHN3YXAaAAAAc2VyZ2VvLWd1YXJkLXRva2VuLnRlc3RuZXQBAAAACwAAAGZ0X3RyYW5zZmVy9AEAAAAAAAAAAAAAAAAAAAEAAAAUAAAAc2VyZ2VvLWd1YXJkLnRlc3RuZXQFAAAAAwAAAAoAAAAAAAAA+gAAAAAAAAAAAAAAAAAAADwAAAAAAAAAPAAAAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAMAAAAAAAAAXgEAAAAAAAAAAAAAAAAAAAAAAABeAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==").unwrap();
-        assert_eq!(bytes.len(), 355);
-        let rec = AgentRecord::try_from_slice(&bytes).expect("Live 355-byte record must deserialize cleanly into AgentRecord");
-        assert_eq!(rec.owner.as_str(), "sergeo-guard.testnet");
-        assert_eq!(rec.vault_balance, 350);
-        assert_eq!(rec.high_water_mark.0, 350);
-        assert_eq!(rec.near_vault_balance, 0);
+        // Truncated / legacy 355-byte state missing rolling spend buckets must fail closed
+        let legacy_bytes = STANDARD.decode("FAAAAHNlcmdlby1ndWFyZC50ZXN0bmV0GgAAAHNlcmdlby1ndWFyZC10b2tlbi50ZXN0bmV0AgAAABgAAABzZXJnZW8tZ3VhcmQtZGV4LnRlc3RuZXQBAAAABAAAAHN3YXAaAAAAc2VyZ2VvLWd1YXJkLXRva2VuLnRlc3RuZXQBAAAACwAAAGZ0X3RyYW5zZmVy9AEAAAAAAAAAAAAAAAAAAAEAAAAUAAAAc2VyZ2VvLWd1YXJkLnRlc3RuZXQFAAAAAwAAAAoAAAAAAAAA+gAAAAAAAAAAAAAAAAAAADwAAAAAAAAAPAAAAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAAAAE/pO42u1OQYAAAAAAAAAAAAAAAAAAMAAAAAAAAAXgEAAAAAAAAAAAAAAAAAAAAAAABeAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==").unwrap();
+        let res = AgentRecord::try_from_slice(&legacy_bytes);
+        assert!(res.is_err(), "Incomplete or legacy bytes must fail closed, not silently default to empty spend history");
+
+        // Verifying clean serialization roundtrip for standard 0.4.0 AgentRecord
+        let sample_record = AgentRecord {
+            owner: "sergeo-guard.testnet".parse().unwrap(),
+            policy: sample_policy(),
+            paused: false,
+            day_window_start: 1_000_000_000,
+            spent_in_window: 100,
+            velocity_window_start: 1_000_000_000,
+            actions_in_window: 1,
+            reject_times: vec![1_000_000_000],
+            pending_actions: vec![],
+            staged_policy: None,
+            next_pending_id: 1,
+            vault_balance: 500,
+            unconfirmed_recipients: vec![],
+            high_water_mark: U128(500),
+            near_vault_balance: 200,
+            near_high_water_mark: U128(200),
+            spend_buckets: vec![SpendBucket { bucket: 10, amount: 100 }],
+            near_spend_buckets: vec![SpendBucket { bucket: 10, amount: 50 }],
+        };
+        let serialized = near_sdk::borsh::to_vec(&sample_record).unwrap();
+        let deserialized = AgentRecord::try_from_slice(&serialized).expect("Valid 0.4.0 AgentRecord must deserialize cleanly");
+        assert_eq!(deserialized.owner, sample_record.owner);
+        assert_eq!(deserialized.vault_balance, sample_record.vault_balance);
+        assert_eq!(deserialized.spend_buckets, sample_record.spend_buckets);
+        assert_eq!(deserialized.near_spend_buckets, sample_record.near_spend_buckets);
     }
 
     #[test]

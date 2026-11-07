@@ -2,15 +2,13 @@
 
 This guide provides the exact commands required to deploy the ScopeGuard v0.4.0 policy contract to a fresh NEAR Testnet account, register an agent with independent rolling spend caps, provision scoped credentials, update environment configuration, and run the end-to-end verification test suite.
 
-Note: Automated agents must never deploy contracts or access private credentials directly. This guide is prepared for execution by the human operator.
-
 ---
 
 ## 1. Prerequisites
 
 Before starting, ensure the following tools are installed and configured:
 
-1. **Rust Toolchain:** Stable Rust with the `wasm32-unknown-unknown` target:
+1. **Rust Toolchain:** Rust 1.99.1 (pinned in `rust-toolchain.toml`) with the `wasm32-unknown-unknown` target:
    ```bash
    rustup target add wasm32-unknown-unknown
    ```

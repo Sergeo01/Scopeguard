@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, Mail } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
@@ -49,6 +49,11 @@ export const AuthModal: React.FC = () => {
     }
   }, [openNearWalletModal]);
 
+  const handleDismiss = useCallback(() => {
+    closeAuthModal();
+    setIsOpenLocal(false);
+  }, [closeAuthModal]);
+
   // Close modal on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,12 +63,7 @@ export const AuthModal: React.FC = () => {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAuthModalOpen, isOpenLocal]);
-
-  const handleDismiss = () => {
-    closeAuthModal();
-    setIsOpenLocal(false);
-  };
+  }, [handleDismiss, isAuthModalOpen, isOpenLocal]);
 
   const isVisible = isAuthModalOpen || isOpenLocal;
   if (!isVisible) return null;

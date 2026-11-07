@@ -12,7 +12,7 @@ Live Console: [https://scopeguard.blockframe.cloud](https://scopeguard.blockfram
 ## 1. Quickstart
 
 ### Prerequisites
-- [Rust](https://rustup.rs/) (stable toolchain) with target `wasm32-unknown-unknown`
+- [Rust](https://rustup.rs/) (1.99.1, pinned in `rust-toolchain.toml`) with target `wasm32-unknown-unknown`
 - [Node.js](https://nodejs.org/) (v18 or v20) and `npm`
 
 ### Installation & Build
@@ -118,6 +118,8 @@ Transparency regarding boundaries and threat models:
 5. **Single Owner Key:** Owner administrative controls (pause, unpause, withdraw, revoke, reset) require the owner's cryptographic signature.
 6. **Asynchronous Settlement & Rollback:** Downstream cross-contract failures trigger internal refund callbacks, returning funds to the agent vault and rolling back the recorded spend in the original bucket.
 7. **Mock Contracts & Testnet:** The current deployment operates on NEAR Testnet using mock token and mock DEX contracts. IntentTransfer targets a mock deposit contract, not real NEAR Intents.
+8. **EVM & Chain Signatures Scope:** Cross-chain foreign EVM signing via NEAR MPC and HTTP x402 micro-allowances are future roadmap milestones; the current release strictly governs NEAR native operations and NEP-141 token custody.
+9. **Indexer Architecture:** The web console and watcher query NEAR testnet RPC endpoints directly with automatic fleet failover; a dedicated NearLake indexer is not required for testnet operation.
 
 ---
 

@@ -13,7 +13,7 @@ console.log("=== ScopeGuard Project Setup ===");
 
 // 1. Install and build SDK first (required dependency for other packages)
 const sdkDir = path.join(rootDir, "sdk");
-run("npm install", sdkDir);
+run("npm ci", sdkDir);
 run("npm run build", sdkDir);
 
 // 2. Install dependencies for all other packages
@@ -28,7 +28,7 @@ const packages = [
 
 for (const pkg of packages) {
   const pkgDir = path.join(rootDir, pkg);
-  run("npm install", pkgDir);
+  run("npm ci", pkgDir);
 }
 
 console.log("\n=== Setup Complete ===");

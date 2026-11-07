@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
-import { isSameOrigin, checkAttackThrottle, setAttackInProgress } from "@/lib/api-guard";
+import { isSameOrigin, checkAttackThrottle, setAttackInProgress, safeCompare } from "@/lib/api-guard";
 
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
@@ -13,14 +13,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // Non-browser caller check: require shared secret if configured
-  const origin = req.headers.get("origin");
+  // Require shared secret when configured regardless of origin
   const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
-  if (!origin && sharedSecret) {
+  if (sharedSecret && sharedSecret.trim().length > 0 && sharedSecret !== "undefined") {
     const authHeader = req.headers.get("authorization") || "";
     const customHeader = req.headers.get("x-scopeguard-secret") || "";
-    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (customHeader !== sharedSecret && bearer !== sharedSecret) {
+    const token = customHeader || (authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "");
+    if (!token || !safeCompare(token, sharedSecret)) {
       return NextResponse.json(
         { success: false, error: "Unauthorized: Missing or invalid shared secret." },
         { status: 401 }

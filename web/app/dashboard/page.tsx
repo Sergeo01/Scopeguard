@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   CreditCard,
@@ -240,7 +240,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeOwnerModal]);
 
-  const loadOnchainState = async () => {
+  const loadOnchainState = useCallback(async () => {
     setLoading(true);
     try {
       const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -314,19 +314,19 @@ export default function DashboardPage() {
       setLoading(false);
       setIsInitialLoading(false);
     }
-  };
+  }, [agentId, connectedWalletId, guardId, isWalletConnected, ownerId, queriedAgent, queriedOwner]);
 
   useEffect(() => {
     loadOnchainState();
     const interval = setInterval(loadOnchainState, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadOnchainState]);
 
   useEffect(() => {
     if (isMounted && connectedWalletId) {
       loadOnchainState();
     }
-  }, [connectedWalletId, isMounted]);
+  }, [connectedWalletId, isMounted, loadOnchainState]);
 
   // Timelock countdown timer
   useEffect(() => {
@@ -796,7 +796,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="rounded-full px-2.5 py-0.5 text-xs font-mono bg-mint-green/10 text-mint-greenDark dark:text-mint-green border border-mint-green/20 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-mint-green" />
-            <span>14 Rules</span>
+            <span>Policy Active</span>
           </span>
         </div>
       </div>
@@ -905,7 +905,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 block">
-              14 onchain rules verified
+              Onchain rules active
             </span>
           </div>
         </div>

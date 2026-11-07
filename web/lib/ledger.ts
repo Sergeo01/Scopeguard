@@ -113,7 +113,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
   },
 ];
 
-function getLedgerFilePath(): string {
+export function getLedgerFilePath(): string {
+  if (process.env.LEDGER_PATH) {
+    return process.env.LEDGER_PATH;
+  }
   const rootDir = fs.existsSync(path.join(process.cwd(), "data"))
     ? process.cwd()
     : fs.existsSync(path.join(process.cwd(), "web", "data"))
@@ -150,7 +153,6 @@ let activityLog: ActivityItem[] = (() => {
 })();
 
 function persistLedger(): void {
-  if (process.env.NODE_ENV === "test") return;
   try {
     const filePath = getLedgerFilePath();
     fs.writeFileSync(filePath, JSON.stringify(activityLog, null, 2), "utf-8");

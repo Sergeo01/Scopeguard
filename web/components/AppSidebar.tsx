@@ -68,7 +68,7 @@ export const AppSidebar: React.FC<{
       href: "/dashboard",
       label: "Security Console",
       icon: LayoutDashboard,
-      badge: "10 Rules",
+      badge: "Active",
     },
     {
       href: "/create",

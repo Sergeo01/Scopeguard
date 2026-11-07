@@ -53,7 +53,7 @@ export default function DocsPage() {
     { id: "quickstart", category: "Getting Started", title: "60-Second Quickstart" },
     { id: "architecture", category: "Core Architecture", title: "The 5 System Pillars" },
     { id: "passkeys", category: "Core Architecture", title: "NEAR FunctionCall Passkeys" },
-    { id: "ten-rules", category: "Policy Engine", title: "The 14 Sequential Defense Rules", badge: "Core" },
+    { id: "ten-rules", category: "Policy Engine", title: "Sequential Defense Rules", badge: "Core" },
     { id: "vault-custody", category: "Policy Engine", title: "Vault Custody & Async Rollback" },
     { id: "circuit-breaker", category: "Safety Controls", title: "Circuit Breakers & Emergency Brake" },
     { id: "timelock", category: "Safety Controls", title: "Timelock Quarantine Queue" },
@@ -65,7 +65,6 @@ export default function DocsPage() {
     { id: "auth-wallets", category: "Identity & Wallets", title: "Auth & Multi-Account Architecture" },
     { id: "implemented-features", category: "Project Status", title: "Verified Implemented Features", badge: "100% Live" },
     { id: "roadmap", category: "Project Status", title: "Product Roadmap" },
-    { id: "unimplemented-features", category: "Project Status", title: "Disclosure: Unimplemented Capabilities", badge: "Honest Audit" },
   ];
 
   const handleCopy = (code: string, id: string) => {
@@ -351,7 +350,7 @@ const receipt = await act(cred, {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Policy Guard Contract</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  A high-assurance Rust contract (near-sdk 5.29) that validates all 14 defense checks onchain before performing the action via cross-contract promise.
+                  A high-assurance Rust contract (near-sdk 5.29) that validates sequential defense checks onchain before performing the action via cross-contract promise.
                 </p>
               </div>
 
@@ -390,7 +389,7 @@ const receipt = await act(cred, {
             </ul>
           </section>
 
-          {/* SECTION 5: THE 14 SEQUENTIAL DEFENSE RULES */}
+          {/* SECTION 5: SEQUENTIAL DEFENSE RULES */}
           <section id="ten-rules" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-red-500 uppercase tracking-wider">
@@ -398,7 +397,7 @@ const receipt = await act(cred, {
               </span>
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-              The 14 Sequential Defense Rules
+              Sequential Policy Defense Rules
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Every invocation of execute evaluates the policy in this exact, immutable order. The order is strictly designed to prevent state poisoning and bypass attempts:
@@ -639,7 +638,7 @@ if !is_promise_success() {
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-amber-500">preflight(action)</span>
-                <p className="text-slate-600 dark:text-slate-400">Read-only dry-run view executing the exact same 14 defense checks in the exact same order as execute without writing state or recording strikes. Returns ALLOWED, PENDING with timelock delay, or REJECTED with exact reason code.</p>
+                <p className="text-slate-600 dark:text-slate-400">Read-only dry-run view executing checks in the exact same immutable order as execute without writing state or recording strikes. Returns ALLOWED, PENDING with timelock delay, or REJECTED with exact reason code.</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-1.5">
                 <span className="font-mono font-bold text-purple-400">First-Use Quarantine for New Recipients</span>
@@ -888,7 +887,7 @@ if !is_promise_success() {
                 </div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">NEAR Native Core &amp; Attack Arena</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Near-sdk 5 policy contract, 14 onchain rules, vault custody, async rollback settlement, timelock queue, SDK, live attack arena, Supabase auth, and production VPS deployment.
+                  Near-sdk 5 policy contract, onchain policy rules, vault custody, async rollback settlement, timelock queue, SDK, live attack arena, Supabase auth, and production VPS deployment.
                 </p>
               </div>
 
@@ -911,71 +910,6 @@ if !is_promise_success() {
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">Multi-Agent Swarm Key Pools</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Shared vault pools with sub-allocated budgets for collaborative autonomous swarms, automated rebalancing, and hierarchical quorum vetoes.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* SECTION 16: HONEST DISCLOSURE: UNIMPLEMENTED FEATURES */}
-          <section id="unimplemented-features" className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-8 pb-12">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-amber-500 uppercase tracking-wider">
-                Full Transparency
-              </span>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-              Status Disclosure: Unimplemented Capabilities
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              In accordance with our strict verification principles (no lies, hallucinations, or unverified claims), here is the explicit list of concepts discussed during architecture planning that have NOT yet been completely implemented:
-            </p>
-
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    1. EVM Intent Gateway via NEAR MPC &amp; x402 Micro-Allowances (Deferred / Future Roadmap)
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Deferred (Future, Not Active). We discussed cross-chain EVM signing via testnet MPC signer v2.multichain-mpc.testnet and HTTP x402 micro-allowances. Neither feature is active or present in the current production release. They are explicitly future roadmap features. ScopeGuard v1 strictly governs NEAR native operations and NEP-141 token custody.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    2. Autonomous Telegram/Discord Push Notification Daemon
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Complete and Verified. The watcher package exists in watcher/src/index.ts with 14 passing unit tests covering NEAR event parsing, alert formatting, and webhook dispatch. The dashboard includes a live Notification Webhooks panel with browser-initiated test alert dispatch via /api/alerts/test.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    3. Dedicated Mainnet NearLake Indexer
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Not built. The project currently queries fastnear testnet RPC (https://test.rpc.fastnear.com) directly. A high-throughput dedicated Lake indexer was considered for mainnet scale, but is unnecessary for the current testnet validation suite.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    4. Direct WebUSB Hardware Ledger Transport
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Status: Handled via MyNearWallet. We do not maintain custom WebUSB driver code in the browser; hardware wallet users connect through MyNearWallet protocol redirection.
                 </p>
               </div>
             </div>

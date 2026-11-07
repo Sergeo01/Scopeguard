@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 /**
  * Server-side signing is OFF by default.
  *
- * Any route that signs with the owner key is an owner-authority endpoint. On a
- * public deployment that is a liability, so the operator must explicitly opt in
- * with SCOPEGUARD_ALLOW_SERVER_SIGNING=true. When the flag is absent every
- * signing route returns a copy-paste CLI command instead of broadcasting.
+ * In production deployments, operators MUST leave SCOPEGUARD_ALLOW_SERVER_SIGNING unset.
+ * Any route that signs with the owner key is an owner-authority endpoint. When the flag
+ * is absent or false, signing routes return a copy-paste CLI command for the owner to
+ * sign locally with their private key, ensuring the web server holds zero signing authority.
  */
 export function serverSigningEnabled(): boolean {
   return process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING === "true";
+}
+
+/**
+ * Compares two strings in constant time using crypto.timingSafeEqual
+ * over fixed-length SHA-256 digests to prevent timing attacks and length leakage.
+ */
+export function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 /**
@@ -113,20 +125,30 @@ export function resetRateLimits(): void {
   rateLimitBuckets.clear();
 }
 
-function getClientIp(req: Request): string {
+export function getClientIp(req: Request): string {
+  // In reverse proxy environments, clients can forge the first X-Forwarded-For entries.
+  // The trusted reverse proxy (or edge hop) appends to the end of the list.
+  // We extract the last hop, never the first entry.
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(",")[0].trim();
+    const hops = forwarded.split(",").map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) {
+      return hops[hops.length - 1];
+    }
   }
-  return req.headers.get("x-real-ip") || "127.0.0.1";
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  return "127.0.0.1";
 }
 
 /**
- * Validates request safety for privileged signing routes:
+ * Validates request safety for privileged owner-signing routes:
  * 1. Blocks cross-origin browser requests with 403.
- * 2. Requires shared secret for non-browser callers if SCOPEGUARD_SHARED_SECRET is set (401).
+ * 2. Requires shared secret on every owner-signing route when configured, regardless of Origin
+ *    (the Origin header proves nothing), evaluated via timing-safe comparison (401).
  * 3. Falls back safely to manual CLI command if server signing is disabled (200).
- * 4. Applies rate limiting when server signing is enabled (429).
+ *    Production environments must leave SCOPEGUARD_ALLOW_SERVER_SIGNING unset.
+ * 4. Applies rate limiting keyed on the last hop (429).
  */
 export function guardSigningRequest(req: Request, fallbackCommand: string): NextResponse | null {
   if (!isSameOrigin(req)) {
@@ -136,14 +158,14 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
     );
   }
 
-  // Non-browser caller check (curl, scripts, direct HTTP): require shared secret if configured
-  const origin = req.headers.get("origin");
+  // Require shared secret on every owner-signing route when configured,
+  // regardless of Origin header (the Origin header proves nothing).
   const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
-  if (!origin && sharedSecret) {
+  if (sharedSecret && sharedSecret.trim().length > 0 && sharedSecret !== "undefined") {
     const authHeader = req.headers.get("authorization") || "";
     const customHeader = req.headers.get("x-scopeguard-secret") || "";
-    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (customHeader !== sharedSecret && bearer !== sharedSecret) {
+    const token = customHeader || (authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "");
+    if (!token || !safeCompare(token, sharedSecret)) {
       return NextResponse.json(
         { success: false, error: "Unauthorized: Missing or invalid shared secret." },
         { status: 401 }
@@ -156,12 +178,12 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
       success: false,
       requiresOwnerSignature: true,
       message:
-        "Server-side signing is disabled. Run this command with your owner key, or set SCOPEGUARD_ALLOW_SERVER_SIGNING=true to enable the hosted demo.",
+        "Server-side signing is disabled. Run this command with your owner key, or set SCOPEGUARD_ALLOW_SERVER_SIGNING=true to enable the hosted demo. Production environments should leave SCOPEGUARD_ALLOW_SERVER_SIGNING unset.",
       command: fallbackCommand,
     });
   }
 
-  // Rate limiting for enabled server signing
+  // Rate limiting for enabled server signing keyed on the last hop
   const ip = getClientIp(req);
   if (!checkRateLimit(ip)) {
     return NextResponse.json(

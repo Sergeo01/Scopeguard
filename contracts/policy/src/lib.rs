@@ -1045,7 +1045,7 @@ impl Contract {
     }
 
     /// Read-only preflight simulation of Guard execution.
-    /// Evaluates the exact same 10 checks in the exact same order as execute.
+    /// Evaluates policy checks in the exact same fixed check order as execute.
     /// Never mutates state, never records reject strikes, returns NOT_AGENT as a value.
     pub fn preflight(&self, agent_account: AccountId, action: GuardAction) -> PreflightResult {
         let mut rec = match self.agents.get(&agent_account) {

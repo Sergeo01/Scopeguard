@@ -894,7 +894,7 @@ export default function HomePage() {
                             ScopeGuard Protocol
                           </span>
                           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue">
-                            14 Rules
+                            Guarded
                           </span>
                         </div>
                         <div className="space-y-1 text-xs font-mono text-slate-700 dark:text-slate-300">
@@ -948,10 +948,10 @@ export default function HomePage() {
               Onchain Enforcement
             </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
-              The 14-Layer Policy Radar
+              The Policy Guard Radar
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-              Every attempted action is evaluated against 14 protocol rules in strict order.
+              Every attempted action is evaluated against onchain protocol rules in strict, fixed check order.
             </p>
           </div>
 

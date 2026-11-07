@@ -3,6 +3,14 @@ import assert from "node:assert";
 import { KeyPair } from "near-api-js";
 import { POST as registerHandler } from "../app/api/register/route";
 
+function restoreEnv(key: string, val: string | undefined) {
+  if (val === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = val;
+  }
+}
+
 test("register-route: input validation rejects missing parameters", async () => {
   const req = new Request("https://scopeguard.blockframe.cloud/api/register", {
     method: "POST",
@@ -67,7 +75,7 @@ test("register-route: default disabled mode safely yields fallback CLI command",
     assert.strictEqual(data.requiresOwnerSignature, true);
     assert.ok(data.command.includes("near call guard2.sergeo-guard.testnet register_agent"));
   } finally {
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origFlag;
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
   }
 });
 
@@ -127,8 +135,8 @@ test("register-route: server-signing-enabled branch handles missing key and exec
     assert.strictEqual(dataWithKey.success, false);
     assert.ok(dataWithKey.error);
   } finally {
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origFlag;
-    process.env.OWNER_PRIVATE_KEY = origKey;
-    process.env.SCOPEGUARD_OWNER_PRIVATE_KEY = origScopeKey;
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
+    restoreEnv("OWNER_PRIVATE_KEY", origKey);
+    restoreEnv("SCOPEGUARD_OWNER_PRIVATE_KEY", origScopeKey);
   }
 });

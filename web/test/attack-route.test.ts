@@ -3,6 +3,14 @@ import assert from "node:assert";
 import { POST } from "../app/api/attack/route";
 import { resetAttackThrottles } from "../lib/api-guard";
 
+function restoreEnv(key: string, val: string | undefined) {
+  if (val === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = val;
+  }
+}
+
 test("attack route: rejects cross-origin requests with 403", async () => {
   resetAttackThrottles();
   const req = new Request("https://scopeguard.blockframe.cloud/api/attack", {
@@ -21,14 +29,14 @@ test("attack route: rejects cross-origin requests with 403", async () => {
   assert.strictEqual(body.error, "Cross-origin request rejected.");
 });
 
-test("attack route: requires shared secret for non-browser callers when configured", async () => {
+test("attack route: requires shared secret when configured regardless of origin", async () => {
   resetAttackThrottles();
   const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
 
   try {
     process.env.SCOPEGUARD_SHARED_SECRET = "attack-route-secret";
 
-    // Non-browser caller without secret receives 401
+    // Request without secret receives 401
     const noSecretReq = new Request("https://scopeguard.blockframe.cloud/api/attack", {
       method: "POST",
       headers: { host: "scopeguard.blockframe.cloud" },
@@ -37,10 +45,23 @@ test("attack route: requires shared secret for non-browser callers when configur
     const res = await POST(noSecretReq);
     assert.strictEqual(res.status, 401);
 
-    // Non-browser caller with wrong secret receives 401
+    // Request with forged Origin header but no secret receives 401
+    const forgedReq = new Request("https://scopeguard.blockframe.cloud/api/attack", {
+      method: "POST",
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+      },
+      body: JSON.stringify({ target: "dex.testnet", method: "swap" }),
+    });
+    const forgedRes = await POST(forgedReq);
+    assert.strictEqual(forgedRes.status, 401);
+
+    // Caller with wrong secret receives 401
     const badSecretReq = new Request("https://scopeguard.blockframe.cloud/api/attack", {
       method: "POST",
       headers: {
+        origin: "https://scopeguard.blockframe.cloud",
         host: "scopeguard.blockframe.cloud",
         "x-scopeguard-secret": "wrong-secret",
       },
@@ -49,7 +70,7 @@ test("attack route: requires shared secret for non-browser callers when configur
     const badRes = await POST(badSecretReq);
     assert.strictEqual(badRes.status, 401);
 
-    // Non-browser caller with valid secret passes authentication guard
+    // Caller with valid secret passes authentication guard
     const withSecretReq = new Request("https://scopeguard.blockframe.cloud/api/attack", {
       method: "POST",
       headers: {
@@ -61,7 +82,7 @@ test("attack route: requires shared secret for non-browser callers when configur
     const authedRes = await POST(withSecretReq);
     assert.notStrictEqual(authedRes.status, 401);
   } finally {
-    process.env.SCOPEGUARD_SHARED_SECRET = origSecret;
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
   }
 });
 

@@ -112,7 +112,7 @@ export const TopStatusBar: React.FC<{
           ) : (
             <span className="rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-mint-green/10 text-mint-greenDark dark:text-mint-green border border-mint-green/20 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-mint-green" />
-              <span>10 Rules Active</span>
+              <span>Guard Active</span>
             </span>
           )}
 

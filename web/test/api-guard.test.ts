@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert";
-import { isSameOrigin, serverSigningEnabled, agentSigningEnabled, guardSigningRequest } from "../lib/api-guard";
+import { isSameOrigin, serverSigningEnabled, agentSigningEnabled, guardSigningRequest, resetRateLimits } from "../lib/api-guard";
+
+function restoreEnv(key: string, val: string | undefined) {
+  if (val === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = val;
+  }
+}
 
 test("api-guard: isSameOrigin validates origin and host headers", () => {
   // Same origin passes
@@ -59,8 +67,8 @@ test("api-guard: serverSigningEnabled and agentSigningEnabled reflect environmen
     process.env.SCOPEGUARD_AGENT_PRIVATE_KEY = "ed25519:testkey123";
     assert.strictEqual(agentSigningEnabled(), true);
   } finally {
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
-    process.env.SCOPEGUARD_AGENT_PRIVATE_KEY = origAgentKey;
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    restoreEnv("SCOPEGUARD_AGENT_PRIVATE_KEY", origAgentKey);
   }
 });
 
@@ -104,7 +112,7 @@ test("api-guard: guardSigningRequest blocks cross-origin and disables signing sa
     const allowedResponse = guardSigningRequest(sameReq, fallbackCommand);
     assert.strictEqual(allowedResponse, null);
   } finally {
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
   }
 });
 
@@ -156,8 +164,8 @@ test("api-guard: requires shared secret for non-browser callers when configured"
     const validBearerRes = guardSigningRequest(validBearerReq, fallbackCommand);
     assert.strictEqual(validBearerRes, null);
   } finally {
-    process.env.SCOPEGUARD_SHARED_SECRET = origSecret;
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
   }
 });
 
@@ -188,6 +196,93 @@ test("api-guard: rate limiting rejects burst requests with 429", () => {
     assert.ok(blockedRes !== null);
     assert.strictEqual(blockedRes.status, 429);
   } finally {
-    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = origServerFlag;
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+  }
+});
+
+test("api-guard: requires shared secret even with valid or forged Origin header", () => {
+  const fallbackCommand = "near call guard2 register_agent ...";
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+
+  try {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "production-vault-secret";
+
+    // Forged Origin matching host without shared secret is rejected with 401
+    const forgedOriginReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+      },
+    });
+    const res = guardSigningRequest(forgedOriginReq, fallbackCommand);
+    assert.ok(res !== null);
+    assert.strictEqual(res.status, 401);
+
+    // Forged Origin with wrong secret is rejected with 401
+    const wrongSecretReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+        "x-scopeguard-secret": "bad-secret",
+      },
+    });
+    const wrongRes = guardSigningRequest(wrongSecretReq, fallbackCommand);
+    assert.ok(wrongRes !== null);
+    assert.strictEqual(wrongRes.status, 401);
+
+    // Valid secret passes
+    const validReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+        "x-scopeguard-secret": "production-vault-secret",
+      },
+    });
+    const validRes = guardSigningRequest(validReq, fallbackCommand);
+    assert.strictEqual(validRes, null);
+  } finally {
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+  }
+});
+
+test("api-guard: rate limits on last proxy hop, ignoring forged rotating first hops", () => {
+  const fallbackCommand = "near call guard2 register_agent ...";
+  const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+  resetRateLimits();
+
+  try {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+
+    // Attacker rotates the client-provided first hop, but the trusted edge proxy
+    // appends the real last hop (203.0.113.195)
+    for (let i = 0; i < 10; i++) {
+      const req = new Request("https://scopeguard.blockframe.cloud/api/register", {
+        headers: {
+          origin: "https://scopeguard.blockframe.cloud",
+          host: "scopeguard.blockframe.cloud",
+          "x-forwarded-for": `10.0.0.${i}, 203.0.113.195`,
+        },
+      });
+      const res = guardSigningRequest(req, fallbackCommand);
+      assert.strictEqual(res, null);
+    }
+
+    // 11th request with yet another forged first hop is still rate-limited on 203.0.113.195
+    const blockedReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+        "x-forwarded-for": "10.0.0.99, 203.0.113.195",
+      },
+    });
+    const blockedRes = guardSigningRequest(blockedReq, fallbackCommand);
+    assert.ok(blockedRes !== null);
+    assert.strictEqual(blockedRes.status, 429);
+  } finally {
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    resetRateLimits();
   }
 });

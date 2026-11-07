@@ -168,7 +168,7 @@ export default function FleetConsolePage() {
 
   const guardId = fleet?.guardId || "guard2.sergeo-guard.testnet";
   const owner = fleet?.owner || "sergeo-guard.testnet";
-  const agents = fleet?.agents ?? [];
+  const agents = useMemo(() => fleet?.agents ?? [], [fleet?.agents]);
   const totals = fleet?.totals;
 
   const staged = useMemo(
