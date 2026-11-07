@@ -1,6 +1,6 @@
 {
   "name": "@scopeguard/watcher",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Stateless reject-event and circuit breaker alert watcher for ScopeGuard",
   "main": "dist/index.js",
   "scripts": {

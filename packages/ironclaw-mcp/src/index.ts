@@ -369,7 +369,7 @@ export async function handleMcpRequest(
           protocolVersion: "2024-11-05",
           serverInfo: {
             name: "scopeguard-ironclaw-mcp",
-            version: "0.2.0",
+            version: "0.4.0",
           },
           capabilities: {
             tools: {},

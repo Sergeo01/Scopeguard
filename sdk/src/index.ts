@@ -1,5 +1,7 @@
 import { connect, keyStores, KeyPair, Account } from "near-api-js";
 
+export const SCOPEGUARD_VERSION = "0.4.0";
+
 export * from "./config";
 
 export interface ScopeGuardCredential {

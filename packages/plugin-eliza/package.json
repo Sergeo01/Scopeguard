@@ -1,6 +1,6 @@
 {
   "name": "@scopeguard/plugin-eliza",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "ScopeGuard security plugin for ElizaOS agents on NEAR Protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

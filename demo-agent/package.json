@@ -1,6 +1,6 @@
 {
   "name": "@scopeguard/demo-agent",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Deliberately naive demo agent for ScopeGuard attack verification",
   "main": "dist/index.js",
   "scripts": {
