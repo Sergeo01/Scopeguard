@@ -257,9 +257,9 @@ NEXT_PUBLIC_DEX_CONTRACT="sergeo-guard-dex.testnet"
 For web endpoints executing owner transactions (`/api/register`, `/api/fund`, `/api/demo/reset`):
 - `SCOPEGUARD_ALLOW_SERVER_SIGNING`: When unset or false (production default), server-side signing is disabled. Endpoints return the exact CLI command for local signing.
 - `SCOPEGUARD_SHARED_SECRET`: Required whenever `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`. Verified against incoming headers via timing-safe comparison (`crypto.timingSafeEqual`).
-- **Fail-Closed Guarantee:** If `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` but `SCOPEGUARD_SHARED_SECRET` is unset, the endpoints fail closed with HTTP status 500.
+- **Fail-Closed Behavior:** If `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` but `SCOPEGUARD_SHARED_SECRET` is unset, the endpoints fail closed with HTTP status 500.
 
-In any production or public deployment, both `SCOPEGUARD_ALLOW_SERVER_SIGNING` and `SCOPEGUARD_SHARED_SECRET` must remain unset. The browser UI sends no shared secret, and the attack demonstration route operates strictly via the restricted agent key. Leaving these variables unset guarantees that no server routes can execute owner-level transactions.
+In any production or public deployment, both `SCOPEGUARD_ALLOW_SERVER_SIGNING` and `SCOPEGUARD_SHARED_SECRET` must remain unset. The browser UI sends no shared secret, and the attack demonstration route operates strictly via the restricted agent key. Leaving these variables unset ensures that no server routes can execute owner-level transactions.
 
 ### Nginx Reverse Proxy Configuration
 
