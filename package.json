@@ -2,7 +2,7 @@
   "name": "scopeguard",
   "version": "0.4.0",
   "private": true,
-  "description": "Smart contract guard rails and scoped function-call access keys for AI agents on NEAR Protocol",
+  "description": "Onchain guardrails for autonomous capital on NEAR Protocol. Give your agents a budget, not your private keys.",
   "scripts": {
     "setup": "node scripts/setup.js",
     "check": "node scripts/check-repo.js",

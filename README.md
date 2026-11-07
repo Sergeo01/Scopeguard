@@ -1,11 +1,11 @@
-# ScopeGuard: Scoped Passkeys for AI Agents on NEAR
+# ScopeGuard: Onchain Guardrails for Autonomous Capital
 
 [![ScopeGuard CI](https://github.com/Sergeo01/Scopeguard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sergeo01/Scopeguard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Track:** AI Security & Defense
 
-Give every person who runs an AI agent a way to hand that agent power over money without handing it the power to lose everything.
+Give your agents a budget, not your private keys. ScopeGuard provides onchain guardrails, spending bounds, and circuit breakers for autonomous capital on NEAR Protocol.
 
 - **Live Console:** [https://scopeguard.blockframe.cloud](https://scopeguard.blockframe.cloud)
 - **Interactive Attack Comparison:** [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)

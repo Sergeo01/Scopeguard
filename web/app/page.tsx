@@ -702,15 +702,15 @@ export default function HomePage() {
 
             {/* Authoritative Primary Headline */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-950 dark:text-white leading-[1.08] max-w-4xl">
-              Give your AI agent a key
+              Give your agents a budget,
               <span className="block mt-2 text-brand-blue">
-                that can only do its job.
+                not your private keys.
               </span>
             </h1>
 
             {/* Sub-headline */}
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl font-normal">
-              Protocol-level spending bounds and onchain policy enforcement on NEAR. If your agent is tricked, leaked, or hacked, your vault stays safe.
+              Onchain guardrails for autonomous capital on NEAR Protocol. If your agent is tricked, leaked, or hacked, your vault stays safe.
             </p>
 
             {/* 1-Line Agent Quickstart Command Box (Directly like BeatAPI) */}

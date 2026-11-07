@@ -34,7 +34,7 @@ export const MarketingFooter: React.FC = () => {
               </span>
             </Link>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm">
-              Give your AI agent power over money without the power to lose everything. Protocol-level scoped spending passkeys and onchain policy enforcement on NEAR Protocol.
+              Give your agents a budget, not your private keys. Onchain guardrails and policy enforcement for autonomous capital on NEAR Protocol.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-mint-green/10 border border-mint-green/20 text-mint-greenDark dark:text-mint-green text-xs font-mono">

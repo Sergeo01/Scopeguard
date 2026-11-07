@@ -7,9 +7,9 @@ import { DocsProvider } from "@/context/DocsContext";
 import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "ScopeGuard | Scoped Spending Passkeys for AI Agents on NEAR",
+  title: "ScopeGuard | Onchain Guardrails for Autonomous Capital",
   description:
-    "Give your AI agent a key that can only do its job. Onchain policy enforcement and scoped passkeys on NEAR Protocol.",
+    "Give your agents a budget, not your private keys. Onchain guardrails and policy enforcement for autonomous capital on NEAR Protocol.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
