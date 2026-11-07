@@ -34,7 +34,7 @@ The ScopeGuard architecture consists of five core tiers:
 |   |  - 10-step invariant check pipeline                       |   |
 |   |  - Dual internal vaults: NEP-141 token + Native NEAR      |   |
 |   |  - Rolling 24-25h spend bucket windows (1-hour bins)      |   |
-|   |  - Sliding 10-minute velocity rate limiter                |   |
+|   |  - Fixed 10-minute tumbling velocity rate limiter         |   |
 |   |  - Timelock quarantine queue with owner settlement        |   |
 |   |  - Auto-pause circuit breaker & canary tripwires          |   |
 |   |  - Drawdown floor protection against high-water marks     |   |

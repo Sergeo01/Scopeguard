@@ -36,7 +36,7 @@ This document provides a complete technical specification of the ScopeGuard poli
 | `allowed_methods` | `Vec<String>` | Allowlisted method names the agent may invoke on target contracts. Wildcards are prohibited. |
 | `recipients` | `Vec<AccountId>` | Allowlisted NEAR account IDs permitted to receive direct token or NEAR transfers. An empty list forbids all direct transfers. |
 | `intent_recipients` | `Vec<String>` | Allowlisted destination addresses for `IntentTransfer` actions (targets mock deposit contract on testnet). |
-| `max_actions_per_10min` | `u32` | Maximum allowable actions within any rolling 10-minute sliding window. |
+| `max_actions_per_10min` | `u32` | Maximum allowable actions within the fixed 10-minute tumbling window (resets every 10 minutes). |
 | `high_value_threshold` | `U128` | NEP-141 token amount at or above which an action enters the timelock quarantine queue instead of executing immediately. |
 | `near_high_value_threshold` | `Option<U128>` | Native NEAR amount (yoctoNEAR) at or above which an action enters the timelock quarantine queue. |
 | `high_value_delay_seconds` | `u64` | Quarantine duration required before an owner can settle a pending action (production default: 86400s). |
@@ -81,14 +81,14 @@ The Guard checks rules in this exact, immutable order:
 
 1. `NOT_AGENT`: Caller must be the registered agent account ID.
 2. `PAUSED`: Agent must not be in a paused state.
-3. `OVER_VELOCITY_CAP`: Current 10-minute action count must be strictly less than `max_actions_per_10min`.
+3. `OVER_VELOCITY_CAP`: Action count in the current 10-minute tumbling window must not exceed `max_actions_per_10min`.
 4. `TARGET_NOT_ALLOWED`: Target contract must appear in `targets`. ContractCall cannot target custody token.
 5. `METHOD_NOT_ALLOWED`: Method must appear in `allowed_methods`. Token transfers cannot use generic ContractCall. Denylisted value-moving methods are blocked.
 6. `OVER_DAILY_CAP`: Requested amount plus rolling 24h spend must fit within the daily cap (token or NEAR).
 7. `RECIPIENT_NOT_ALLOWED` / `INTENT_RECIPIENT_NOT_ALLOWED`: Destination account must appear in `recipients` (for `Transfer` and `NearTransfer`). For `IntentTransfer`, the destination address must appear in `intent_recipients`; otherwise rejected with `INTENT_RECIPIENT_NOT_ALLOWED`.
 8. `PENDING`: Actions at or above threshold are deferred to timelock queue (outcome, not rejection).
 9. `INSUFFICIENT_VAULT_BALANCE`: Amount must not exceed available internal vault balance.
-10. `PENDING_QUEUE_FULL`: The timelock queue cannot exceed capacity (`MAX_PENDING_ACTIONS = 16`).
+10. `PENDING_QUEUE_FULL`: The timelock queue cannot exceed capacity (`MAX_PENDING_ACTIONS = 8`).
 
 ---
 
@@ -100,7 +100,7 @@ The Guard checks rules in this exact, immutable order:
 | `PAUSED` | Agent is currently frozen by manual owner command or auto-pause circuit breaker. |
 | `LEASE_EXPIRED` | Policy task lease time limit has elapsed. |
 | `CANARY_TRIPPED` | Caller attempted to execute a honey-token method listed in `canary_methods`. |
-| `OVER_VELOCITY_CAP` | Actions in the current 10-minute sliding window exceed `max_actions_per_10min`. |
+| `OVER_VELOCITY_CAP` | Actions in the current 10-minute tumbling window exceed `max_actions_per_10min`. |
 | `TARGET_NOT_ALLOWED` | Target contract is not in `policy.targets`, or ContractCall targeted custody token. |
 | `METHOD_NOT_ALLOWED` | Method is not in `policy.allowed_methods`, or method is in value-moving denylist. |
 | `OVER_DAILY_CAP` | Requested spend exceeds available rolling 24-25h budget for the asset. |
@@ -108,4 +108,4 @@ The Guard checks rules in this exact, immutable order:
 | `INTENT_RECIPIENT_NOT_ALLOWED` | Destination address for `IntentTransfer` is not in `policy.intent_recipients`. |
 | `INSUFFICIENT_VAULT_BALANCE` | Requested amount exceeds available internal custody vault balance. |
 | `DRAWDOWN_EXCEEDED` | Vault balance has breached the maximum drawdown threshold below high-water mark. |
-| `PENDING_QUEUE_FULL` | Timelock quarantine queue is at maximum capacity (16 actions). |
+| `PENDING_QUEUE_FULL` | Timelock quarantine queue is at maximum capacity (8 actions). |

@@ -19,7 +19,7 @@ ScopeGuard is designed to protect autonomous AI agents operating with financial 
 ### Threat 3: Rapid Balance Draining & Boundary Double-Spend
 - **Vector:** An attacker submits rapid transaction bursts to drain working capital before an owner can intervene, or times transactions right before and after window boundaries.
 - **Defense:**
-  1. **Sliding Velocity Limit:** Restricts actions within any 10-minute window.
+  1. **Fixed Tumbling Velocity Limit:** Restricts actions within each 10-minute window.
   2. **Rolling 24-Hour Windows:** Uses discrete 1-hour buckets with a 24-hour lookback (24-25 hour effective window) to prevent boundary doubling.
   3. **Auto-Pause Circuit Breakers:** Successive rejections automatically freeze the agent onchain.
 

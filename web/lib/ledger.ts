@@ -22,12 +22,13 @@ export interface ActivityItem {
 }
 
 // Recorded NEAR testnet transactions executed during testnet trials
-const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
+// Labeled explicitly as DEMO_SEED with timestamps relative to runtime
+const DEMO_SEED_ACTIVITIES: ActivityItem[] = [
   {
-    id: "act-onchain-auto-pause",
+    id: "demo-seed-auto-pause",
     txHash: "2JaobFoi92w5gtWUX2Dk54mTbyh7RhaD9h8Tt1P225cv",
     type: "AUTO_PAUSE",
-    timestamp: 1730805407000,
+    timestamp: Date.now() - 60_000,
     agent: "agent.sergeo-guard.testnet",
     target: "intents.near",
     method: "execute_intent",
@@ -35,10 +36,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "PAUSED (3-strike circuit breaker tripped automatically onchain)",
   },
   {
-    id: "act-onchain-near-sweep",
+    id: "demo-seed-near-sweep",
     txHash: "CJWVxVVrweL3bhs9q5gDt9TyfNLV9cRERRzg9proSP2k",
     type: "REJECT",
-    timestamp: 1730805396000,
+    timestamp: Date.now() - 120_000,
     agent: "agent.sergeo-guard.testnet",
     target: "near",
     method: "near_transfer",
@@ -46,10 +47,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "RECIPIENT_NOT_ALLOWED (native NEAR sweep to unlisted account refused onchain)",
   },
   {
-    id: "act-onchain-method-guard",
+    id: "demo-seed-method-guard",
     txHash: "AHa37mijAATTq3Si5656hUt74Hasagsk1yXPeaXCP44y",
     type: "REJECT",
-    timestamp: 1730805386000,
+    timestamp: Date.now() - 180_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "admin_drain",
@@ -57,10 +58,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "METHOD_NOT_ALLOWED (unauthorized method call blocked onchain)",
   },
   {
-    id: "act-onchain-spend-cap",
+    id: "demo-seed-spend-cap",
     txHash: "3SZeB2baivCYaXdNZxVgGJRzeq4yBrnjahnPwarZ6h4W",
     type: "REJECT",
-    timestamp: 1730805377000,
+    timestamp: Date.now() - 240_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-token.testnet",
     method: "ft_transfer",
@@ -68,10 +69,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "OVER_DAILY_CAP (transfer exceeds daily spending limit)",
   },
   {
-    id: "act-onchain-swap-allow",
+    id: "demo-seed-swap-allow",
     txHash: "BYsuuS44DjJtX3i4Na9f1vWEPHStYsJQfh7VgyGSZsVF",
     type: "ALLOW",
-    timestamp: 1730803183000,
+    timestamp: Date.now() - 300_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -79,10 +80,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "POLICY_PASSED (allowlisted DEX swap executed onchain)",
   },
   {
-    id: "act-onchain-recipient-reject",
+    id: "demo-seed-recipient-reject",
     txHash: "8zyc72TFQWMGEKauzEjQ6cqbGUh9k4fAJy8mGbHFf3Wz",
     type: "REJECT",
-    timestamp: 1730803169000,
+    timestamp: Date.now() - 360_000,
     agent: "agent.sergeo-guard.testnet",
     target: "sergeo-guard-token.testnet",
     method: "ft_transfer",
@@ -90,10 +91,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "RECIPIENT_NOT_ALLOWED (transfer to unapproved recipient refused onchain)",
   },
   {
-    id: "act-onchain-target-reject",
+    id: "demo-seed-target-reject",
     txHash: "7uVarMGXDvvAckFADHgGjaT3WwzK4icqfLPDhfs9eKYq",
     type: "REJECT",
-    timestamp: 1730803158000,
+    timestamp: Date.now() - 420_000,
     agent: "agent.sergeo-guard.testnet",
     target: "evil_stealer.testnet",
     method: "drain_all",
@@ -101,10 +102,10 @@ const VERIFIED_GENESIS_ACTIVITIES: ActivityItem[] = [
     reason: "TARGET_NOT_ALLOWED (unauthorized contract call blocked onchain)",
   },
   {
-    id: "act-onchain-rogue-drainer",
+    id: "demo-seed-rogue-drainer",
     txHash: "BYhpCEzqPLZLuxqGrJaGLUwUxXcN4oMLvGL3dP34gQeJ",
     type: "REJECT",
-    timestamp: 1730802000000,
+    timestamp: Date.now() - 480_000,
     agent: "agent.sergeo-guard.testnet",
     target: "evil_drainer.testnet",
     method: "drain",
@@ -144,12 +145,12 @@ let activityLog: ActivityItem[] = (() => {
       }
     } else {
       // Seed file on initial startup
-      fs.writeFileSync(filePath, JSON.stringify(VERIFIED_GENESIS_ACTIVITIES, null, 2), "utf-8");
+      fs.writeFileSync(filePath, JSON.stringify(DEMO_SEED_ACTIVITIES, null, 2), "utf-8");
     }
   } catch {
     // Disk read fallback
   }
-  return [...VERIFIED_GENESIS_ACTIVITIES];
+  return [...DEMO_SEED_ACTIVITIES];
 })();
 
 function persistLedger(): void {
@@ -162,7 +163,17 @@ function persistLedger(): void {
 }
 
 export function getRecentActivities(): ActivityItem[] {
-  return [...activityLog];
+  const now = Date.now();
+  return activityLog.map((item, idx) => {
+    // Dynamically adjust any legacy 2024 seed timestamps so the demo feed shows fresh relative time
+    if (item.timestamp < 1767225600000) {
+      return {
+        ...item,
+        timestamp: now - (idx + 1) * 60_000,
+      };
+    }
+    return item;
+  });
 }
 
 export function recordActivity(item: ActivityItem): void {

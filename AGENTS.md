@@ -24,7 +24,7 @@ The Guard policy contract executes checks in a strictly fixed order. This orderi
 
 1. `NOT_AGENT`: Caller must match the registered agent account ID.
 2. `PAUSED`: Agent must not be paused (manual owner pause or auto-pause circuit breaker).
-3. `OVER_VELOCITY_CAP`: Total actions within the sliding 10-minute window must not exceed `max_actions_per_10min`.
+3. `OVER_VELOCITY_CAP`: Total actions within the fixed 10-minute tumbling window must not exceed `max_actions_per_10min`.
 4. `TARGET_NOT_ALLOWED`: Target contract must be allowlisted. Generic `ContractCall` may never target the custody token or value-moving methods.
 5. `METHOD_NOT_ALLOWED`: Method must be allowlisted for that target. Token transfers must use typed `Transfer` actions.
 6. `OVER_DAILY_CAP`: Spend in the rolling 24-25h window plus requested amount must not exceed the daily cap (separate caps for tokens and native NEAR).
