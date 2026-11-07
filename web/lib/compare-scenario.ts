@@ -48,6 +48,9 @@ export function buildScenarioSteps(
     dexContract?: string;
   } = {}
 ): ComparisonStepDefinition[] {
+  // Testnet Mock Contracts: sergeo-guard-token.testnet (mock token) and
+  // sergeo-guard-dex.testnet (mock DEX) are deployed specifically for interactive
+  // demo and testing scenarios on NEAR testnet.
   const tokenContract = options.tokenContract || "sergeo-guard-token.testnet";
   const dexContract = options.dexContract || "sergeo-guard-dex.testnet";
   const dailyCap = Number(budget?.cap || 500);

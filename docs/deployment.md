@@ -211,17 +211,20 @@ near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_budge
 Expected output structure:
 ```json
 {
+  "cap": "500",
   "spent": "0",
   "remaining": "500",
-  "daily_cap": "500",
   "actions_in_window": 0,
-  "max_actions": 5,
   "paused": false,
   "vault_balance": "100",
+  "revoked": false,
+  "high_water_mark": "100",
+  "max_drawdown_bps": 2000,
+  "near_vault_balance": "2000000000000000000000000",
+  "near_high_water_mark": "2000000000000000000000000",
+  "near_cap": "5000000000000000000000000",
   "near_spent": "0",
-  "near_remaining": "5000000000000000000000000",
-  "near_daily_cap": "5000000000000000000000000",
-  "near_vault_balance": "2000000000000000000000000"
+  "near_remaining": "5000000000000000000000000"
 }
 ```
 
@@ -303,14 +306,22 @@ This script exercises:
 
 ---
 
-## 7. Operator Action Required
+## 7. Deployment Verification Checklist
 
-Please execute the deployment steps above on NEAR Testnet.
+Verify your deployed contract against the live network:
 
-Once deployment is complete, provide:
-1. Deployed Guard Contract Account ID (e.g. `guard-v4.sergeo-guard.testnet`).
-2. Deployment Transaction Hash.
-3. Agent Registration Transaction Hash.
-4. End-to-End Suite Run Output and Transaction Hashes.
-
-The activity ledger and repository documentation will then be updated exclusively with those verified on-chain transaction records.
+1. Confirm contract deployment and version:
+   ```bash
+   near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_version network-config testnet
+   # Expected output: "0.4.0"
+   ```
+2. Confirm agent policy and budget status:
+   ```bash
+   near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_budget \
+     json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
+     network-config testnet
+   ```
+3. Run the automated test verification suite:
+   ```bash
+   node scripts/verify.js
+   ```

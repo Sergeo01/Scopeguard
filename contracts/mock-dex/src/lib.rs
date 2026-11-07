@@ -18,8 +18,9 @@ impl MockDexContract {
         }
     }
 
-    /// Swap method called by the agent during legit work.
-    /// Returns the received amount.
+    /// Mock swap method for agent trading demonstration scenarios.
+    /// Emits a SWAP event and returns calculated output amount.
+    /// Note: This is a test mock DEX that simulates swap execution without moving underlying NEP-141 tokens.
     pub fn swap(&mut self, amount: U128) -> U128 {
         let caller = env::predecessor_account_id();
         let received = amount.0 * self.rate_numerator / self.rate_denominator;

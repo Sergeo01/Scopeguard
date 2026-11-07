@@ -97,6 +97,10 @@ export async function POST(req: Request) {
     if (!method) method = "swap";
     if (!amount) amount = "0";
 
+    // Demo Key Disclosure: In this hosted attack arena demo, the agent's scoped passkey
+    // (a NEAR function-call key restricted to receiver=guard, methods=["execute"]) is loaded from
+    // server environment variables solely to sign live testnet transactions on demand for evaluators.
+    // In production, the agent key resides exclusively in the agent's isolated runtime.
     const envAgentKey = process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || process.env.AGENT_PRIVATE_KEY;
     const envAgentAccount = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID;
 
@@ -272,6 +276,19 @@ export async function POST(req: Request) {
       // Non-blocking: alert dispatch errors never disrupt the onchain response
     }
 
+    // Invariant Check Order (1 to 12):
+    // 1: NOT_AGENT (caller identity)
+    // 2: PAUSED (circuit breaker / manual freeze)
+    // 3: LEASE_EXPIRED (time limit)
+    // 4: CANARY_TRIPPED (honey-token tripwire)
+    // 5: OVER_VELOCITY_CAP (tumbling 10-min action rate)
+    // 6: TARGET_NOT_ALLOWED (unauthorized contract)
+    // 7: METHOD_NOT_ALLOWED (unauthorized method / value-moving denylist)
+    // 8: OVER_DAILY_CAP (rolling 24-25h budget)
+    // 9: RECIPIENT_NOT_ALLOWED / INTENT_RECIPIENT_NOT_ALLOWED (destination allowlist)
+    // 10: INSUFFICIENT_VAULT_BALANCE (vault custody limit)
+    // 11: DRAWDOWN_EXCEEDED (high-water mark drawdown floor)
+    // 12: PENDING / PENDING_QUEUE_FULL (timelock quarantine queue capacity)
     const RULE_NUMBER: Record<string, number> = {
       NOT_AGENT: 1,
       PAUSED: 2,
@@ -282,12 +299,12 @@ export async function POST(req: Request) {
       METHOD_NOT_ALLOWED: 7,
       OVER_DAILY_CAP: 8,
       RECIPIENT_NOT_ALLOWED: 9,
-      CROSS_CHAIN_INTENT_NOT_ALLOWED: 10,
-      INTENT_RECIPIENT_NOT_ALLOWED: 10,
+      CROSS_CHAIN_INTENT_NOT_ALLOWED: 9,
+      INTENT_RECIPIENT_NOT_ALLOWED: 9,
+      INSUFFICIENT_VAULT_BALANCE: 10,
       OVER_MAX_DRAWDOWN: 11,
       DRAWDOWN_EXCEEDED: 11,
-      INSUFFICIENT_VAULT_BALANCE: 13,
-      PENDING_QUEUE_FULL: 14,
+      PENDING_QUEUE_FULL: 12,
     };
 
     return NextResponse.json({
