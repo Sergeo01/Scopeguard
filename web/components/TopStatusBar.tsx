@@ -15,7 +15,7 @@ import {
 import { useWallet } from "@/context/WalletContext";
 import { WalletButton } from "@/components/WalletButton";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 export const TopStatusBar: React.FC<{
   onOpenMobileMenu?: () => void;
@@ -29,9 +29,7 @@ export const TopStatusBar: React.FC<{
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    try {
-      setContractId(getPolicyContractId());
-    } catch {}
+    setContractId(tryGetPolicyContractId() || "");
 
     fetch("/api/state")
       .then((res) => res.json())
@@ -131,7 +129,7 @@ export const TopStatusBar: React.FC<{
             className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
             title="Click to copy Guard contract address"
           >
-            <span>{contractId || "guard contract"}</span>
+            <span>{contractId || "Policy contract not configured"}</span>
             {copied ? (
               <Check className="w-3 h-3 text-mint-green" />
             ) : (

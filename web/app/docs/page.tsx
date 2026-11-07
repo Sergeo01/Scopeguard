@@ -826,6 +826,13 @@ if !is_promise_success() {
                 Owner signing routes (/api/register, /api/fund, /api/demo/reset) are strictly gated by environment variables. By default, SCOPEGUARD_ALLOW_SERVER_SIGNING is unset and the API returns the exact CLI command for manual client signing. In environments where server signing is enabled, SCOPEGUARD_SHARED_SECRET is required on every request via Authorization or x-scopeguard-secret header. If server signing is enabled without a configured secret, requests fail closed with HTTP status 500.
               </p>
             </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2 text-xs">
+              <h4 className="font-bold text-slate-900 dark:text-white">Canonical Policy Contract Configuration</h4>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                ScopeGuard uses two canonical configuration variables across client and server environments. NEXT_PUBLIC_POLICY_CONTRACT_ID is statically referenced and inlined by the Next.js compiler into client browser bundles. SCOPEGUARD_POLICY_CONTRACT is the canonical identifier used by server routes, background watcher daemons, and CLI scripts.
+              </p>
+            </div>
           </section>
 
           {/* SECTION 14: VERIFIED IMPLEMENTED FEATURES */}

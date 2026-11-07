@@ -1,42 +1,54 @@
 import test from "node:test";
 import assert from "node:assert";
-import { getPolicyContractId, POLICY_CONTRACT_ENV_VARS } from "../src/config";
+import { getPolicyContractId, tryGetPolicyContractId } from "../src/config";
 
-test("config: getPolicyContractId throws when all contract ID env vars are unset", () => {
-  const saved: Record<string, string | undefined> = {};
-  for (const k of POLICY_CONTRACT_ENV_VARS) {
-    saved[k] = process.env[k];
-    delete process.env[k];
-  }
+test("config: tryGetPolicyContractId returns null and getPolicyContractId throws when env vars are unset", () => {
+  const origServer = process.env.SCOPEGUARD_POLICY_CONTRACT;
+  const origPublic = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  delete process.env.SCOPEGUARD_POLICY_CONTRACT;
+  delete process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
 
   try {
+    assert.strictEqual(tryGetPolicyContractId(), null);
     assert.throws(
       () => getPolicyContractId(),
       /ScopeGuard policy contract ID is unset/,
-      "Must throw when contract ID environment variable is unset (no silent fallbacks)"
+      "Must throw when contract ID environment variable is unset"
     );
   } finally {
-    for (const k of POLICY_CONTRACT_ENV_VARS) {
-      if (saved[k] !== undefined) {
-        process.env[k] = saved[k];
-      } else {
-        delete process.env[k];
-      }
-    }
+    if (origServer !== undefined) process.env.SCOPEGUARD_POLICY_CONTRACT = origServer;
+    if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;
   }
 });
 
-test("config: getPolicyContractId returns trimmed contract ID when env var is configured", () => {
-  const orig = process.env.SCOPEGUARD_POLICY_CONTRACT;
+test("config: returns trimmed contract ID when SCOPEGUARD_POLICY_CONTRACT is configured", () => {
+  const origServer = process.env.SCOPEGUARD_POLICY_CONTRACT;
+  const origPublic = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  delete process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
 
   try {
     process.env.SCOPEGUARD_POLICY_CONTRACT = "  my-guard.testnet  ";
+    assert.strictEqual(tryGetPolicyContractId(), "my-guard.testnet");
     assert.strictEqual(getPolicyContractId(), "my-guard.testnet");
   } finally {
-    if (orig !== undefined) {
-      process.env.SCOPEGUARD_POLICY_CONTRACT = orig;
-    } else {
-      delete process.env.SCOPEGUARD_POLICY_CONTRACT;
-    }
+    if (origServer !== undefined) process.env.SCOPEGUARD_POLICY_CONTRACT = origServer;
+    else delete process.env.SCOPEGUARD_POLICY_CONTRACT;
+    if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;
+  }
+});
+
+test("config: returns trimmed contract ID when NEXT_PUBLIC_POLICY_CONTRACT_ID is configured", () => {
+  const origServer = process.env.SCOPEGUARD_POLICY_CONTRACT;
+  const origPublic = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  delete process.env.SCOPEGUARD_POLICY_CONTRACT;
+
+  try {
+    process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = "  public-guard.testnet  ";
+    assert.strictEqual(tryGetPolicyContractId(), "public-guard.testnet");
+    assert.strictEqual(getPolicyContractId(), "public-guard.testnet");
+  } finally {
+    if (origServer !== undefined) process.env.SCOPEGUARD_POLICY_CONTRACT = origServer;
+    if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;
+    else delete process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
   }
 });

@@ -243,7 +243,7 @@ NEAR_TESTNET_RPC="https://test.rpc.fastnear.com"
 
 In `web/.env.local`:
 ```bash
-NEXT_PUBLIC_SCOPEGUARD_POLICY_CONTRACT="guard-v4.sergeo-guard.testnet"
+NEXT_PUBLIC_POLICY_CONTRACT_ID="guard-v4.sergeo-guard.testnet"
 NEXT_PUBLIC_TOKEN_CONTRACT="sergeo-guard-token.testnet"
 NEXT_PUBLIC_DEX_CONTRACT="sergeo-guard-dex.testnet"
 

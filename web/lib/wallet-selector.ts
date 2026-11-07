@@ -7,7 +7,7 @@ import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
 import { setupSender } from "@near-wallet-selector/sender";
 import "@near-wallet-selector/modal-ui/styles.css";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 let selectorInstance: { selector: WalletSelector; modal: WalletSelectorModal } | null = null;
 let initPromise: Promise<{ selector: WalletSelector; modal: WalletSelectorModal }> | null = null;
@@ -34,7 +34,7 @@ export async function getNearWalletSelector(): Promise<{ selector: WalletSelecto
       });
 
       const modal = setupModal(selector, {
-        contractId: getPolicyContractId(),
+        contractId: tryGetPolicyContractId() || "policy-contract-not-configured.testnet",
         theme: "dark",
       });
 

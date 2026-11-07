@@ -55,6 +55,17 @@ jobs:
           npm test --prefix web
           npm run typecheck --prefix web
 
+      - name: Build Web application with NO env vars
+        run: npm run build --prefix web
+        env:
+          SCOPEGUARD_POLICY_CONTRACT: ""
+          NEXT_PUBLIC_POLICY_CONTRACT_ID: ""
+          NEXT_PUBLIC_OWNER_ACCOUNT_ID: ""
+          NEXT_PUBLIC_TOKEN_CONTRACT: ""
+          NEXT_PUBLIC_DEX_CONTRACT: ""
+          NEXT_PUBLIC_NEAR_NETWORK: ""
+          NEXT_PUBLIC_NEAR_RPC: ""
+
       - name: Build Web application
         run: npm run build --prefix web
         env:

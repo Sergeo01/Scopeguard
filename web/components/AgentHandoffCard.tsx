@@ -17,8 +17,9 @@ import {
   Eye,
   EyeOff,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 interface AgentHandoffCardProps {
   agentName: string;
@@ -62,16 +63,18 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const actualPasskey = passkey || "";
   const actualPublicKey = publicKey || "";
   const maskedPasskey = actualPasskey ? "ed25519:••••••••••••••••••••••••••••••••••••••••••••" : "";
-  const guardContract = getPolicyContractId();
+  const guardContract = tryGetPolicyContractId();
+  const guardContractDisplay = guardContract || "Policy contract not configured";
+  const cliGuardArg = guardContract || "<POLICY_CONTRACT_ID>";
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const cliCommand = actualPasskey
-    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${guardContract}`
-    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${guardContract}`;
+    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${cliGuardArg}`
+    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${cliGuardArg}`;
 
   const displayCliCommand = actualPasskey
-    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${revealKey ? actualPasskey : maskedPasskey} --guard ${guardContract}`
-    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${guardContract}`;
+    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${revealKey ? actualPasskey : maskedPasskey} --guard ${cliGuardArg}`
+    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${cliGuardArg}`;
 
   const defaultPolicy = {
     token: "sergeo-guard-token.testnet",
@@ -87,18 +90,18 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   };
 
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
-near call ${guardContract} register_agent '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || defaultPolicy)}}' --accountId ${ownerName} --gas 100000000000000
+near call ${cliGuardArg} register_agent '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || defaultPolicy)}}' --accountId ${ownerName} --gas 100000000000000
 
 # 2. Add scoped function-call passkey to agent account (restricted to Guard execute only, with 0.25 NEAR allowance for gas fees)
-near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${guardContract} --methodNames execute --allowance 0.25 --accountId ${ownerName}`;
+near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${cliGuardArg} --methodNames execute --allowance 0.25 --accountId ${ownerName}`;
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet.
 - Account: ${agentName}
 - Scoped Passkey: Load from environment variable (SCOPEGUARD_AGENT_PRIVATE_KEY) or credentials/agent.json
-- Policy Guard Contract: ${guardContract}
+- Policy Guard Contract: ${guardContractDisplay}
 - Daily Spending Limit: $${dailyCap} mUSD
 - Enforced Rules:
-  1. All trades must be routed through ${guardContract}::execute
+  1. All trades must be routed through ${cliGuardArg}::execute
   2. Direct asset withdrawals and unapproved contract calls are forbidden onchain
   3. Comply strictly with the ${dailyCap} mUSD daily budget and speed limits
 - CRITICAL SECURITY RULE:
@@ -106,7 +109,7 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
 
   const credentialJson = {
     agentAccountId: agentName,
-    policyContractId: guardContract,
+    policyContractId: guardContract || "",
     publicKey: actualPublicKey,
     privateKey: actualPasskey,
     networkId: "testnet",
@@ -163,6 +166,21 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
             <span className="font-mono font-semibold text-slate-900 dark:text-white">{agentName}</span>.
           </p>
         </div>
+
+        {/* Policy Contract Not Configured Banner */}
+        {!guardContract && (
+          <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center gap-3 text-left">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">
+                Policy contract not configured
+              </span>
+              <span className="text-xs text-slate-700 dark:text-slate-300 block">
+                Set NEXT_PUBLIC_POLICY_CONTRACT_ID in your environment to complete onchain deployment.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Verified Onchain Transaction Banner */}
         {txHash && (

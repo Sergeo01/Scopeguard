@@ -33,17 +33,6 @@ impl Contract {
         }
     }
 
-    /// Migration initializer to cleanly bind upgraded contract state
-    #[init(ignore_state)]
-    pub fn clean_init() -> Self {
-        assert_eq!(
-            env::predecessor_account_id(),
-            env::current_account_id(),
-            "Unauthorized: self only"
-        );
-        Self::new()
-    }
-
     // ---------------------------------------------------------------
     // Registration & Policy Management
     // ---------------------------------------------------------------

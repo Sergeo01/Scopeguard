@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 import {
   Shield,
   ShieldCheck,
@@ -167,7 +167,7 @@ export default function FleetConsolePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const guardId = fleet?.guardId || getPolicyContractId();
+  const guardId = fleet?.guardId || tryGetPolicyContractId();
   const owner = fleet?.owner || "sergeo-guard.testnet";
   const agents = useMemo(() => fleet?.agents ?? [], [fleet?.agents]);
   const totals = fleet?.totals;
@@ -192,7 +192,7 @@ export default function FleetConsolePage() {
   }, [agents, query, statusFilter]);
 
   const call = (method: string, args: object) =>
-    `near call ${guardId} ${method} '${JSON.stringify(args)}' --accountId ${owner} --gas 100000000000000`;
+    `near call ${guardId || "<POLICY_CONTRACT_ID>"} ${method} '${JSON.stringify(args)}' --accountId ${owner} --gas 100000000000000`;
 
   const freeze = (agent: AgentRow) => {
     const pausing = statusOf(agent) === "ACTIVE";
@@ -275,7 +275,7 @@ export default function FleetConsolePage() {
             Agents under policy
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 max-w-2xl">
-            Every row is read from <span className="font-mono">{guardId}</span> via{" "}
+            Every row is read from <span className="font-mono">{guardId || "Policy contract not configured"}</span> via{" "}
             <span className="font-mono">get_agents</span>. No wallet signature is required to view,
             and none is implied. Actions below emit commands you sign yourself.
           </p>
@@ -297,6 +297,18 @@ export default function FleetConsolePage() {
           </div>
         </div>
       </div>
+
+      {!guardId && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-800 dark:text-amber-300">
+            <p className="font-bold">Policy contract not configured</p>
+            <p className="mt-1">
+              Set NEXT_PUBLIC_POLICY_CONTRACT_ID in your environment to view and manage agents under policy.
+            </p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/70 dark:bg-rose-950/30 p-4 flex items-start gap-3">
@@ -333,7 +345,7 @@ export default function FleetConsolePage() {
             <div className="pt-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white text-[11px] font-mono border border-white/15">
                 <Database className="w-3 h-3 text-emerald-400" />
-                {guardId}
+                {guardId || "Policy contract not configured"}
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white text-[11px] font-mono border border-white/15">
                 <Radio className="w-3 h-3 text-blue-400" />
@@ -393,7 +405,7 @@ export default function FleetConsolePage() {
               icon={<ShieldCheck className="w-3.5 h-3.5" />}
               label="Contract version"
               value={fleet?.contractVersion || "-"}
-              note={guardId}
+              note={guardId || "Policy contract not configured"}
               tone="emerald"
             />
           </div>
@@ -475,7 +487,7 @@ export default function FleetConsolePage() {
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Owner <span className="font-mono">{owner}</span> · {agents.length} on{" "}
-                <span className="font-mono">{guardId}</span>
+                <span className="font-mono">{guardId || "Policy contract not configured"}</span>
               </p>
             </div>
 
@@ -700,7 +712,11 @@ export default function FleetConsolePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <Fact label="Policy contract" value={guardId} href={`https://testnet.nearblocks.io/address/${guardId}`} />
+            <Fact
+              label="Policy contract"
+              value={guardId || "Policy contract not configured"}
+              href={guardId ? `https://testnet.nearblocks.io/address/${guardId}` : undefined}
+            />
             <Fact
               label="RPC endpoint"
               value={fleet?.nodeUrl || "not measured"}

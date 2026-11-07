@@ -1,25 +1,28 @@
 /**
  * Canonical configuration module for ScopeGuard policy contract identity.
- * Replaces hardcoded fallbacks across the codebase.
- * Throws if the policy contract ID environment variable is unset (no silent fallbacks).
+ *
+ * - SCOPEGUARD_POLICY_CONTRACT: Canonical variable for Node.js server and CLI scripts.
+ * - NEXT_PUBLIC_POLICY_CONTRACT_ID: Canonical public variable when running in isomorphic/browser environments.
  */
 
-export const POLICY_CONTRACT_ENV_VARS = [
-  "SCOPEGUARD_POLICY_CONTRACT",
-  "NEXT_PUBLIC_POLICY_CONTRACT_ID",
-  "POLICY_CONTRACT_ID",
-  "NEXT_PUBLIC_SCOPEGUARD_POLICY_CONTRACT",
-  "NEXT_PUBLIC_GUARD_CONTRACT",
-] as const;
+export function tryGetPolicyContractId(): string | null {
+  const serverId = process.env.SCOPEGUARD_POLICY_CONTRACT;
+  if (typeof serverId === "string" && serverId.trim().length > 0 && serverId !== "undefined") {
+    return serverId.trim();
+  }
+
+  const publicId = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  if (typeof publicId === "string" && publicId.trim().length > 0 && publicId !== "undefined") {
+    return publicId.trim();
+  }
+
+  return null;
+}
 
 export function getPolicyContractId(): string {
-  if (typeof process !== "undefined" && process.env) {
-    for (const key of POLICY_CONTRACT_ENV_VARS) {
-      const val = process.env[key];
-      if (val && val.trim().length > 0 && val !== "undefined") {
-        return val.trim();
-      }
-    }
+  const id = tryGetPolicyContractId();
+  if (id) {
+    return id;
   }
 
   throw new Error(
@@ -28,3 +31,4 @@ export function getPolicyContractId(): string {
 }
 
 export const getGuardContractId = getPolicyContractId;
+export const tryGetGuardContractId = tryGetPolicyContractId;

@@ -12,15 +12,13 @@ import {
   Layers,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 export const MarketingFooter: React.FC = () => {
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    try {
-      setContractId(getPolicyContractId());
-    } catch {}
+    setContractId(tryGetPolicyContractId() || "");
   }, []);
   return (
     <footer className="w-full border-t border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 text-slate-600 dark:text-slate-400 py-16 px-6 sm:px-10 lg:px-16 transition-colors">
@@ -44,7 +42,7 @@ export const MarketingFooter: React.FC = () => {
                 <span>NEAR Testnet Active</span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                {contractId || "guard contract"}
+                {contractId || "Policy contract not configured"}
               </span>
             </div>
           </div>

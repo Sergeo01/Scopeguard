@@ -22,19 +22,17 @@ import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { WalletButton } from "@/components/WalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useWallet } from "@/context/WalletContext";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [contractId, setContractId] = useState("");
+  const [contractId, setContractId] = useState<string | null>(tryGetPolicyContractId);
 
   useEffect(() => {
-    try {
-      setContractId(getPolicyContractId());
-    } catch {}
+    setContractId(tryGetPolicyContractId());
   }, []);
 
   const copyContract = () => {

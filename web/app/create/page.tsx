@@ -32,7 +32,7 @@ import { PlatformPresets, PresetPlatform } from "../../components/PlatformPreset
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
 import { validatePolicyShape, lintPolicy } from "@/lib/drafter";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 
 interface TargetPlatform extends ConfiguredPlatform {}
 
@@ -41,13 +41,11 @@ export default function CreateAgentPage() {
   const [agentName, setAgentName] = useState("agent.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(500);
   const [dailyCapInput, setDailyCapInput] = useState<string>("500");
-  const [guardContractId, setGuardContractId] = useState(() => {
-    try {
-      return getPolicyContractId();
-    } catch {
-      return "";
-    }
-  });
+  const [guardContractId, setGuardContractId] = useState<string | null>(tryGetPolicyContractId);
+
+  useEffect(() => {
+    setGuardContractId(tryGetPolicyContractId());
+  }, []);
 
   const [platforms, setPlatforms] = useState<TargetPlatform[]>([
     {
@@ -289,7 +287,10 @@ export default function CreateAgentPage() {
         if (!ws) throw new Error("Wallet selector could not be initialized");
         const wallet = await ws.selector.wallet();
         const { transactions, utils } = await import("near-api-js");
-        const guardId = getPolicyContractId();
+        const guardId = tryGetPolicyContractId();
+        if (!guardId) {
+          throw new Error("Policy contract not configured. Set NEXT_PUBLIC_POLICY_CONTRACT_ID to register onchain.");
+        }
 
         const registerAction = transactions.functionCall(
           "register_agent",
@@ -479,6 +480,18 @@ export default function CreateAgentPage() {
           </div>
         </div>
 
+        {!guardContractId && (
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-800 dark:text-amber-300">
+              <p className="font-bold">Policy contract not configured</p>
+              <p className="mt-1">
+                Set NEXT_PUBLIC_POLICY_CONTRACT_ID in your environment to target an active onchain guard.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Clean Neutral 4-Column Metric Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Tile A: Target Receiver */}
@@ -492,8 +505,8 @@ export default function CreateAgentPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title={guardContractId || "Policy Contract"}>
-                {guardContractId ? (guardContractId.length > 12 ? `${guardContractId.slice(0, 8)}...` : guardContractId) : "guard2..."}
+              <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title={guardContractId || "Policy contract not configured"}>
+                {guardContractId ? (guardContractId.length > 12 ? `${guardContractId.slice(0, 8)}...` : guardContractId) : "Policy contract not configured"}
               </span>
               <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                 <Lock className="w-3 h-3" />

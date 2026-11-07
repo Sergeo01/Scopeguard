@@ -37,7 +37,7 @@ import {
 import { MarketingNavbar } from "@/components/MarketingNavbar";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { ReceiptModal } from "@/components/ReceiptModal";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 import { AuthModal } from "@/components/AuthModal";
 import { AttackAutopsy, AutopsyData } from "@/components/AttackAutopsy";
 import { useWallet } from "@/context/WalletContext";
@@ -252,12 +252,10 @@ export default function HomePage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<"without" | "with">("with");
   const [selectedRuleNum, setSelectedRuleNum] = useState<number>(4);
-  const [guardContractId, setGuardContractId] = useState("");
+  const [guardContractId, setGuardContractId] = useState<string | null>(tryGetPolicyContractId);
 
   useEffect(() => {
-    try {
-      setGuardContractId(getPolicyContractId());
-    } catch {}
+    setGuardContractId(tryGetPolicyContractId());
   }, []);
 
   // Multi-Mode Developer Card State
@@ -265,7 +263,7 @@ export default function HomePage() {
   const [copiedSnippet, setCopiedSnippet] = useState(false);
 
   const snippetMap = {
-    cli: `npx @scopeguard/cli connect --guard ${guardContractId || "guard2.sergeo-guard.testnet"}`,
+    cli: guardContractId ? `npx @scopeguard/cli connect --guard ${guardContractId}` : "npx @scopeguard/cli connect --guard <POLICY_CONTRACT_ID>",
     sdk: "npm install @scopeguard/sdk",
     prompt: "Route all fund transfers through ScopeGuard passkey protocol. Maximum daily spend bound is $500.00.",
   };
@@ -724,12 +722,12 @@ export default function HomePage() {
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 transition">
                 <span className="font-mono text-xs font-bold text-brand-blue pl-2 select-none">$</span>
                 <code className="min-w-0 flex-1 font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 select-all overflow-x-auto whitespace-pre py-1">
-                  npx @scopeguard/cli connect --guard {guardContractId || "guard2.sergeo-guard.testnet"}
+                  {guardContractId ? `npx @scopeguard/cli connect --guard ${guardContractId}` : "Policy contract not configured"}
                 </code>
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(`npx @scopeguard/cli connect --guard ${guardContractId || "guard2.sergeo-guard.testnet"}`);
+                    navigator.clipboard.writeText(guardContractId ? `npx @scopeguard/cli connect --guard ${guardContractId}` : "npx @scopeguard/cli connect --guard <POLICY_CONTRACT_ID>");
                     setCopiedSnippet(true);
                     setTimeout(() => setCopiedSnippet(false), 2000);
                   }}
@@ -920,7 +918,7 @@ export default function HomePage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-mono text-center text-slate-500 dark:text-slate-400 block">
-                          {guardContractId || "guard2.sergeo-guard.testnet"}
+                          {guardContractId || "Policy contract not configured"}
                         </span>
                       </div>
 
@@ -1159,7 +1157,7 @@ export default function HomePage() {
                       onClick={() => {
                         const payload = JSON.stringify({
                           caller: "agent.sergeo-guard.testnet",
-                          guard: guardContractId || "guard2.sergeo-guard.testnet",
+                          guard: guardContractId || "Policy contract not configured",
                           action: {
                             target: targetAccount,
                             method: methodName,
@@ -1275,7 +1273,7 @@ export default function HomePage() {
 {JSON.stringify(
   {
     caller: "agent.sergeo-guard.testnet",
-    guard: guardContractId || "guard2.sergeo-guard.testnet",
+    guard: guardContractId || "Policy contract not configured",
     action: {
       target: targetAccount,
       method: methodName,

@@ -42,7 +42,7 @@ import {
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { useWallet } from "@/context/WalletContext";
-import { getPolicyContractId } from "@/lib/config";
+import { tryGetPolicyContractId } from "@/lib/config";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 import { IncidentExportModal } from "@/components/IncidentExportModal";
@@ -95,13 +95,7 @@ export default function DashboardPage() {
   const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
-  const [guardId, setGuardId] = useState(() => {
-    try {
-      return getPolicyContractId();
-    } catch {
-      return "";
-    }
-  });
+  const [guardId, setGuardId] = useState<string | null>(tryGetPolicyContractId);
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
   const [queriedAgent, setQueriedAgent] = useState<string | null>(null);
   const [queriedOwner, setQueriedOwner] = useState<string | null>(null);
@@ -360,6 +354,9 @@ export default function DashboardPage() {
       const wallet = await ws.selector.wallet();
       const { transactions } = await import("near-api-js");
       const targetContract = activeOwnerModal.contractId || guardId;
+      if (!targetContract) {
+        throw new Error("Policy contract not configured. Set NEXT_PUBLIC_POLICY_CONTRACT_ID to sign onchain.");
+      }
       const depositYocto =
         activeOwnerModal.method === "deposit_near"
           ? BigInt("1000000000000000000000000") // 1 NEAR
@@ -442,10 +439,11 @@ export default function DashboardPage() {
   const handlePause = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Emergency Pause Key",
       description: "Freezes all agent transactions on NEAR Testnet immediately. The Guard contract will refuse all calls until unpaused by the owner.",
-      command: `near call ${guardId} pause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} pause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "pause",
       args: { agent_account: agentId },
       isDanger: false,
@@ -455,10 +453,11 @@ export default function DashboardPage() {
   const handleUnpause = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Unpause Agent Key",
       description: "Resumes normal agent operation on NEAR Testnet. The Guard will resume checking transactions against approved policy rules.",
-      command: `near call ${guardId} unpause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} unpause '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "unpause",
       args: { agent_account: agentId },
       isDanger: false,
@@ -468,10 +467,11 @@ export default function DashboardPage() {
   const handleWithdrawVault = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Withdraw Vault to Owner",
       description: "Empties 100% of the agent spending pot back into your owner wallet. The destination is forced to the verified owner account onchain.",
-      command: `near call ${guardId} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} withdraw '{"agent_account":"${agentId}","amount":"${vaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "withdraw",
       args: { agent_account: agentId, amount: vaultBalance },
       isDanger: true,
@@ -481,10 +481,11 @@ export default function DashboardPage() {
   const handleWithdrawNear = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Withdraw Native NEAR to Owner",
       description: "Empties 100% of the native NEAR pot back into your owner wallet. Destination is strictly forced to the verified owner account onchain.",
-      command: `near call ${guardId} withdraw_near '{"agent_account":"${agentId}","amount":"${rawNearVaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} withdraw_near '{"agent_account":"${agentId}","amount":"${rawNearVaultBalance}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "withdraw_near",
       args: { agent_account: agentId, amount: rawNearVaultBalance },
       isDanger: true,
@@ -496,13 +497,14 @@ export default function DashboardPage() {
     setActionError(null);
     const tokenId = policy?.token || "sergeo-guard-token.testnet";
     const effectiveSender = connectedWalletId || ownerId;
+    const effectiveReceiver = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Deposit $100 mUSD into Vault",
       description: "Transfers 100 mUSD test tokens from your wallet into the agent working pot onchain via NEP-141 ft_transfer_call.",
-      command: `near call ${tokenId} ft_transfer_call '{"receiver_id":"${guardId}","amount":"100","msg":"${agentId}"}' --accountId ${effectiveSender} --depositYocto 1 --gas 60000000000000`,
+      command: `near call ${tokenId} ft_transfer_call '{"receiver_id":"${effectiveReceiver}","amount":"100","msg":"${agentId}"}' --accountId ${effectiveSender} --depositYocto 1 --gas 60000000000000`,
       contractId: tokenId,
       method: "ft_transfer_call",
-      args: { receiver_id: guardId, amount: "100", msg: agentId },
+      args: { receiver_id: effectiveReceiver, amount: "100", msg: agentId },
       isDanger: false,
     });
   };
@@ -556,10 +558,11 @@ export default function DashboardPage() {
   const handleDepositNear = () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Deposit 1 NEAR into Vault",
       description: "Transfers 1 native NEAR from your connected owner wallet into the agent working pot onchain.",
-      command: `near call ${guardId} deposit_near '{"agent_account":"${agentId}"}' --deposit 1 --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} deposit_near '{"agent_account":"${agentId}"}' --deposit 1 --accountId ${ownerId} --gas 100000000000000`,
       method: "deposit_near",
       args: { agent_account: agentId },
       isDanger: false,
@@ -569,10 +572,11 @@ export default function DashboardPage() {
   const handleSettlePending = (pendingId: number) => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Settle Quarantined Action",
       description: `Authorizes and executes quarantined action #${pendingId} on NEAR Testnet. The 60-second review timelock has completed.`,
-      command: `near call ${guardId} settle_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} settle_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
       method: "settle_pending",
       args: { agent_account: agentId, id: pendingId },
       isDanger: false,
@@ -582,10 +586,11 @@ export default function DashboardPage() {
   const handleCancelPending = (pendingId: number) => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Veto Quarantined Action",
       description: `Vetoes and deletes quarantined action #${pendingId} from the onchain queue. No funds will be transferred.`,
-      command: `near call ${guardId} cancel_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} cancel_pending '{"agent_account":"${agentId}","id":${pendingId}}' --accountId ${ownerId} --gas 100000000000000`,
       method: "cancel_pending",
       args: { agent_account: agentId, id: pendingId },
       isDanger: true,
@@ -595,10 +600,11 @@ export default function DashboardPage() {
   const handleCancelPolicyChange = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Cancel Staged Policy Change",
       description: "Cancels the pending policy change currently sitting in the timelock queue. The existing policy rules remain active.",
-      command: `near call ${guardId} cancel_policy_change '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} cancel_policy_change '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "cancel_policy_change",
       args: { agent_account: agentId },
       isDanger: true,
@@ -608,10 +614,11 @@ export default function DashboardPage() {
   const handleRevoke = async () => {
     setActionTxHash(null);
     setActionError(null);
+    const cliGuard = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
       title: "Permanently Revoke Agent Passkey",
       description: "Permanently revokes all allowlisted targets and recipients onchain and pauses the agent. Even if unpaused, the agent cannot execute any future actions.",
-      command: `near call ${guardId} revoke_agent '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
+      command: `near call ${cliGuard} revoke_agent '{"agent_account":"${agentId}"}' --accountId ${ownerId} --gas 100000000000000`,
       method: "revoke_agent",
       args: { agent_account: agentId },
       isDanger: true,
@@ -725,6 +732,10 @@ export default function DashboardPage() {
         BigInt(0)
       );
 
+      if (!guardId) {
+        throw new Error("Policy contract not configured. Set NEXT_PUBLIC_POLICY_CONTRACT_ID to sign onchain.");
+      }
+
       const res = await wallet.signAndSendTransaction({
         receiverId: guardId,
         actions: [action as any],
@@ -787,6 +798,17 @@ export default function DashboardPage() {
           >
             Sign In with Wallet
           </button>
+        </div>
+      )}
+
+      {/* Policy Contract Not Configured Banner */}
+      {!guardId && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+          <div className="text-xs text-amber-800 dark:text-amber-300">
+            <span className="font-bold block uppercase tracking-wider">Policy contract not configured</span>
+            <span className="mt-0.5 block">Set NEXT_PUBLIC_POLICY_CONTRACT_ID in your environment to view and manage live agent policy.</span>
+          </div>
         </div>
       )}
 
@@ -1226,7 +1248,7 @@ export default function DashboardPage() {
               <span>Edit Policy Limits</span>
             </button>
             <span className="px-3 py-1 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-600 dark:text-slate-400">
-              Contract: {guardId}
+              Contract: {guardId || "Policy contract not configured"}
             </span>
           </div>
         </div>
@@ -2002,7 +2024,7 @@ export default function DashboardPage() {
         connectedWalletId={connectedWalletId}
         ownerId={ownerId}
         agentId={agentId}
-        guardId={guardId}
+        guardId={guardId || "Policy contract not configured"}
         policy={policy}
         handleSavePolicyOnchain={handleSavePolicyOnchain}
         isSigningPolicy={isSigningPolicy}
@@ -2016,7 +2038,7 @@ export default function DashboardPage() {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         agentId={agentId}
-        guardId={guardId}
+        guardId={guardId || "Policy contract not configured"}
         ownerId={ownerId}
         policy={policy}
         stagedPolicy={stagedPolicy}

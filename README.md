@@ -53,6 +53,22 @@ npm run test:mcp
 npm run test:eliza
 ```
 
+### Run the Web Studio
+
+To run the local web studio console:
+
+1. Copy the example environment file:
+   ```bash
+   cp web/.env.local.example web/.env.local
+   ```
+2. Set the policy contract ID in `web/.env.local`:
+   - `NEXT_PUBLIC_POLICY_CONTRACT_ID`: The canonical public variable inlined into client browser bundles (e.g. `guard2.sergeo-guard.testnet`).
+   - `SCOPEGUARD_POLICY_CONTRACT`: The canonical variable for server-side API routes and CLI operations.
+3. Start the Next.js development server:
+   ```bash
+   npm run dev --prefix web
+   ```
+
 ---
 
 ## 2. The Problem
@@ -123,12 +139,14 @@ Transparency regarding boundaries and threat models:
 
 ---
 
-## 6. Server-Side Signing & Shared Secret Configuration
+## 6. Environment & Security Configuration
 
-The web application provides administrative endpoints (`/api/register`, `/api/fund`, `/api/demo/reset`) capable of executing onchain transactions using the owner private key.
+The ScopeGuard architecture uses canonical environment variables for contract binding and owner signing controls:
 
 | Variable | Default | Purpose & Constraints |
 | :--- | :--- | :--- |
+| `NEXT_PUBLIC_POLICY_CONTRACT_ID` | unset | Canonical public variable inlined into client browser bundles by Next.js. Required for client-side contract interactions. |
+| `SCOPEGUARD_POLICY_CONTRACT` | unset | Canonical variable for server-side API routes, event watcher daemons, and CLI scripts. |
 | `SCOPEGUARD_ALLOW_SERVER_SIGNING` | unset (false) | When unset or false, server signing is disabled. Privileged endpoints reject signing requests and return the exact CLI command for local execution. In production, this should remain unset. |
 | `SCOPEGUARD_SHARED_SECRET` | unset | Required when `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`. Must match incoming `Authorization: Bearer <secret>` or `x-scopeguard-secret` header via constant-time comparison (`crypto.timingSafeEqual`). |
 
