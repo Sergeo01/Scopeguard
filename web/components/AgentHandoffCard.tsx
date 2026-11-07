@@ -18,6 +18,7 @@ import {
   EyeOff,
   Lock,
 } from "lucide-react";
+import { getPolicyContractId } from "@/lib/config";
 
 interface AgentHandoffCardProps {
   agentName: string;
@@ -61,7 +62,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const actualPasskey = passkey || "";
   const actualPublicKey = publicKey || "";
   const maskedPasskey = actualPasskey ? "ed25519:••••••••••••••••••••••••••••••••••••••••••••" : "";
-  const guardContract = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "guard2.sergeo-guard.testnet";
+  const guardContract = getPolicyContractId();
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const cliCommand = actualPasskey

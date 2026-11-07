@@ -123,7 +123,20 @@ Transparency regarding boundaries and threat models:
 
 ---
 
-## 6. Administrative Operations
+## 6. Server-Side Signing & Shared Secret Configuration
+
+The web application provides administrative endpoints (`/api/register`, `/api/fund`, `/api/demo/reset`) capable of executing onchain transactions using the owner private key.
+
+| Variable | Default | Purpose & Constraints |
+| :--- | :--- | :--- |
+| `SCOPEGUARD_ALLOW_SERVER_SIGNING` | unset (false) | When unset or false, server signing is disabled. Privileged endpoints reject signing requests and return the exact CLI command for local execution. In production, this should remain unset. |
+| `SCOPEGUARD_SHARED_SECRET` | unset | Required when `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`. Must match incoming `Authorization: Bearer <secret>` or `x-scopeguard-secret` header via constant-time comparison (`crypto.timingSafeEqual`). |
+
+**Fail-Closed Security Invariant:** If `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` but `SCOPEGUARD_SHARED_SECRET` is unset or empty, the API refuses owner-signing requests with HTTP status 500 (fail-closed).
+
+---
+
+## 7. Administrative Operations
 
 Owner actions can be executed via NEAR CLI or directly through the web console:
 
@@ -140,6 +153,6 @@ Owner actions can be executed via NEAR CLI or directly through the web console:
 
 ---
 
-## 7. License
+## 8. License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

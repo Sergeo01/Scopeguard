@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
 import { isSameOrigin, checkAttackThrottle, setAttackInProgress, safeCompare } from "@/lib/api-guard";
+import { getPolicyContractId } from "@/lib/config";
 
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
         target = "intents.near";
         method = "execute_intent";
       } else if (canaryMatch && (!method || method === "drain_vault" || body.fromPrompt)) {
-        target = "guard2.sergeo-guard.testnet";
+        target = getPolicyContractId();
         method = "drain_vault";
         amount = "0";
       } else if (!target || !method) {
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
 
     const cred = {
       agentAccountId: envAgentAccount,
-      policyContractId: process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet",
+      policyContractId: getPolicyContractId(),
       publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
       privateKey: envAgentKey,
       networkId: process.env.NEAR_NETWORK || "testnet",
@@ -193,7 +194,7 @@ export async function POST(req: Request) {
         });
         const agentAccount = await near.account(cred.agentAccountId);
         callResult = await agentAccount.functionCall({
-          contractId: cred.policyContractId || "guard2.sergeo-guard.testnet",
+          contractId: cred.policyContractId || getPolicyContractId(),
           methodName: "execute",
           args: { action },
           gas: BigInt("100000000000000"), // 100 TGas

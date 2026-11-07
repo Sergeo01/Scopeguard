@@ -506,36 +506,3 @@ pub struct BudgetView {
     #[serde(default)]
     pub near_remaining: Option<U128>,
 }
-
-#[near(serializers = [borsh])]
-#[derive(Clone, Debug)]
-pub struct OldPolicy {
-    pub token: AccountId,
-    pub targets: HashMap<AccountId, Vec<String>>,
-    pub daily_cap: u128,
-    pub recipients: Vec<AccountId>,
-    pub max_actions_per_10min: u32,
-    pub auto_pause_rejects: u32,
-    pub auto_pause_window_minutes: u64,
-    pub high_value_threshold: u128,
-    pub high_value_delay_seconds: u64,
-    pub policy_change_delay_seconds: u64,
-}
-
-#[near(serializers = [borsh])]
-#[derive(Clone, Debug)]
-pub struct OldAgentRecord {
-    pub owner: AccountId,
-    pub policy: OldPolicy,
-    pub paused: bool,
-    pub day_window_start: Timestamp,
-    pub spent_in_window: u128,
-    pub velocity_window_start: Timestamp,
-    pub actions_in_window: u32,
-    pub reject_times: Vec<Timestamp>,
-    pub pending_actions: Vec<PendingAction>,
-    pub staged_policy: Option<StagedPolicy>,
-    pub next_pending_id: u64,
-    pub vault_balance: u128,
-    pub unconfirmed_recipients: Vec<AccountId>,
-}

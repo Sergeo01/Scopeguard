@@ -42,6 +42,7 @@ import {
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { useWallet } from "@/context/WalletContext";
+import { getPolicyContractId } from "@/lib/config";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { WorstCaseBoundIndicator } from "@/components/WorstCaseBoundIndicator";
 import { IncidentExportModal } from "@/components/IncidentExportModal";
@@ -94,7 +95,13 @@ export default function DashboardPage() {
   const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
   const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
-  const [guardId, setGuardId] = useState("guard2.sergeo-guard.testnet");
+  const [guardId, setGuardId] = useState(() => {
+    try {
+      return getPolicyContractId();
+    } catch {
+      return "";
+    }
+  });
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
   const [queriedAgent, setQueriedAgent] = useState<string | null>(null);
   const [queriedOwner, setQueriedOwner] = useState<string | null>(null);

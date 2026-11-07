@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert";
 import { KeyPair } from "near-api-js";
+
+process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+
 import { POST as registerHandler } from "../app/api/register/route";
 
 function restoreEnv(key: string, val: string | undefined) {
@@ -81,11 +84,13 @@ test("register-route: default disabled mode safely yields fallback CLI command",
 
 test("register-route: server-signing-enabled branch handles missing key and executes keypair loading", async () => {
   const origFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   const origKey = process.env.OWNER_PRIVATE_KEY;
   const origScopeKey = process.env.SCOPEGUARD_OWNER_PRIVATE_KEY;
 
   try {
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "signing-branch-test-secret";
     delete process.env.OWNER_PRIVATE_KEY;
     delete process.env.SCOPEGUARD_OWNER_PRIVATE_KEY;
 
@@ -96,6 +101,7 @@ test("register-route: server-signing-enabled branch handles missing key and exec
         origin: "https://scopeguard.blockframe.cloud",
         host: "scopeguard.blockframe.cloud",
         "content-type": "application/json",
+        "x-scopeguard-secret": "signing-branch-test-secret",
       },
       body: JSON.stringify({
         agentAccountId: "test.sergeo-guard.testnet",
@@ -119,6 +125,7 @@ test("register-route: server-signing-enabled branch handles missing key and exec
         origin: "https://scopeguard.blockframe.cloud",
         host: "scopeguard.blockframe.cloud",
         "content-type": "application/json",
+        "x-scopeguard-secret": "signing-branch-test-secret",
       },
       body: JSON.stringify({
         agentAccountId: "test-signing.sergeo-guard.testnet",
@@ -136,6 +143,7 @@ test("register-route: server-signing-enabled branch handles missing key and exec
     assert.ok(dataWithKey.error);
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
     restoreEnv("OWNER_PRIVATE_KEY", origKey);
     restoreEnv("SCOPEGUARD_OWNER_PRIVATE_KEY", origScopeKey);
   }

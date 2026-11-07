@@ -1,5 +1,6 @@
-import * as fs from "fs";
 import { connect, keyStores, KeyPair, Account } from "near-api-js";
+
+export * from "./config";
 
 export interface ScopeGuardCredential {
   agentAccountId: string;
@@ -692,6 +693,7 @@ export const ScopeGuardClient = ScopeGuardAgentClient;
 export type ScopeGuardClient = ScopeGuardAgentClient;
 
 export function loadCredential(path: string): ScopeGuardAgentClient {
+  const fs = require("fs");
   const content = fs.readFileSync(path, "utf-8");
   const cred = JSON.parse(content) as ScopeGuardCredential;
   return new ScopeGuardAgentClient(cred);

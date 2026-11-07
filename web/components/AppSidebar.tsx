@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -23,6 +23,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
+import { getPolicyContractId } from "@/lib/config";
 import { useWallet } from "@/context/WalletContext";
 import { useLogo } from "@/context/LogoContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -51,6 +52,13 @@ export const AppSidebar: React.FC<{
   const pathname = usePathname();
   const { user, accountId, isConnected, isAdmin, signOut, openAuthModal } = useWallet();
   const [searchTerm, setSearchTerm] = useState("");
+  const [contractId, setContractId] = useState("");
+
+  useEffect(() => {
+    try {
+      setContractId(getPolicyContractId());
+    } catch {}
+  }, []);
 
   const operationItems: NavItem[] = [
     {
@@ -96,7 +104,7 @@ export const AppSidebar: React.FC<{
       label: "Contracts",
       items: [
         {
-          href: "https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet",
+          href: `https://testnet.nearblocks.io/address/${contractId || ""}`,
           label: "Guard Contract",
           icon: Shield,
           isExternal: true,

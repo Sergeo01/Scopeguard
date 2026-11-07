@@ -246,7 +246,18 @@ In `web/.env.local`:
 NEXT_PUBLIC_SCOPEGUARD_POLICY_CONTRACT="guard-v4.sergeo-guard.testnet"
 NEXT_PUBLIC_TOKEN_CONTRACT="sergeo-guard-token.testnet"
 NEXT_PUBLIC_DEX_CONTRACT="sergeo-guard-dex.testnet"
+
+# Optional Server-Side Signing (Development / Demo only; keep unset in production):
+# SCOPEGUARD_ALLOW_SERVER_SIGNING="true"
+# SCOPEGUARD_SHARED_SECRET="<your-random-shared-secret>"
 ```
+
+### Server-Side Signing Environment Controls
+
+For web endpoints executing owner transactions (`/api/register`, `/api/fund`, `/api/demo/reset`):
+- `SCOPEGUARD_ALLOW_SERVER_SIGNING`: When unset or false (production default), server-side signing is disabled. Endpoints return the exact CLI command for local signing.
+- `SCOPEGUARD_SHARED_SECRET`: Required whenever `SCOPEGUARD_ALLOW_SERVER_SIGNING=true`. Verified against incoming headers via timing-safe comparison (`crypto.timingSafeEqual`).
+- **Fail-Closed Guarantee:** If `SCOPEGUARD_ALLOW_SERVER_SIGNING=true` but `SCOPEGUARD_SHARED_SECRET` is unset, the endpoints fail closed with HTTP status 500.
 
 ---
 

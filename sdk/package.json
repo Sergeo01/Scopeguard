@@ -4,6 +4,16 @@
   "description": "TypeScript SDK for ScopeGuard scoped NEAR agent passkeys",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    }
+  },
   "bin": {
     "scopeguard": "./bin/cli.js"
   },

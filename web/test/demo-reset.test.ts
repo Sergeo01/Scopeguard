@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert";
+
+process.env.SCOPEGUARD_POLICY_CONTRACT = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+
 import { POST } from "../app/api/demo/reset/route";
 import { resetRateLimits } from "../lib/api-guard";
 import { recordActivity, getRecentActivities, ActivityItem } from "../lib/ledger";
@@ -100,10 +103,12 @@ test("demo-reset route: returns copy-paste CLI command when server signing is di
 
 test("demo-reset route: rate limits repeated burst requests with 429", async () => {
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   resetRateLimits();
 
   try {
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "demo-reset-secret";
 
     const makeReq = () =>
       new Request("https://scopeguard.blockframe.cloud/api/demo/reset", {
@@ -112,6 +117,7 @@ test("demo-reset route: rate limits repeated burst requests with 429", async () 
           origin: "https://scopeguard.blockframe.cloud",
           host: "scopeguard.blockframe.cloud",
           "x-forwarded-for": "203.0.113.88",
+          "x-scopeguard-secret": "demo-reset-secret",
         },
       });
 
@@ -127,6 +133,7 @@ test("demo-reset route: rate limits repeated burst requests with 429", async () 
     assert.strictEqual(body.error, "Rate limit exceeded. Please wait before retrying.");
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
     resetRateLimits();
   }
 });

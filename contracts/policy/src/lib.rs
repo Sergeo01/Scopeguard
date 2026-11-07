@@ -6,7 +6,6 @@
 pub mod types;
 pub use types::*;
 
-use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::U128;
 use near_sdk::serde_json;
 use near_sdk::store::LookupMap;
@@ -43,83 +42,6 @@ impl Contract {
             "Unauthorized: self only"
         );
         Self::new()
-    }
-
-    /// Alias for contract migration
-    #[init(ignore_state)]
-    pub fn migrate() -> Self {
-        assert_eq!(
-            env::predecessor_account_id(),
-            env::current_account_id(),
-            "Unauthorized: self only"
-        );
-        Self::new()
-    }
-
-    /// Upgrades agent records from v0.2.0 (pre-drawdown/native-vault) to v0.3.0.
-    /// Restricted to self (contract account) only.
-    pub fn upgrade_v3(&mut self, agent_accounts: Vec<AccountId>) {
-        assert_eq!(
-            env::predecessor_account_id(),
-            env::current_account_id(),
-            "Unauthorized: self only"
-        );
-        for agent in agent_accounts {
-            let mut storage_key = b"ag".to_vec();
-            near_sdk::borsh::BorshSerialize::serialize(&agent, &mut storage_key).unwrap();
-            if let Some(raw_bytes) = env::storage_read(&storage_key) {
-                if let Ok(old) = OldAgentRecord::try_from_slice(&raw_bytes) {
-                    let new_policy = Policy {
-                        token: old.policy.token,
-                        targets: old.policy.targets,
-                        daily_cap: old.policy.daily_cap,
-                        recipients: old.policy.recipients,
-                        max_actions_per_10min: old.policy.max_actions_per_10min,
-                        auto_pause_rejects: old.policy.auto_pause_rejects,
-                        auto_pause_window_minutes: old.policy.auto_pause_window_minutes,
-                        high_value_threshold: old.policy.high_value_threshold,
-                        high_value_delay_seconds: old.policy.high_value_delay_seconds,
-                        policy_change_delay_seconds: old.policy.policy_change_delay_seconds,
-                        max_drawdown_bps: None,
-                        lease_expires_at: None,
-                        intent_recipients: Vec::new(),
-                        canary_methods: Vec::new(),
-                        near_daily_cap: None,
-                        near_high_value_threshold: None,
-                    };
-                    let new_rec = AgentRecord {
-                        owner: old.owner,
-                        policy: new_policy,
-                        paused: old.paused,
-                        day_window_start: old.day_window_start,
-                        spent_in_window: old.spent_in_window,
-                        velocity_window_start: old.velocity_window_start,
-                        actions_in_window: old.actions_in_window,
-                        reject_times: old.reject_times,
-                        pending_actions: old.pending_actions,
-                        staged_policy: old.staged_policy,
-                        next_pending_id: old.next_pending_id,
-                        vault_balance: old.vault_balance,
-                        unconfirmed_recipients: old.unconfirmed_recipients,
-                        high_water_mark: U128(old.vault_balance),
-                        near_vault_balance: 0,
-                        near_high_water_mark: U128(0),
-                        spend_buckets: if old.spent_in_window > 0 {
-                            vec![SpendBucket { bucket: old.day_window_start / HOUR_NS, amount: old.spent_in_window }]
-                        } else {
-                            Vec::new()
-                        },
-                        near_spend_buckets: Vec::new(),
-                    };
-                    let new_bytes = near_sdk::borsh::to_vec(&new_rec).unwrap();
-                    env::storage_write(&storage_key, &new_bytes);
-                    emit(&format!(
-                        "{{\"event\":\"UPGRADE_V3\",\"agent\":\"{}\"}}",
-                        agent
-                    ));
-                }
-            }
-        }
     }
 
     // ---------------------------------------------------------------

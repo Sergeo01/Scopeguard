@@ -2,12 +2,13 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const { connect, keyStores, KeyPair } = require(path.join(__dirname, "..", "sdk", "node_modules", "near-api-js"));
+const { getPolicyContractId } = require(path.join(__dirname, "..", "sdk", "dist", "config"));
 
 const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const NETWORK_ID = "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
-const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+const GUARD_ID = getPolicyContractId();
 const DEX_ID = process.env.SCOPEGUARD_DEX_CONTRACT || "sergeo-guard-dex.testnet";
 const TOKEN_ID = process.env.SCOPEGUARD_TOKEN_CONTRACT || "sergeo-guard-token.testnet";
 const AGENT_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";

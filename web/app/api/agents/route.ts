@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 
 import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
+import { getPolicyContractId } from "@/lib/config";
 
 const ACCOUNT_RE = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
 
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
     process.env.OWNER_ACCOUNT_ID ||
     "sergeo-guard.testnet";
 
-  const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+  const guardId = getPolicyContractId();
   const networkId = process.env.NEAR_NETWORK || "testnet";
 
   const rpcUrls = Array.from(

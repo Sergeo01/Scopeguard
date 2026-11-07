@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Shield,
@@ -12,8 +12,16 @@ import {
   Layers,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
+import { getPolicyContractId } from "@/lib/config";
 
 export const MarketingFooter: React.FC = () => {
+  const [contractId, setContractId] = useState("");
+
+  useEffect(() => {
+    try {
+      setContractId(getPolicyContractId());
+    } catch {}
+  }, []);
   return (
     <footer className="w-full border-t border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 text-slate-600 dark:text-slate-400 py-16 px-6 sm:px-10 lg:px-16 transition-colors">
       <div className="max-w-[1440px] mx-auto space-y-12">
@@ -36,7 +44,7 @@ export const MarketingFooter: React.FC = () => {
                 <span>NEAR Testnet Active</span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                guard2.sergeo-guard.testnet
+                {contractId || "guard contract"}
               </span>
             </div>
           </div>
@@ -126,7 +134,7 @@ export const MarketingFooter: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet"
+                  href={`https://testnet.nearblocks.io/address/${contractId || ""}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1"
@@ -177,7 +185,7 @@ export const MarketingFooter: React.FC = () => {
               Source Code
             </a>
             <a
-              href="https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet"
+              href={`https://testnet.nearblocks.io/address/${contractId || ""}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-slate-900 dark:hover:text-white transition"

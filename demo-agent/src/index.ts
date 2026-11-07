@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ScopeGuardClient, loadCredential, Outcome, PendingAction } from "@scopeguard/sdk";
+import { ScopeGuardClient, loadCredential, Outcome, PendingAction, getPolicyContractId } from "@scopeguard/sdk";
 
 export interface InboxTask {
   id: string;
@@ -165,7 +165,7 @@ export class NaiveAgent {
         target = "intents.near";
         method = "execute_intent";
       } else if (canaryMatch) {
-        target = "guard2.sergeo-guard.testnet";
+        target = getPolicyContractId();
         method = "drain_vault";
         amount = "0";
       } else if (lower.includes("evil") || lower.includes("drain") || lower.includes("hack") || lower.includes("steal")) {

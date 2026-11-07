@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair, utils } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
 import { guardSigningRequest } from "@/lib/api-guard";
+import { getPolicyContractId } from "@/lib/config";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
-const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
 const TOKEN_ID =
   process.env.SCOPEGUARD_TOKEN_CONTRACT || process.env.SCOPEGUARD_TOKEN_ID || "sergeo-guard-token.testnet";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
@@ -23,13 +23,20 @@ export async function POST(req: Request) {
   const agentId = String(body?.agentId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet");
   const amount = String(body?.amount || "100");
 
+  let fallbackGuard = "<policy_contract_id>";
+  try {
+    fallbackGuard = getPolicyContractId();
+  } catch {}
+
   const command = [
     `near call ${TOKEN_ID} mint_faucet '{"amount":"${amount}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
-    `near call ${TOKEN_ID} ft_transfer_call '{"receiver_id":"${GUARD_ID}","amount":"${amount}","msg":"${agentId}"}' --accountId ${OWNER_ID} --depositYocto 1 --gas 60000000000000`,
+    `near call ${TOKEN_ID} ft_transfer_call '{"receiver_id":"${fallbackGuard}","amount":"${amount}","msg":"${agentId}"}' --accountId ${OWNER_ID} --depositYocto 1 --gas 60000000000000`,
   ].join(" && ");
 
   const blocked = guardSigningRequest(req, command);
   if (blocked) return blocked;
+
+  const GUARD_ID = getPolicyContractId();
 
   try {
     const ownerPrivateKey =

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getPolicyContractId } from "@/lib/config";
 import {
   Shield,
   ShieldCheck,
@@ -166,7 +167,7 @@ export default function FleetConsolePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const guardId = fleet?.guardId || "guard2.sergeo-guard.testnet";
+  const guardId = fleet?.guardId || getPolicyContractId();
   const owner = fleet?.owner || "sergeo-guard.testnet";
   const agents = useMemo(() => fleet?.agents ?? [], [fleet?.agents]);
   const totals = fleet?.totals;

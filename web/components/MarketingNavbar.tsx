@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Shield,
@@ -16,16 +16,26 @@ import {
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useWallet } from "@/context/WalletContext";
+import { getPolicyContractId } from "@/lib/config";
 
 export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [contractId, setContractId] = useState("");
+
+  useEffect(() => {
+    try {
+      setContractId(getPolicyContractId());
+    } catch {}
+  }, []);
 
   const copyContract = () => {
-    navigator.clipboard.writeText("guard2.sergeo-guard.testnet");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (contractId) {
+      navigator.clipboard.writeText(contractId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const navLinks = [
@@ -169,7 +179,7 @@ export const MarketingNavbar: React.FC = () => {
                 onClick={copyContract}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800"
               >
-                <span>guard2.sergeo-guard.testnet</span>
+                <span>{contractId || "guard contract"}</span>
                 {copied ? <Check className="w-4 h-4 text-mint-green" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPolicyContractId } from "@/lib/config";
 
 const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
 const FALLBACK_RPC = "https://rpc.testnet.near.org";
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
       hash,
       blockHash: rpcResult.transaction_outcome?.block_hash,
       signerId: rpcResult.transaction?.signer_id || accountId,
-      receiverId: rpcResult.transaction?.receiver_id || "guard2.sergeo-guard.testnet",
+      receiverId: rpcResult.transaction?.receiver_id || getPolicyContractId(),
       status: isSuccess ? "SUCCESS" : isFailure ? "FAILED" : "UNKNOWN",
       gasBurnt: `${(gasBurnt / 1e12).toFixed(3)} Tgas`,
       tokensBurnt,

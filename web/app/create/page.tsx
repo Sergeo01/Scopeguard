@@ -32,6 +32,7 @@ import { PlatformPresets, PresetPlatform } from "../../components/PlatformPreset
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
 import { validatePolicyShape, lintPolicy } from "@/lib/drafter";
+import { getPolicyContractId } from "@/lib/config";
 
 interface TargetPlatform extends ConfiguredPlatform {}
 
@@ -40,6 +41,13 @@ export default function CreateAgentPage() {
   const [agentName, setAgentName] = useState("agent.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(500);
   const [dailyCapInput, setDailyCapInput] = useState<string>("500");
+  const [guardContractId, setGuardContractId] = useState(() => {
+    try {
+      return getPolicyContractId();
+    } catch {
+      return "";
+    }
+  });
 
   const [platforms, setPlatforms] = useState<TargetPlatform[]>([
     {
@@ -281,7 +289,7 @@ export default function CreateAgentPage() {
         if (!ws) throw new Error("Wallet selector could not be initialized");
         const wallet = await ws.selector.wallet();
         const { transactions, utils } = await import("near-api-js");
-        const guardId = process.env.NEXT_PUBLIC_SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+        const guardId = getPolicyContractId();
 
         const registerAction = transactions.functionCall(
           "register_agent",
@@ -484,8 +492,8 @@ export default function CreateAgentPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title="guard2.sergeo-guard.testnet">
-                guard2...
+              <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono truncate" title={guardContractId || "Policy Contract"}>
+                {guardContractId ? (guardContractId.length > 12 ? `${guardContractId.slice(0, 8)}...` : guardContractId) : "guard2..."}
               </span>
               <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                 <Lock className="w-3 h-3" />

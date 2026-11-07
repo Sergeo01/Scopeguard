@@ -107,11 +107,58 @@ test("api-guard: guardSigningRequest blocks cross-origin and disables signing sa
     assert.strictEqual(disabledBody.requiresOwnerSignature, true);
     assert.strictEqual(disabledBody.command, fallbackCommand);
 
-    // 3. When server signing is explicitly enabled, guardSigningRequest returns null to permit execution
+    // 3. When server signing is enabled without secret, it fails closed with 500
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
-    const allowedResponse = guardSigningRequest(sameReq, fallbackCommand);
+    delete process.env.SCOPEGUARD_SHARED_SECRET;
+    const failClosedResponse = guardSigningRequest(sameReq, fallbackCommand);
+    assert.ok(failClosedResponse !== null);
+    assert.strictEqual(failClosedResponse.status, 500);
+    const failBody = await failClosedResponse.json();
+    assert.strictEqual(failBody.success, false);
+    assert.ok(failBody.error.includes("SCOPEGUARD_SHARED_SECRET is unset"));
+
+    // 4. When server signing and secret are configured, valid request returns null
+    process.env.SCOPEGUARD_SHARED_SECRET = "test-secret-123";
+    const authedReq = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+        "x-scopeguard-secret": "test-secret-123",
+      },
+    });
+    const allowedResponse = guardSigningRequest(authedReq, fallbackCommand);
     assert.strictEqual(allowedResponse, null);
   } finally {
+    restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    delete process.env.SCOPEGUARD_SHARED_SECRET;
+  }
+});
+
+test("api-guard: refuses owner-signing requests with 500 when server signing is enabled but secret is unset", async () => {
+  const fallbackCommand = "near call guard register_agent ...";
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+
+  try {
+    process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    delete process.env.SCOPEGUARD_SHARED_SECRET;
+
+    const req = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+      },
+    });
+
+    const res = guardSigningRequest(req, fallbackCommand);
+    assert.ok(res !== null);
+    assert.strictEqual(res.status, 500);
+    const body = await res.json();
+    assert.strictEqual(body.success, false);
+    assert.ok(body.error.includes("SCOPEGUARD_SHARED_SECRET is unset"));
+    assert.ok(body.error.includes("fail-closed"));
+  } finally {
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
   }
 });
@@ -172,9 +219,11 @@ test("api-guard: requires shared secret for non-browser callers when configured"
 test("api-guard: rate limiting rejects burst requests with 429", () => {
   const fallbackCommand = "near call guard2 register_agent ...";
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
 
   try {
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "burst-test-secret";
 
     const makeReq = () =>
       new Request("https://scopeguard.blockframe.cloud/api/register", {
@@ -182,6 +231,7 @@ test("api-guard: rate limiting rejects burst requests with 429", () => {
           origin: "https://scopeguard.blockframe.cloud",
           host: "scopeguard.blockframe.cloud",
           "x-forwarded-for": "198.51.100.42",
+          "x-scopeguard-secret": "burst-test-secret",
         },
       });
 
@@ -197,6 +247,7 @@ test("api-guard: rate limiting rejects burst requests with 429", () => {
     assert.strictEqual(blockedRes.status, 429);
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
   }
 });
 
@@ -251,10 +302,12 @@ test("api-guard: requires shared secret even with valid or forged Origin header"
 test("api-guard: rate limits on last proxy hop, ignoring forged rotating first hops", () => {
   const fallbackCommand = "near call guard2 register_agent ...";
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
+  const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   resetRateLimits();
 
   try {
     process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING = "true";
+    process.env.SCOPEGUARD_SHARED_SECRET = "rotating-hop-secret";
 
     // Attacker rotates the client-provided first hop, but the trusted edge proxy
     // appends the real last hop (203.0.113.195)
@@ -264,6 +317,7 @@ test("api-guard: rate limits on last proxy hop, ignoring forged rotating first h
           origin: "https://scopeguard.blockframe.cloud",
           host: "scopeguard.blockframe.cloud",
           "x-forwarded-for": `10.0.0.${i}, 203.0.113.195`,
+          "x-scopeguard-secret": "rotating-hop-secret",
         },
       });
       const res = guardSigningRequest(req, fallbackCommand);
@@ -276,6 +330,7 @@ test("api-guard: rate limits on last proxy hop, ignoring forged rotating first h
         origin: "https://scopeguard.blockframe.cloud",
         host: "scopeguard.blockframe.cloud",
         "x-forwarded-for": "10.0.0.99, 203.0.113.195",
+        "x-scopeguard-secret": "rotating-hop-secret",
       },
     });
     const blockedRes = guardSigningRequest(blockedReq, fallbackCommand);
@@ -283,6 +338,7 @@ test("api-guard: rate limits on last proxy hop, ignoring forged rotating first h
     assert.strictEqual(blockedRes.status, 429);
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origServerFlag);
+    restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);
     resetRateLimits();
   }
 });

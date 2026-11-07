@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  SCOPEGUARD_POLICY_CONTRACT: guard2.sergeo-guard.testnet
+  NEXT_PUBLIC_POLICY_CONTRACT_ID: guard2.sergeo-guard.testnet
+
 jobs:
   contracts:
     name: Rust Contracts Verification
@@ -16,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: "1.99.1"
           targets: wasm32-unknown-unknown

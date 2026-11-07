@@ -5,6 +5,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 import { getRecentActivities } from "@/lib/ledger";
+import { getPolicyContractId } from "@/lib/config";
 
 const cacheMap = new Map<string, { state: any; timestamp: number }>();
 const CACHE_TTL_MS = 5000;
@@ -15,7 +16,12 @@ export async function GET(req: Request) {
   const queryOwner = searchParams.get("owner");
   const queryGuard = searchParams.get("guard");
 
-  const guardId = queryGuard || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+  let guardId: string;
+  try {
+    guardId = queryGuard || getPolicyContractId();
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
   const defaultAgent = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID || "agent.sergeo-guard.testnet";
   const ownerId = queryOwner || process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 

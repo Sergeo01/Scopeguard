@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -22,17 +22,27 @@ import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { WalletButton } from "@/components/WalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useWallet } from "@/context/WalletContext";
+import { getPolicyContractId } from "@/lib/config";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [contractId, setContractId] = useState("");
+
+  useEffect(() => {
+    try {
+      setContractId(getPolicyContractId());
+    } catch {}
+  }, []);
 
   const copyContract = () => {
-    navigator.clipboard.writeText("guard2.sergeo-guard.testnet");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (contractId) {
+      navigator.clipboard.writeText(contractId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const navLinks = [
@@ -101,7 +111,7 @@ export const Navbar: React.FC = () => {
             <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
             <span className="text-slate-500 dark:text-slate-400">Guard:</span>
             <span className="font-mono text-slate-800 dark:text-slate-200 text-xs font-semibold">
-              guard2.sergeo-guard.testnet
+              {contractId || "guard contract"}
             </span>
             {copied ? (
               <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -111,7 +121,7 @@ export const Navbar: React.FC = () => {
           </button>
 
           <a
-            href="https://testnet.nearblocks.io/address/guard2.sergeo-guard.testnet"
+            href={`https://testnet.nearblocks.io/address/${contractId || ""}`}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex p-2 rounded-xl bg-slate-100/80 dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-200/60 dark:hover:bg-obsidian-850 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition shadow-xs"
@@ -159,7 +169,7 @@ export const Navbar: React.FC = () => {
             );
           })}
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Contract: guard2.sergeo-guard.testnet</span>
+            <span>Contract: {contractId || "guard contract"}</span>
             <button
               type="button"
               onClick={copyContract}

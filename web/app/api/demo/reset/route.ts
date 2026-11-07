@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair } from "near-api-js";
 import { guardSigningRequest } from "@/lib/api-guard";
 import { recordActivity } from "@/lib/ledger";
+import { getPolicyContractId } from "@/lib/config";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
-const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
 const AGENT_ID =
   process.env.SCOPEGUARD_AGENT_ACCOUNT ||
   process.env.SCOPEGUARD_AGENT_ID ||
@@ -24,13 +24,25 @@ const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
  * multiple attacks without needing manual command-line intervention.
  */
 export async function POST(req: Request) {
+  let fallbackGuard = "<policy_contract_id>";
+  try {
+    fallbackGuard = getPolicyContractId();
+  } catch {}
+
   const fallbackCommand = [
-    `near call ${GUARD_ID} unpause '{"agent_account":"${AGENT_ID}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
-    `near call ${GUARD_ID} reset_windows '{"agent_account":"${AGENT_ID}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
+    `near call ${fallbackGuard} unpause '{"agent_account":"${AGENT_ID}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
+    `near call ${fallbackGuard} reset_windows '{"agent_account":"${AGENT_ID}"}' --accountId ${OWNER_ID} --gas 30000000000000`,
   ].join(" ; ");
 
   const blocked = guardSigningRequest(req, fallbackCommand);
   if (blocked) return blocked;
+
+  let GUARD_ID: string;
+  try {
+    GUARD_ID = getPolicyContractId();
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
 
   try {
     const ownerPrivateKey =

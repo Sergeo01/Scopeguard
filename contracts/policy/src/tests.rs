@@ -2060,40 +2060,6 @@
     }
 
     #[test]
-    fn test_deserialize_live_bytes_and_upgrade_v3() {
-        use near_sdk::borsh::BorshDeserialize;
-        use near_sdk::base64::engine::general_purpose::STANDARD;
-        use near_sdk::base64::Engine;
-        let bytes = STANDARD.decode("FAAAAHNlcmdlby1ndWFyZC50ZXN0bmV0GgAAAHNlcmdlby1ndWFyZC10b2tlbi50ZXN0bmV0AgAAABgAAABzZXJnZW8tZ3VhcmQtZGV4LnRlc3RuZXQBAAAABAAAAHN3YXAaAAAAc2VyZ2VvLWd1YXJkLXRva2VuLnRlc3RuZXQBAAAACwAAAGZ0X3RyYW5zZmVy9AEAAAAAAAAAAAAAAAAAAAEAAAAUAAAAc2VyZ2VvLWd1YXJkLnRlc3RuZXQFAAAAAwAAAAoAAAAAAAAA+gAAAAAAAAAAAAAAAAAAADwAAAAAAAAAPAAAAAAAAAAAiOP1xISH5BgZAAAAAAAAAAAAAAAAAAAALzbWLMXQ5BgBAAAAAgAAAC821izF0OQYquWhHcvQ5BgAAAAAAAIAAAAAAAAAXgEAAAAAAAAAAAAAAAAAAAAAAAA=").unwrap();
-        let res = OldAgentRecord::try_from_slice(&bytes);
-        assert!(res.is_ok(), "Deserialization failed: {:?}", res.err());
-        let rec = res.unwrap();
-        assert_eq!(rec.owner.as_str(), "sergeo-guard.testnet");
-        assert_eq!(rec.vault_balance, 350);
-        assert_eq!(rec.spent_in_window, 25);
-
-        let live_timestamp = rec.day_window_start;
-        let mut builder = VMContextBuilder::new();
-        builder
-            .current_account_id("guard.near".parse().unwrap())
-            .predecessor_account_id("guard.near".parse().unwrap())
-            .block_timestamp(live_timestamp);
-        testing_env!(builder.build());
-
-        let mut contract = Contract::new();
-        let test_agent: AccountId = "agent.sergeo-guard.testnet".parse().unwrap();
-        let mut storage_key = b"ag".to_vec();
-        near_sdk::borsh::BorshSerialize::serialize(&test_agent, &mut storage_key).unwrap();
-        env::storage_write(&storage_key, &bytes);
-
-        contract.upgrade_v3(vec![test_agent.clone()]);
-        let upgraded = contract.get_budget(test_agent).unwrap();
-        assert_eq!(upgraded.vault_balance.0, 350);
-        assert_eq!(upgraded.spent.0, 25);
-        assert_eq!(upgraded.high_water_mark.0, 350);
-    }
-
-    #[test]
     fn test_settle_pending_exact_balance_and_insufficient_balance() {
         let now_sec = 2_000;
         let now_ns = now_sec * 1_000_000_000;

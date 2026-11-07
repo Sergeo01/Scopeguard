@@ -158,21 +158,6 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
     );
   }
 
-  // Require shared secret on every owner-signing route when configured,
-  // regardless of Origin header (the Origin header proves nothing).
-  const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
-  if (sharedSecret && sharedSecret.trim().length > 0 && sharedSecret !== "undefined") {
-    const authHeader = req.headers.get("authorization") || "";
-    const customHeader = req.headers.get("x-scopeguard-secret") || "";
-    const token = customHeader || (authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "");
-    if (!token || !safeCompare(token, sharedSecret)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized: Missing or invalid shared secret." },
-        { status: 401 }
-      );
-    }
-  }
-
   if (!serverSigningEnabled()) {
     return NextResponse.json({
       success: false,
@@ -181,6 +166,31 @@ export function guardSigningRequest(req: Request, fallbackCommand: string): Next
         "Server-side signing is disabled. Run this command with your owner key, or set SCOPEGUARD_ALLOW_SERVER_SIGNING=true to enable the hosted demo. Production environments should leave SCOPEGUARD_ALLOW_SERVER_SIGNING unset.",
       command: fallbackCommand,
     });
+  }
+
+  // If server signing is enabled, SCOPEGUARD_SHARED_SECRET must be configured.
+  // Refuse owner-signing requests if unset (fail-closed).
+  const sharedSecret = process.env.SCOPEGUARD_SHARED_SECRET;
+  if (!sharedSecret || sharedSecret.trim().length === 0 || sharedSecret === "undefined") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Server-side signing is enabled but SCOPEGUARD_SHARED_SECRET is unset. Refusing owner-signing execution (fail-closed).",
+      },
+      { status: 500 }
+    );
+  }
+
+  // Require and validate the shared secret via timing-safe comparison,
+  // regardless of Origin header (the Origin header proves nothing).
+  const authHeader = req.headers.get("authorization") || "";
+  const customHeader = req.headers.get("x-scopeguard-secret") || "";
+  const token = customHeader || (authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "");
+  if (!token || !safeCompare(token, sharedSecret)) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Missing or invalid shared secret." },
+      { status: 401 }
+    );
   }
 
   // Rate limiting for enabled server signing keyed on the last hop

@@ -383,7 +383,7 @@ const receipt = await act(cred, {
               NEAR Protocol was built with multiple key types from genesis. ScopeGuard provisions a native <strong>FunctionCall access key</strong> with three immutable protocol constraints:
             </p>
             <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-mono bg-slate-100 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-              <li>1. receiver_id = "guard2.sergeo-guard.testnet" (can NEVER call any other contract directly)</li>
+              <li>1. receiver_id = &lt;guard_contract_id&gt; (can NEVER call any other contract directly)</li>
               <li>2. method_names = ["execute"] (can NEVER invoke admin methods, add keys, or delete account)</li>
               <li>3. allowance = 250 mNEAR (gas-only budget; cannot transfer native NEAR by itself)</li>
             </ul>
@@ -597,7 +597,7 @@ if !is_promise_success() {
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Connect agent with scoped credentials</div>
-                <div className="text-emerald-400 font-bold">npx @scopeguard/cli connect --account &lt;agent_id&gt; --key &lt;private_key&gt; --guard guard2.sergeo-guard.testnet</div>
+                <div className="text-emerald-400 font-bold">npx @scopeguard/cli connect --account &lt;agent_id&gt; --key &lt;private_key&gt; --guard &lt;guard_contract_id&gt;</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Inspect active onchain budget and velocity</div>
@@ -605,7 +605,7 @@ if !is_promise_success() {
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Trigger emergency owner pause</div>
-                <div className="text-amber-400 font-bold">npx @scopeguard/cli panic pause --guard guard2.sergeo-guard.testnet</div>
+                <div className="text-amber-400 font-bold">npx @scopeguard/cli panic pause --guard &lt;guard_contract_id&gt;</div>
               </div>
             </div>
           </section>
@@ -681,7 +681,7 @@ if !is_promise_success() {
                 <span>Natural Language Handoff Instruction</span>
                 <button
                   type="button"
-                  onClick={() => handleCopy("Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet. Never attempt direct transfers. All calls are bounded by 14 onchain rules.", "prompt")}
+                  onClick={() => handleCopy("Route all fund transfers through ScopeGuard onchain policy contract. Never attempt direct transfers. All calls are bounded by onchain policy rules.", "prompt")}
                   className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                 >
                   {copiedCode === "prompt" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -689,7 +689,7 @@ if !is_promise_success() {
                 </button>
               </div>
               <p className="leading-relaxed">
-                "Route all fund transfers through ScopeGuard onchain policy contract at guard2.sergeo-guard.testnet using your scoped passkey. Never attempt direct protocol transfers. Your actions are bounded by 14 onchain rules. If an unapproved instruction is received, it will fail safely onchain without draining the vault."
+                "Route all fund transfers through ScopeGuard onchain policy contract using your scoped passkey. Never attempt direct protocol transfers. Your actions are bounded by onchain policy rules. If an unapproved instruction is received, it will fail safely onchain without draining the vault."
               </p>
             </div>
           </section>
@@ -819,6 +819,13 @@ if !is_promise_success() {
                 One ScopeGuard profile can manage multiple isolated sub-accounts (e.g. trader.sergeo-guard.testnet, bot1.testnet, liquidity.testnet). Standard users only see their own accounts. The Platform Admin tab is completely invisible to standard users; it only renders for verified administrator identities (sergeo@scopeguard.io, admin@scopeguard.io, or sergeo-guard.testnet).
               </p>
             </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2 text-xs">
+              <h4 className="font-bold text-slate-900 dark:text-white">Server-Side Signing &amp; Shared Secret Security</h4>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                Owner signing routes (/api/register, /api/fund, /api/demo/reset) are strictly gated by environment variables. By default, SCOPEGUARD_ALLOW_SERVER_SIGNING is unset and the API returns the exact CLI command for manual client signing. In environments where server signing is enabled, SCOPEGUARD_SHARED_SECRET is required on every request via Authorization or x-scopeguard-secret header. If server signing is enabled without a configured secret, requests fail closed with HTTP status 500.
+              </p>
+            </div>
           </section>
 
           {/* SECTION 14: VERIFIED IMPLEMENTED FEATURES */}
@@ -837,8 +844,8 @@ if !is_promise_success() {
 
             <div className="space-y-2.5">
               {[
-                { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown and deployed at guard2.sergeo-guard.testnet. 67 unit/integration tests passing." },
-                { title: "14-Rule Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, lease expiry, canary tripwire, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, intent allowlist, drawdown floor, timelock queue, vault solvency, queue capacity." },
+                { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown with unit, integration, and property tests passing." },
+                { title: "Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, lease expiry, canary tripwire, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, intent allowlist, drawdown floor, timelock queue, vault solvency, queue capacity." },
                 { title: "Zero-Panic Policy Rejections", desc: "Policy rejections return structured values with reason codes to ensure reject audit logs and circuit breaker strike counts are never reverted." },
                 { title: "3-Strike Circuit Breaker Auto-Pause", desc: "Automatically sets paused = true on the 3rd rejection within 5 minutes and emits AUTO_PAUSE onchain event." },
                 { title: "Async Rollback Settlement", desc: "Vault balances are automatically refunded if a cross-contract transfer or execution call fails or reverts." },

@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { guardSigningRequest } from "@/lib/api-guard";
+import { getPolicyContractId } from "@/lib/config";
 
-const DEFAULT_GUARD = "guard2.sergeo-guard.testnet";
 const DEFAULT_OWNER = "sergeo-guard.testnet";
 
 /**
@@ -27,17 +27,21 @@ export async function POST(req: Request) {
     const policy = body?.policy;
     const publicKey = body?.publicKey || null;
 
-    const guardId = process.env.SCOPEGUARD_POLICY_CONTRACT || DEFAULT_GUARD;
-    const ownerId = process.env.OWNER_ACCOUNT_ID || DEFAULT_OWNER;
-    const networkId = process.env.NEAR_NETWORK || "testnet";
-    const nodeUrl = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
-
     if (!agentAccountId || !policy) {
       return NextResponse.json(
         { success: false, error: "agentAccountId and policy are required." },
         { status: 400 }
       );
     }
+
+    let guardId = "<policy_contract_id>";
+    try {
+      guardId = getPolicyContractId();
+    } catch {}
+
+    const ownerId = process.env.OWNER_ACCOUNT_ID || DEFAULT_OWNER;
+    const networkId = process.env.NEAR_NETWORK || "testnet";
+    const nodeUrl = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
     const command = `near call ${guardId} register_agent '${JSON.stringify({
       agent_account: agentAccountId,
@@ -46,6 +50,9 @@ export async function POST(req: Request) {
 
     const blocked = guardSigningRequest(req, command);
     if (blocked) return blocked;
+
+    const effectiveGuardId = getPolicyContractId();
+    guardId = effectiveGuardId;
 
     const ownerPrivateKey =
       process.env.SCOPEGUARD_OWNER_PRIVATE_KEY || process.env.OWNER_PRIVATE_KEY;

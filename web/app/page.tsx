@@ -37,6 +37,7 @@ import {
 import { MarketingNavbar } from "@/components/MarketingNavbar";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { ReceiptModal } from "@/components/ReceiptModal";
+import { getPolicyContractId } from "@/lib/config";
 import { AuthModal } from "@/components/AuthModal";
 import { AttackAutopsy, AutopsyData } from "@/components/AttackAutopsy";
 import { useWallet } from "@/context/WalletContext";
@@ -251,13 +252,20 @@ export default function HomePage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<"without" | "with">("with");
   const [selectedRuleNum, setSelectedRuleNum] = useState<number>(4);
+  const [guardContractId, setGuardContractId] = useState("");
+
+  useEffect(() => {
+    try {
+      setGuardContractId(getPolicyContractId());
+    } catch {}
+  }, []);
 
   // Multi-Mode Developer Card State
   const [devSnippetTab, setDevSnippetTab] = useState<"cli" | "sdk" | "prompt">("cli");
   const [copiedSnippet, setCopiedSnippet] = useState(false);
 
   const snippetMap = {
-    cli: "npx @scopeguard/cli connect --guard guard2.sergeo-guard.testnet",
+    cli: `npx @scopeguard/cli connect --guard ${guardContractId || "guard2.sergeo-guard.testnet"}`,
     sdk: "npm install @scopeguard/sdk",
     prompt: "Route all fund transfers through ScopeGuard passkey protocol. Maximum daily spend bound is $500.00.",
   };
@@ -473,7 +481,7 @@ export default function HomePage() {
       if (intentMatch[1]) setAmountVal(intentMatch[1].replace(/,/g, ""));
       if (intentMatch[2]) setRecipientVal(intentMatch[2]);
     } else if (canaryMatch) {
-      setTargetAccount("guard2.sergeo-guard.testnet");
+      setTargetAccount(guardContractId || "guard2.sergeo-guard.testnet");
       setMethodName("drain_vault");
       setAmountVal("0");
     }
@@ -716,12 +724,12 @@ export default function HomePage() {
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 transition">
                 <span className="font-mono text-xs font-bold text-brand-blue pl-2 select-none">$</span>
                 <code className="min-w-0 flex-1 font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 select-all overflow-x-auto whitespace-pre py-1">
-                  npx @scopeguard/cli connect --guard guard2.sergeo-guard.testnet
+                  npx @scopeguard/cli connect --guard {guardContractId || "guard2.sergeo-guard.testnet"}
                 </code>
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText("npx @scopeguard/cli connect --guard guard2.sergeo-guard.testnet");
+                    navigator.clipboard.writeText(`npx @scopeguard/cli connect --guard ${guardContractId || "guard2.sergeo-guard.testnet"}`);
                     setCopiedSnippet(true);
                     setTimeout(() => setCopiedSnippet(false), 2000);
                   }}
@@ -912,7 +920,7 @@ export default function HomePage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-mono text-center text-slate-500 dark:text-slate-400 block">
-                          guard2.sergeo-guard.testnet
+                          {guardContractId || "guard2.sergeo-guard.testnet"}
                         </span>
                       </div>
 
@@ -940,7 +948,7 @@ export default function HomePage() {
         </section>
 
         {/* ========================================================= */}
-        {/* SECTION 2: THE 14-LAYER ONCHAIN POLICY RADAR */}
+        {/* SECTION 2: THE ONCHAIN POLICY RADAR */}
         {/* ========================================================= */}
         <section id="bento" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8">
           <div className="text-center space-y-3">
@@ -1151,7 +1159,7 @@ export default function HomePage() {
                       onClick={() => {
                         const payload = JSON.stringify({
                           caller: "agent.sergeo-guard.testnet",
-                          guard: "guard2.sergeo-guard.testnet",
+                          guard: guardContractId || "guard2.sergeo-guard.testnet",
                           action: {
                             target: targetAccount,
                             method: methodName,
@@ -1267,7 +1275,7 @@ export default function HomePage() {
 {JSON.stringify(
   {
     caller: "agent.sergeo-guard.testnet",
-    guard: "guard2.sergeo-guard.testnet",
+    guard: guardContractId || "guard2.sergeo-guard.testnet",
     action: {
       target: targetAccount,
       method: methodName,
