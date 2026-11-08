@@ -20,7 +20,7 @@ test("auth: checkIsAdmin accurately identifies administrator identities", () => 
   assert.strictEqual(checkIsAdmin("bob@trading.org", "bob-dex.testnet"), false);
   assert.strictEqual(checkIsAdmin("attack_sergeo@evil.com", null), false);
   assert.strictEqual(checkIsAdmin("fakeadmin@hacker.io", null), false);
-  assert.strictEqual(checkIsAdmin(null, "trader123.testnet"), false);
+  assert.strictEqual(checkIsAdmin(null, "agent123.testnet"), false);
   assert.strictEqual(checkIsAdmin("", ""), false);
   assert.strictEqual(checkIsAdmin(null, null), false);
 });
@@ -38,7 +38,7 @@ test("auth: social login keeps standard clients unprivileged with isolated walle
     displayName: clientName.charAt(0).toUpperCase() + clientName.slice(1),
     provider: "google",
     isAdmin: isClientAdmin,
-    connectedWallets: isClientAdmin ? ["sergeo-guard.testnet", "trader.sergeo-guard.testnet"] : [clientDefaultWallet],
+    connectedWallets: isClientAdmin ? ["sergeo-guard.testnet", "agent.sergeo-guard.testnet"] : [clientDefaultWallet],
     activeAccountId: clientDefaultWallet,
   };
 
@@ -58,7 +58,7 @@ test("auth: social login keeps standard clients unprivileged with isolated walle
     displayName: adminName.charAt(0).toUpperCase() + adminName.slice(1),
     provider: "google",
     isAdmin: isAdminUser,
-    connectedWallets: isAdminUser ? ["sergeo-guard.testnet", "trader.sergeo-guard.testnet"] : [adminDefaultWallet],
+    connectedWallets: isAdminUser ? ["sergeo-guard.testnet", "agent.sergeo-guard.testnet"] : [adminDefaultWallet],
     activeAccountId: adminDefaultWallet,
   };
 
@@ -74,7 +74,7 @@ test("auth: ScopeGuard user profile handles multiple linked sub-accounts and act
     displayName: "Sergeo",
     provider: "google",
     isAdmin: true,
-    connectedWallets: ["sergeo-guard.testnet", "trader.sergeo-guard.testnet"],
+    connectedWallets: ["sergeo-guard.testnet", "agent.sergeo-guard.testnet"],
     activeAccountId: "sergeo-guard.testnet",
   };
 
@@ -94,12 +94,12 @@ test("auth: ScopeGuard user profile handles multiple linked sub-accounts and act
   assert.strictEqual(userWithThirdWallet.connectedWallets.length, 3);
   assert.strictEqual(userWithThirdWallet.activeAccountId, "bot.sergeo-guard.testnet");
 
-  // Switch back to trader sub-account
+  // Switch back to agent sub-account
   const switchedUser: ScopeGuardUser = {
     ...userWithThirdWallet,
-    activeAccountId: "trader.sergeo-guard.testnet",
+    activeAccountId: "agent.sergeo-guard.testnet",
   };
-  assert.strictEqual(switchedUser.activeAccountId, "trader.sergeo-guard.testnet");
+  assert.strictEqual(switchedUser.activeAccountId, "agent.sergeo-guard.testnet");
 
   // Unlink a wallet
   const unlinkedWallets = switchedUser.connectedWallets.filter(w => w !== "bot.sergeo-guard.testnet");

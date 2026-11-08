@@ -10,7 +10,7 @@ ScopeGuard provides scoped, policy-enforced transaction guardrails for autonomou
 Traditional agents hold full-access cryptographic private keys on host machines. If an agent executes an untrusted tool, encounters prompt injection, or suffers credential compromise, an attacker can drain all funds and modify account keys immediately.
 
 ### The ScopeGuard Solution
-1. **Agent Sub-Account:** The agent operates under a dedicated sub-account (e.g. `trader.alice.near`), isolated from the owner's primary account.
+1. **Agent Sub-Account:** The agent operates under a dedicated sub-account (e.g. `agent.alice.near`), isolated from the owner's primary account.
 2. **Internal Vault Custody:** The owner funds a working balance inside the Guard contract. The agent can only move funds that reside inside this vault.
 3. **Scoped Protocol Key:** The agent machine holds exclusively a NEAR function-call access key restricted to `receiver = Policy Contract`, `methods = ["execute"]`, with a capped gas allowance. The agent cannot transfer native NEAR directly, deploy contracts, or manage access keys.
 4. **Onchain Guard Policy:** Every action is checked by the Guard contract on NEAR against owner-configured rules. If checks pass, the Guard performs the action on behalf of the agent. If checks fail, a structured rejection code is returned without panicking.

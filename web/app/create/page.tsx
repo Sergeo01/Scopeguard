@@ -66,23 +66,18 @@ export default function CreateAgentPage() {
   const [telegramChatId, setTelegramChatId] = useState<string>("@sergeo");
 
   // Autonomous Risk Protocol Primitives
-  const [maxDrawdownPercent, setMaxDrawdownPercent] = useState<number>(15);
+  const [maxDrawdownPercent, setMaxDrawdownPercent] = useState<number>(20);
   const [enableLeaseExpiry, setEnableLeaseExpiry] = useState<boolean>(false);
   const [taskLeaseHours, setTaskLeaseHours] = useState<number>(24);
   const [intentRecipientsInput, setIntentRecipientsInput] = useState<string>("");
   const [canaryMethodsInput, setCanaryMethodsInput] = useState<string>(
-    "drain_vault, admin_transfer, emergency_withdraw"
+    "drain_vault, admin_drain, emergency_withdraw_all"
   );
-  const [nearDailyCap, setNearDailyCap] = useState<string>("");
-  const [nearHighValueThreshold, setNearHighValueThreshold] = useState<string>("");
 
   const [activeView, setActiveView] = useState<"visual" | "json">("visual");
   const [isDeploying, setIsDeploying] = useState(false);
   const [issuedSuccess, setIssuedSuccess] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [isDrafting, setIsDrafting] = useState(false);
-  const [draftResult, setDraftResult] = useState<any>(null);
-  const [generatedPasskey, setGeneratedPasskey] = useState<string>("");
+        const [generatedPasskey, setGeneratedPasskey] = useState<string>("");
   const [generatedPublicKey, setGeneratedPublicKey] = useState<string>("");
   const [txHash, setTxHash] = useState<string>("");
   const [explorerUrl, setExplorerUrl] = useState<string>("");
@@ -196,78 +191,14 @@ export default function CreateAgentPage() {
       .split(",")
       .map((s) => s.trim())
       .filter((s) => s.length > 0),
-    near_daily_cap: nearDailyCap.trim() ? nearDailyCap.trim() : null,
-    near_high_value_threshold: nearHighValueThreshold.trim() ? nearHighValueThreshold.trim() : null,
+    near_daily_cap: null,
+    near_high_value_threshold: null,
   };
 
   const policyValidationErrors = validatePolicyShape(compiledPolicyJson);
   const policyLintWarnings = lintPolicy(compiledPolicyJson as any);
   const hasDangerPolicyLint = policyLintWarnings.some((w) => w.severity === "danger");
   const isPolicyValid = policyValidationErrors.length === 0 && !hasDangerPolicyLint;
-
-  const handleAiDraft = async () => {
-    if (!aiPrompt.trim()) return;
-    setIsDrafting(true);
-    try {
-      const res = await fetch("/api/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      });
-      const data = await res.json();
-      if (data.success && data.draft?.policy) {
-        const p = data.draft.policy;
-        setDailyCap(Number(p.daily_cap) || 100);
-        setDailyCapInput(p.daily_cap || "100");
-        setSpeedLimit(p.max_actions_per_10min || 5);
-        setAutoPauseAfter(p.auto_pause_rejects || 3);
-        setAutoPauseWindowMinutes(p.auto_pause_window_minutes || 10);
-        setTimelockThreshold(Number(p.high_value_threshold) || 50);
-
-        if (p.targets && Object.keys(p.targets).length > 0) {
-          const newPlatforms = Object.entries(p.targets).map(([contract, methods], idx) => ({
-            id: `p-${Date.now()}-${idx}`,
-            contract,
-            methods: Array.isArray(methods) ? (methods as string[]).join(", ") : "swap",
-            label: contract.includes("dex") ? "ScopeGuard Testnet DEX" : contract,
-          }));
-          setPlatforms(newPlatforms);
-        }
-
-        if (p.recipients && p.recipients.length > 0) {
-          setAllowExternalTransfers(true);
-          setExternalRecipient(p.recipients[0]);
-        } else {
-          setAllowExternalTransfers(false);
-          setExternalRecipient("");
-        }
-
-        if (p.max_drawdown_bps !== undefined && p.max_drawdown_bps !== null) {
-          setMaxDrawdownPercent(Math.round(p.max_drawdown_bps / 100));
-        }
-        if (p.lease_expires_at) {
-          setEnableLeaseExpiry(true);
-          const hours = Math.max(
-            1,
-            Math.round((Number(p.lease_expires_at) - Date.now() * 1_000_000) / (3600 * 1_000_000_000))
-          );
-          setTaskLeaseHours(hours);
-        }
-        if (p.intent_recipients && p.intent_recipients.length > 0) {
-          setIntentRecipientsInput(p.intent_recipients.join(", "));
-        }
-        if (p.canary_methods && p.canary_methods.length > 0) {
-          setCanaryMethodsInput(p.canary_methods.join(", "));
-        }
-
-        setDraftResult(data.draft);
-      }
-    } catch (err: any) {
-      console.error("AI Drafter error:", err);
-    } finally {
-      setIsDrafting(false);
-    }
-  };
 
   const handleIssueCard = async () => {
     setIsDeploying(true);
@@ -591,69 +522,7 @@ export default function CreateAgentPage() {
           </div>
         </div>
 
-          {/* AI Scope Drafter Section */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
-              <div className="flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                  AI Scope Drafter (Optional)
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                Type plain English: minimal policy generated with schema validation
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <input
-                id="ai-prompt-input"
-                name="ai-prompt"
-                aria-label="AI Prompt for scope draft"
-                type="text"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAiDraft();
-                  }
-                }}
-                placeholder="e.g. Trade up to 250 mUSD per day on Ref Finance and Burrow, max 10 actions per 10 minutes"
-                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={handleAiDraft}
-                disabled={isDrafting || !aiPrompt.trim()}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shrink-0"
-              >
-                {isDrafting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Drafting Policy...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>Draft with AI</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {draftResult?.plainEnglish && (
-              <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl space-y-1">
-                <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider block">
-                  AI Proposed Rule Card:
-                </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                  {draftResult.plainEnglish}
-                </p>
-              </div>
-            )}
           </div>
-        </div>
 
       {issuedSuccess ? (
         <AgentHandoffCard
@@ -696,10 +565,10 @@ export default function CreateAgentPage() {
                     <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
                     <button
                       type="button"
-                      onClick={() => setAgentName(`trader.${connectedWalletId}`)}
+                      onClick={() => setAgentName(`agent.${connectedWalletId}`)}
                       className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                     >
-                      Use trader.{connectedWalletId}
+                      Use agent.{connectedWalletId}
                     </button>
                   </div>
                 )}
@@ -979,7 +848,7 @@ export default function CreateAgentPage() {
                 <div className="flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-brand-blue" />
                   <span className="font-semibold text-slate-900 dark:text-white">
-                    IntentShield: Cross-Chain Destination Allowlist (Mock Deposit)
+                    IntentShield: Cross-Chain Destination Allowlist
                   </span>
                 </div>
                 <input
@@ -992,7 +861,7 @@ export default function CreateAgentPage() {
                   className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                  Comma-separated destination addresses for IntentTransfer actions (targets mock deposit contract, not real NEAR Intents). Unlisted destinations are rejected onchain.
+                  Comma-separated destination addresses for IntentTransfer actions. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.
                 </span>
               </div>
 

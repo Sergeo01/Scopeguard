@@ -89,8 +89,8 @@ export function IncidentExportModal({
     reject_incident_log: rejections.map((r, idx) => ({
       index: idx + 1,
       timestamp: new Date(r.timestamp).toISOString(),
-      tx_hash: r.txHash || `0x${(r.timestamp * 1000).toString(16).padEnd(64, "0")}`,
-      explorer_url: `https://testnet.nearblocks.io/txns/${r.txHash || ""}`,
+      tx_hash: r.txHash || null,
+      explorer_url: r.txHash ? `https://testnet.nearblocks.io/txns/${r.txHash}` : null,
       attempted_target: r.target || "unknown",
       attempted_method: r.method || "unknown",
       attempted_amount: r.amount ? `${r.amount} mUSD` : "0",
@@ -405,7 +405,7 @@ export function IncidentExportModal({
                                   {r.txHash.slice(0, 8)}...
                                 </a>
                               ) : (
-                                "local audit record"
+                                "not recorded"
                               )}
                             </td>
                           </tr>

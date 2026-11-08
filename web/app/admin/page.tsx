@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+
 import { tryGetPolicyContractId } from "@/lib/config";
 import {
   Shield,
   ShieldCheck,
+  ShieldAlert,
   Activity,
   Clock,
   Ban,
@@ -257,7 +258,43 @@ export default function FleetConsolePage() {
   });
 
   if (!isAdmin) {
-    notFound();
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-6">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Owner Access Required
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            This fleet management console is restricted to policy owner accounts. To manage fleet policies, settle timelock quarantines, or unpause agents, connect an authorized owner wallet (e.g. <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-obsidian-800">sergeo-guard.testnet</code>).
+          </p>
+        </div>
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-xs text-slate-500 text-left space-y-2">
+          <div className="font-semibold text-slate-700 dark:text-slate-300">Public Demo Access:</div>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>Explore live agent budgets and audit logs in the <Link href="/dashboard" className="text-brand-blue hover:underline">Security Console</Link>.</li>
+            <li>Test adversarial prompt injection defenses in the <Link href="/#arena" className="text-brand-blue hover:underline">Attack Arena</Link>.</li>
+            <li>Run live comparative preflight benchmarks on the <Link href="/compare" className="text-brand-blue hover:underline">Compare Page</Link>.</li>
+          </ul>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 rounded-xl bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition"
+          >
+            Go to Security Console
+          </Link>
+          <Link
+            href="/#arena"
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-850 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-obsidian-800 text-xs font-semibold transition"
+          >
+            Test Attack Arena
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

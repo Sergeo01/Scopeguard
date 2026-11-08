@@ -151,7 +151,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           avatar: session.user.user_metadata?.avatar_url,
           isAdmin,
           connectedWallets: isAdmin
-            ? [DEFAULT_OWNER, "trader." + DEFAULT_OWNER]
+            ? [DEFAULT_OWNER, "agent." + DEFAULT_OWNER]
             : [defaultWallet],
           activeAccountId: defaultWallet,
         };
@@ -190,7 +190,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       displayName: name.charAt(0).toUpperCase() + name.slice(1),
       provider,
       isAdmin,
-      connectedWallets: isAdmin ? [DEFAULT_OWNER, "trader." + DEFAULT_OWNER] : [defaultWallet],
+      connectedWallets: isAdmin ? [DEFAULT_OWNER, "agent." + DEFAULT_OWNER] : [defaultWallet],
       activeAccountId: defaultWallet,
     };
 
@@ -245,7 +245,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       displayName: name.charAt(0).toUpperCase() + name.slice(1),
       provider: "email",
       isAdmin,
-      connectedWallets: isAdmin ? [DEFAULT_OWNER, "trader." + DEFAULT_OWNER] : [defaultWallet],
+      connectedWallets: isAdmin ? [DEFAULT_OWNER, "agent." + DEFAULT_OWNER] : [defaultWallet],
       activeAccountId: defaultWallet,
     };
 

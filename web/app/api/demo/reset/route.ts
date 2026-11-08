@@ -70,7 +70,7 @@ export async function POST(req: Request) {
           process.env.NEAR_TESTNET_RPC,
           RPC_URL,
           "https://test.rpc.fastnear.com",
-          "https://rpc.testnet.near.org",
+
         ].filter(Boolean) as string[]
       )
     );

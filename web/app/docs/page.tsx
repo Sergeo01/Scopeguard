@@ -242,7 +242,7 @@ export default function DocsPage() {
                 <span>The Plain Key Equation: One Trick Equals Total Loss</span>
               </div>
               <p className="leading-relaxed">
-                Crypto transfers cannot be charged back or undone. In 2026 audits, 341 out of 2,857 audited agent skills contained malicious payloads. ScopeGuard solves this at the protocol level: the agent never holds a master key. It holds a restricted NEAR FunctionCall passkey bounded by an onchain policy guard.
+                Crypto transfers cannot be charged back or undone. In autonomous agent environments, compromised skills or prompt injection can order unauthorized transactions. ScopeGuard solves this at the protocol level: the agent never holds a master key. It holds a restricted NEAR FunctionCall passkey bounded by an onchain policy guard.
               </p>
             </div>
           </section>
@@ -264,17 +264,17 @@ export default function DocsPage() {
             <div className="space-y-3">
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 p-4 font-mono text-xs space-y-2 relative">
                 <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-slate-800">
-                  <span>Step 1: Install and bind via CLI</span>
+                  <span>Step 1: Clone repository and build local client</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy("npx @scopeguard/cli protect --agent trader.sergeo-guard.testnet", "q1")}
+                    onClick={() => handleCopy("git clone https://github.com/Sergeo01/Scopeguard.git && cd Scopeguard && npm install && npm run build", "q1")}
                     className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                   >
                     {copiedCode === "q1" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedCode === "q1" ? "Copied" : "Copy"}</span>
                   </button>
                 </div>
-                <code>npx @scopeguard/cli protect --agent trader.sergeo-guard.testnet</code>
+                <code>git clone https://github.com/Sergeo01/Scopeguard.git && cd Scopeguard && npm install && npm run build</code>
               </div>
 
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100 p-4 font-mono text-xs space-y-2 relative">
@@ -320,7 +320,7 @@ const receipt = await act(cred, {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Isolated Agent Sub-Account</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  The agent operates under a dedicated sub-account (e.g. trader.sergeo-guard.testnet). Its money lives separately from the owner main funds.
+                  The agent operates under a dedicated sub-account (e.g. agent.sergeo-guard.testnet). Its money lives separately from the owner main funds.
                 </p>
               </div>
 
@@ -414,7 +414,7 @@ const receipt = await act(cred, {
                 { num: "07", name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", desc: "Target method must be explicitly permitted. Direct transfers must use typed Transfer actions." },
                 { num: "08", name: "Daily Spending Cap", code: "OVER_DAILY_CAP", desc: "Total spend in the rolling 24-hour window plus requested amount must not exceed daily_spend_cap." },
                 { num: "09", name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", desc: "If funds transfer to an account, recipient must be on the allowlist. Empty list forbids transfers." },
-                { num: "10", name: "IntentShield Cross-Chain Allowlist", code: "INTENT_RECIPIENT_NOT_ALLOWED", desc: "Cross-chain Intent transfers (targeting mock deposit contract on testnet) are restricted to explicitly allowlisted destination recipient addresses." },
+                { num: "10", name: "IntentShield Cross-Chain Allowlist", code: "INTENT_RECIPIENT_NOT_ALLOWED", desc: "Cross-chain Intent transfers are restricted to explicitly allowlisted destination addresses. The live contract checks recipient allowlist and deposit address target, and does not verify 1Click quotes onchain." },
                 { num: "11", name: "Net Drawdown Floor Breaker", code: "DRAWDOWN_EXCEEDED", desc: "Halts execution if vault balance drops below the configured floor percentage of peak high-water mark." },
                 { num: "12", name: "Timelock Quarantine", code: "PENDING", desc: "Transfers at or above high_value_threshold wait in timelock queue for owner settlement. Not a rejection." },
                 { num: "13", name: "Vault Balance Solvency", code: "INSUFFICIENT_VAULT_BALANCE", desc: "Transfer amount cannot exceed the agent active working vault balance." },
@@ -504,7 +504,7 @@ if !is_promise_success() {
                 <p className="text-[11px] text-slate-500">Trip Threshold</p>
               </div>
               <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0E15] text-center space-y-1">
-                <span className="text-2xl font-extrabold text-blue-500 font-mono">5 Minutes</span>
+                <span className="text-2xl font-extrabold text-blue-500 font-mono">10 Minutes</span>
                 <p className="text-[11px] text-slate-500">Rolling Strike Window</p>
               </div>
               <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0E15] text-center space-y-1">
@@ -513,7 +513,7 @@ if !is_promise_success() {
               </div>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              On the third consecutive rejection inside 5 minutes, the guard contract sets paused = true in the exact same transaction, halts all subsequent calls immediately, and emits a public onchain AUTO_PAUSE event.
+              On the third consecutive rejection inside 10 minutes, the guard contract sets paused = true in the exact same transaction, halts all subsequent calls immediately, and emits a public onchain AUTO_PAUSE event.
             </p>
           </section>
 
@@ -597,15 +597,15 @@ if !is_promise_success() {
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Connect agent with scoped credentials</div>
-                <div className="text-emerald-400 font-bold">npx @scopeguard/cli connect --account &lt;agent_id&gt; --key &lt;private_key&gt; --guard &lt;guard_contract_id&gt;</div>
+                <div className="text-emerald-400 font-bold">node sdk/dist/bin/scopeguard.js connect --account &lt;agent_id&gt; --key &lt;private_key&gt; --guard &lt;guard_contract_id&gt;</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Inspect active onchain budget and velocity</div>
-                <div className="text-blue-400 font-bold">npx @scopeguard/cli status --agent trader.sergeo-guard.testnet</div>
+                <div className="text-blue-400 font-bold">node sdk/dist/bin/scopeguard.js status --agent agent.sergeo-guard.testnet</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Trigger emergency owner pause</div>
-                <div className="text-amber-400 font-bold">npx @scopeguard/cli panic pause --guard &lt;guard_contract_id&gt;</div>
+                <div className="text-amber-400 font-bold">node sdk/dist/bin/scopeguard.js panic pause --guard &lt;guard_contract_id&gt;</div>
               </div>
             </div>
           </section>
@@ -816,7 +816,7 @@ if !is_promise_success() {
             <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] space-y-2 text-xs">
               <h4 className="font-bold text-slate-900 dark:text-white">Multi-Sub-Account Isolation &amp; Admin Privacy</h4>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                One ScopeGuard profile can manage multiple isolated sub-accounts (e.g. trader.sergeo-guard.testnet, bot1.testnet, liquidity.testnet). Standard users only see their own accounts. The Platform Admin tab is completely invisible to standard users; it only renders for verified administrator identities (sergeo@scopeguard.io, admin@scopeguard.io, or sergeo-guard.testnet).
+                One ScopeGuard profile can manage multiple isolated sub-accounts (e.g. agent.sergeo-guard.testnet, bot1.testnet, liquidity.testnet). Standard users only see their own accounts. The Platform Admin tab is completely invisible to standard users; it only renders for verified administrator identities (sergeo@scopeguard.io, admin@scopeguard.io, or sergeo-guard.testnet).
               </p>
             </div>
 
@@ -854,7 +854,7 @@ if !is_promise_success() {
                 { title: "Rust Smart Contract (near-sdk 5.29)", desc: "Policy contract compiled to wasm32-unknown-unknown with unit, integration, and property tests passing." },
                 { title: "Sequential Policy Pipeline", desc: "Strict verification order: caller ID, pause state, lease expiry, canary tripwire, velocity rate, target allowlist, method allowlist, daily cap, recipient allowlist, intent allowlist, drawdown floor, timelock queue, vault solvency, queue capacity." },
                 { title: "Zero-Panic Policy Rejections", desc: "Policy rejections return structured values with reason codes to ensure reject audit logs and circuit breaker strike counts are never reverted." },
-                { title: "3-Strike Circuit Breaker Auto-Pause", desc: "Automatically sets paused = true on the 3rd rejection within 5 minutes and emits AUTO_PAUSE onchain event." },
+                { title: "3-Strike Circuit Breaker Auto-Pause", desc: "Automatically sets paused = true on the 3rd rejection within 10 minutes and emits AUTO_PAUSE onchain event." },
                 { title: "Async Rollback Settlement", desc: "Vault balances are automatically refunded if a cross-contract transfer or execution call fails or reverts." },
                 { title: "Timelock Quarantine Queue", desc: "Actions >= high_value_threshold wait in queue for owner settlement with configurable minimum delay." },
                 { title: "TypeScript SDK (@scopeguard/sdk)", desc: "Production SDK exporting loadCredential, act, and budget." },

@@ -54,9 +54,9 @@ export const MarketingFooter: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#arena" className="hover:text-slate-900 dark:hover:text-white transition">
+                <Link href="/#arena" className="hover:text-slate-900 dark:hover:text-white transition">
                   Live Attack Arena
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/dashboard" className="hover:text-slate-900 dark:hover:text-white transition">
@@ -69,14 +69,14 @@ export const MarketingFooter: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <a href="#bento" className="hover:text-slate-900 dark:hover:text-white transition">
-                  10-Layer Policy Radar
-                </a>
+                <Link href="/#bento" className="hover:text-slate-900 dark:hover:text-white transition">
+                  14-Layer Policy Radar
+                </Link>
               </li>
               <li>
-                <a href="#how-it-works" className="hover:text-slate-900 dark:hover:text-white transition">
+                <Link href="/#how-it-works" className="hover:text-slate-900 dark:hover:text-white transition">
                   3-Step Protocol Setup
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

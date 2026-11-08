@@ -9,7 +9,7 @@ export interface PresetPlatform {
   contract: string;
   methods: string;
   description: string;
-  category: "DEX" | "Lending" | "Intents";
+  category: "DEX" | "Token";
 }
 
 export const PRESET_PLATFORMS: PresetPlatform[] = [
@@ -18,32 +18,16 @@ export const PRESET_PLATFORMS: PresetPlatform[] = [
     name: "ScopeGuard Testnet DEX",
     contract: "sergeo-guard-dex.testnet",
     methods: "swap",
-    description: "Testnet mock exchange for mUSD trading",
+    description: "Verified NEAR testnet automated market maker exchange",
     category: "DEX",
   },
   {
-    id: "preset-ref",
-    name: "Ref Finance",
-    contract: "ref-finance.near",
-    methods: "swap, deposit",
-    description: "Main NEAR decentralized automated market maker",
-    category: "DEX",
-  },
-  {
-    id: "preset-burrow",
-    name: "Burrow Finance",
-    contract: "contract.main.burrow.near",
-    methods: "borrow, repay",
-    description: "Decentralized money market and interest protocol",
-    category: "Lending",
-  },
-  {
-    id: "preset-intents",
-    name: "NEAR Intents (Mock Deposit)",
-    contract: "intents.near",
-    methods: "execute_intent",
-    description: "Mock deposit contract for cross-chain intent testing on testnet",
-    category: "Intents",
+    id: "preset-sergeo-token",
+    name: "ScopeGuard Custody Token",
+    contract: "sergeo-guard-token.testnet",
+    methods: "ft_transfer",
+    description: "Verified NEAR testnet NEP-141 token custody contract",
+    category: "Token",
   },
 ];
 
@@ -59,52 +43,48 @@ export const PlatformPresets: React.FC<PlatformPresetsProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-          Quick-Add Pre-Vetted Platforms
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Verified Testnet Presets
         </label>
-        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          Click any preset to add or remove
-        </span>
+        <span className="text-[10px] text-slate-400">Click to arm or disarm</span>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {PRESET_PLATFORMS.map((preset) => {
-          const isSelected = activeContracts.includes(preset.contract);
+          const isSelected = activeContracts.some((c) => c.toLowerCase() === preset.contract.toLowerCase());
           return (
             <button
               key={preset.id}
               type="button"
               onClick={() => onTogglePreset(preset)}
-              className={`p-3 rounded-lg border text-left transition flex items-start justify-between gap-2 text-xs ${
+              className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-3 ${
                 isSelected
-                  ? "bg-brand-blue/5 border-brand-blue text-slate-900 dark:text-white ring-1 ring-brand-blue/30"
-                  : "bg-white dark:bg-obsidian-900 border-slate-200 dark:border-obsidian-800 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300"
+                  ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 ring-1 ring-blue-500/20"
+                  : "bg-white dark:bg-obsidian-900 border-slate-200 dark:border-obsidian-800 hover:border-slate-300 dark:hover:border-obsidian-700"
               }`}
             >
-              <div className="space-y-0.5 min-w-0">
+              <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-semibold text-slate-900 dark:text-white">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                     {preset.name}
                   </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-obsidian-950 text-slate-500 border border-slate-200 dark:border-obsidian-800">
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400">
                     {preset.category}
                   </span>
-                  {preset.category === "Intents" && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/30 flex items-center gap-1">
-                      <Shield className="w-2.5 h-2.5" /> IntentShield
-                    </span>
-                  )}
                 </div>
-                <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                  {preset.contract}
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                  {preset.description}
+                </p>
+                <div className="flex items-center gap-2 pt-0.5 text-[10px] font-mono text-slate-400">
+                  <span className="truncate max-w-[140px]">{preset.contract}</span>
+                  <span>•</span>
+                  <span>{preset.methods}</span>
                 </div>
               </div>
-
               <div
-                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
+                className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition ${
                   isSelected
-                    ? "bg-emerald-600 border-emerald-600 text-white"
-                    : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-obsidian-900 text-slate-400"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-obsidian-800 text-slate-400 group-hover:text-slate-600"
                 }`}
               >
                 {isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}

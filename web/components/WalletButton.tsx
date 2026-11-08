@@ -276,7 +276,7 @@ export const WalletButton: React.FC = () => {
                     type="text"
                     value={newSubAccountInput}
                     onChange={(e) => setNewSubAccountInput(e.target.value)}
-                    placeholder="Link another sub-account (e.g. trader.testnet)"
+                    placeholder="Link another sub-account (e.g. agent.testnet)"
                     className="flex-1 px-3 py-1.5 text-xs font-mono rounded-xl bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <button

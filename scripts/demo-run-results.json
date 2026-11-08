@@ -1,0 +1,62 @@
+[
+  {
+    "step": 1,
+    "name": "Legit Swap 25 mUSD on sergeo-guard-dex.testnet",
+    "hash": "2Do2prkt4VKEBf7Tbz2omGLRbfX7j5k3B7H247QjHKm8",
+    "status": "ALLOWED",
+    "reason": "None (ALLOWED)",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 2,
+    "name": "Blocked Recipient (transfer 100 mUSD to attacker.testnet)",
+    "hash": "B1KMUdeEwwU9MjhgWArAeL6Aex6Uc8MfCven9uS2cnBg",
+    "status": "REJECTED",
+    "reason": "RECIPIENT_NOT_ALLOWED",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 3,
+    "name": "Blocked Target (call phish-vault.testnet deposit)",
+    "hash": "HZzmSgdBniMbFVj346frChV87wpBy5DQtKNuy1BMYPrd",
+    "status": "REJECTED",
+    "reason": "TARGET_NOT_ALLOWED",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 4,
+    "name": "Over Daily Cap (swap 600 mUSD, 3rd reject trips AUTO_PAUSE)",
+    "hash": "9WJpzrNHtGcEEuwBvpQnqVu5xb9UiHiHhX2nssZ33e7q",
+    "status": "REJECTED",
+    "reason": "OVER_DAILY_CAP (Tripped AUTO_PAUSE)",
+    "spent": "25",
+    "remaining": "475",
+    "paused": true
+  },
+  {
+    "step": 5,
+    "name": "High-Value Quarantine (Swap 300 mUSD, Pending #6)",
+    "hash": "49XnzdsoSq8fdoRLZzBfAcASzEUPkHXteKyG8xngJ5DF",
+    "status": "PENDING",
+    "reason": "Pending Timelock #6",
+    "spent": "25",
+    "remaining": "475",
+    "paused": false
+  },
+  {
+    "step": 6,
+    "name": "Settle Pending Action & Reset Windows",
+    "hash": "GzsxFG6iTsGLAM8vvwLzz1SRPGyrHhpZhZKKtjVeeEXf (settle) / CfhKjZQGYfERWftebUo2rDacjuyvm4YLrvDw8mThSrgT (reset)",
+    "status": "CONFIRMED",
+    "reason": "Settled on DEX & clean state restored",
+    "spent": "0",
+    "remaining": "500",
+    "paused": false
+  }
+]

@@ -57,8 +57,8 @@ export async function GET(req: Request) {
       [
         process.env.NEAR_TESTNET_RPC,
         "https://test.rpc.fastnear.com",
-        "https://rpc.testnet.near.org",
-        "https://testnet.rpc.fastnear.com",
+
+
       ].filter(Boolean) as string[]
     )
   );

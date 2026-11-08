@@ -12,6 +12,10 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
   dailyCap = 500,
   vaultBalance = "350",
 }) => {
+  const capNum = Number(dailyCap) || 0;
+  const vaultNum = Number(vaultBalance) || 0;
+  const bound = (vaultNum > 0 && capNum > 0) ? Math.min(vaultNum, capNum) : (vaultNum || capNum || 350);
+
   return (
     <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-obsidian-900 p-5 sm:p-6 shadow-xs space-y-4">
       {/* Header with Title and Badges */}
@@ -30,7 +34,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-              Worst-Case Loss Bound: ${dailyCap} mUSD
+              Worst-Case Loss Bound: ${bound} mUSD
             </h3>
           </div>
         </div>
@@ -60,7 +64,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               <span>Standard Full-Access Key</span>
             </span>
             <span className="font-mono text-[11px] font-bold text-rose-600 dark:text-rose-400">
-              Unbounded Loss
+              Uncapped Risk
             </span>
           </div>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
@@ -84,15 +88,15 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               <span>ScopeGuard Scoped Passkey</span>
             </span>
             <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-              Capped at ${dailyCap} mUSD
+              Bounded at ${bound} mUSD
             </span>
           </div>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
-            Even under continuous malicious prompt injection while owner sleeps, spending stops at ${dailyCap} mUSD. Large amounts require explicit owner settlement signatures.
+            Even under continuous malicious prompt injection while owner sleeps, spending stops at ${bound} mUSD. Large amounts require explicit owner settlement signatures.
           </p>
           <div className="pt-1 flex items-center justify-between text-[11px] font-mono border-t border-emerald-200/60 dark:border-emerald-800/40">
             <span className="text-slate-500">Unattended Exposure:</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Max ${dailyCap} mUSD / 24h</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Max ${bound} mUSD (min of vault and cap)</span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-500">Active Vault Pot:</span>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPolicyContractId } from "@/lib/config";
 
 const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
-const FALLBACK_RPC = "https://rpc.testnet.near.org";
+const FALLBACK_RPC = "https://test.rpc.fastnear.com";
 
 export const dynamic = "force-dynamic";
 

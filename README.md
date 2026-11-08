@@ -127,7 +127,7 @@ In every failure mode, the root cause is the same: the agent held a master key t
 ## 3. How ScopeGuard Works
 
 ScopeGuard replaces master keys with protocol-enforced, scoped function-call access keys on NEAR Protocol:
-1. **Agent Sub-Account:** The agent operates under a dedicated sub-account (e.g. `trader.alice.near`), isolated from the owner's main balance.
+1. **Agent Sub-Account:** The agent operates under a dedicated sub-account (e.g. `agent.alice.near`), isolated from the owner's main balance.
 2. **Spending Vault:** The owner deposits a working balance into the Guard contract. The agent can only move funds that reside inside this vault.
 3. **Scoped Function-Call Key:** The agent machine holds a NEAR function-call access key restricted by protocol consensus to `receiver = Policy Contract`, `methods = ["execute"]`, with a capped gas allowance. It cannot transfer native NEAR directly, deploy code, add or delete keys, or call arbitrary contracts.
 4. **Onchain Guard Policy:** Every action is checked by a Rust contract on NEAR against owner-signed rules. If all checks pass, the Guard performs the action on behalf of the agent. If any check fails, the transaction records a structured reason code onchain without panicking and increments an auto-pause strike counter.

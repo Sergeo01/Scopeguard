@@ -65,7 +65,7 @@ The ScopeGuard architecture consists of five core tiers:
 ## 2. Vault Custody & Separation of Funds
 
 1. **Agent Sub-Account Isolation:**
-   The agent executes from a dedicated NEAR sub-account (e.g. `trader.alice.near`), entirely segregated from the owner's primary account (`alice.near`).
+   The agent executes from a dedicated NEAR sub-account (e.g. `agent.alice.near`), entirely segregated from the owner's primary account (`alice.near`).
 
 2. **Dual-Asset Internal Vaults:**
    Funds managed by the agent are held in custody by the Guard contract:

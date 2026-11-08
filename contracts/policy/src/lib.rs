@@ -33,6 +33,38 @@ impl Contract {
         }
     }
 
+    pub fn migrate_state(&mut self) {
+        let caller = env::predecessor_account_id();
+        let owner: AccountId = "sergeo-guard.testnet".parse().unwrap();
+        assert!(
+            caller == env::current_account_id() || caller == owner,
+            "Unauthorized"
+        );
+        let agents = ["agent.sergeo-guard.testnet", "trader.sergeo-guard.testnet"];
+        for agent_str in agents {
+            if let Ok(agent) = agent_str.parse::<AccountId>() {
+                let mut key = b"ag".to_vec();
+                near_sdk::borsh::BorshSerialize::serialize(&agent, &mut key).unwrap();
+                if let Some(bytes) = env::storage_read(&key) {
+                    if bytes.len() == 497 || bytes.len() == 498 {
+                        let policy_part = &bytes[0..391];
+                        let record_middle = &bytes[391..497];
+                        let mut new_bytes = Vec::with_capacity(524);
+                        new_bytes.extend_from_slice(policy_part);
+                        new_bytes.push(0);
+                        new_bytes.push(0);
+                        new_bytes.extend_from_slice(record_middle);
+                        new_bytes.extend_from_slice(&[0u8; 16]);
+                        new_bytes.extend_from_slice(&[0u8; 4]);
+                        new_bytes.extend_from_slice(&[0u8; 4]);
+                        new_bytes.push(0);
+                        env::storage_write(&key, &new_bytes);
+                    }
+                }
+            }
+        }
+    }
+
     // ---------------------------------------------------------------
     // Registration & Policy Management
     // ---------------------------------------------------------------
@@ -461,6 +493,11 @@ impl Contract {
             // Security check: if this is a Transfer, enforce that token must match the policy custody token
             if let GuardAction::Transfer { token, .. } = &action {
                 if token != &rec.policy.token {
+                    return self.reject(&caller, &mut rec, REASON_TARGET, now);
+                }
+            }
+            if let GuardAction::Swap { token_in, .. } = &action {
+                if token_in != &rec.policy.token {
                     return self.reject(&caller, &mut rec, REASON_TARGET, now);
                 }
             }
@@ -1084,6 +1121,11 @@ impl Contract {
             // Check 4: TARGET_NOT_ALLOWED
             if let GuardAction::Transfer { ref token, .. } = action {
                 if token != &rec.policy.token {
+                    return reject(REASON_TARGET);
+                }
+            }
+            if let GuardAction::Swap { ref token_in, .. } = action {
+                if token_in != &rec.policy.token {
                     return reject(REASON_TARGET);
                 }
             }

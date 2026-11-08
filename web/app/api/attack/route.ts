@@ -1,10 +1,29 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { connect, keyStores, KeyPair } from "near-api-js";
+import { connect, keyStores, KeyPair, providers } from "near-api-js";
 import { recordActivity } from "@/lib/ledger";
 import { isSameOrigin, checkAttackThrottle, setAttackInProgress, safeCompare } from "@/lib/api-guard";
 import { getPolicyContractId } from "@/lib/config";
+
+const RULE_NUMBER: Record<string, number> = {
+  NOT_AGENT: 1,
+  PAUSED: 2,
+  LEASE_EXPIRED: 3,
+  CANARY_TRIPPED: 4,
+  OVER_VELOCITY_CAP: 5,
+  TARGET_NOT_ALLOWED: 6,
+  METHOD_NOT_ALLOWED: 7,
+  OVER_DAILY_CAP: 8,
+  RECIPIENT_NOT_ALLOWED: 9,
+  CROSS_CHAIN_INTENT_NOT_ALLOWED: 10,
+  INTENT_RECIPIENT_NOT_ALLOWED: 10,
+  OVER_MAX_DRAWDOWN: 11,
+  DRAWDOWN_EXCEEDED: 11,
+  PENDING: 12,
+  INSUFFICIENT_VAULT_BALANCE: 13,
+  PENDING_QUEUE_FULL: 14,
+};
 
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
@@ -44,22 +63,17 @@ export async function POST(req: Request) {
     let amount = body.amount;
     let recipient = body.recipient;
     let args = body.args;
+    const isDryRun = Boolean(body.dryRun);
     const promptText = (body.promptText || body.prompt || "").trim();
 
     // Parse prompt text intelligently if provided
     if (promptText) {
       const lower = promptText.toLowerCase();
-      const nearMatch = promptText.match(/(?:send|transfer|pay|drain)\s*(\d[\d,.]*)\s*(?:near|N)\s*(?:to|into)?\s*([a-z0-9_.-]+\.(?:testnet|near))/i);
       const ftMatch = promptText.match(/(?:transfer|send|drain|pay|withdraw)\s*(?:all|\$|entire)?\s*([\d,]*)\s*(?:musd|dollars|usd|\$|tokens|pot)?\s*(?:to|into)?\s*([a-z0-9_-]+\.(?:testnet|near))/i);
       const intentMatch = promptText.match(/(?:intent|bridge|cross-chain|defuse)\s*(?:send|swap)?\s*(\d[\d,.]*)\s*(?:to|into)?\s*(0x[a-fA-F0-9]{40}|[a-zA-Z0-9]{32,44})/i);
       const canaryMatch = lower.includes("drain_vault") || lower.includes("honey") || lower.includes("admin_drain");
 
-      if (nearMatch && (!target || target === "near" || body.fromPrompt)) {
-        amount = amount || nearMatch[1].replace(/,/g, "");
-        recipient = recipient || nearMatch[2];
-        target = "near";
-        method = "near_transfer";
-      } else if (ftMatch && (!target || target === "sergeo-guard-token.testnet" || body.fromPrompt)) {
+      if (ftMatch && (!target || target === "sergeo-guard-token.testnet" || body.fromPrompt)) {
         amount = amount || (ftMatch[1] ? ftMatch[1].replace(/,/g, "") : "500");
         recipient = recipient || ftMatch[2];
         target = "sergeo-guard-token.testnet";
@@ -70,7 +84,7 @@ export async function POST(req: Request) {
         target = "intents.near";
         method = "execute_intent";
       } else if (canaryMatch && (!method || method === "drain_vault" || body.fromPrompt)) {
-        target = getPolicyContractId();
+        target = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
         method = "drain_vault";
         amount = "0";
       } else if (!target || !method) {
@@ -86,7 +100,6 @@ export async function POST(req: Request) {
         }
       }
     } else if (promptText && !amount) {
-      // If prompt contains an amount with commas and body omitted amount, parse it cleanly
       const numMatch = promptText.match(/(\d[\d,]*)/);
       if (numMatch) {
         amount = numMatch[1].replace(/,/g, "");
@@ -97,44 +110,38 @@ export async function POST(req: Request) {
     if (!method) method = "swap";
     if (!amount) amount = "0";
 
-    // Demo Key Disclosure: In this hosted attack arena demo, the agent's scoped passkey
-    // (a NEAR function-call key restricted to receiver=guard, methods=["execute"]) is loaded from
-    // server environment variables solely to sign live testnet transactions on demand for evaluators.
-    // In production, the agent key resides exclusively in the agent's isolated runtime.
-    const envAgentKey = process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || process.env.AGENT_PRIVATE_KEY;
-    const envAgentAccount = process.env.SCOPEGUARD_AGENT_ACCOUNT || process.env.SCOPEGUARD_AGENT_ID || process.env.AGENT_ACCOUNT_ID;
+    // Path B: Native NEAR agent transfers are disabled
+    if (method === "near_transfer" || method === "transfer_near" || target === "near" || target === "NEAR") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Agent NEAR transfer is disabled. Native NEAR is held in vault custody and moves exclusively via owner withdrawal.",
+        },
+        { status: 400 }
+      );
+    }
 
-    if (!envAgentKey || !envAgentAccount) {
+    const envAgentKey = process.env.SCOPEGUARD_AGENT_PRIVATE_KEY || process.env.AGENT_PRIVATE_KEY;
+    const rawAgentAccount =
+      process.env.SCOPEGUARD_AGENT_ACCOUNT ||
+      process.env.SCOPEGUARD_AGENT_ID ||
+      process.env.AGENT_ACCOUNT_ID;
+
+    if (!isDryRun && (!envAgentKey || !rawAgentAccount)) {
       return NextResponse.json({
         success: false,
         error: "Agent credentials not found in environment. Set SCOPEGUARD_AGENT_PRIVATE_KEY and SCOPEGUARD_AGENT_ACCOUNT.",
       }, { status: 500 });
     }
 
-    const cred = {
-      agentAccountId: envAgentAccount,
-      policyContractId: getPolicyContractId(),
-      publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
-      privateKey: envAgentKey,
-      networkId: process.env.NEAR_NETWORK || "testnet",
-      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
-    };
-
-    const keyStore = new keyStores.InMemoryKeyStore();
-    await keyStore.setKey(cred.networkId || "testnet", cred.agentAccountId, KeyPair.fromString(cred.privateKey as any));
+    const guardContractId = getPolicyContractId();
+    const envAgentAccount = rawAgentAccount || "agent.sergeo-guard.testnet";
 
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});
     let action: any;
 
-    if (method === "near_transfer" || method === "transfer_near" || target === "near" || target === "NEAR") {
-      action = {
-        NearTransfer: {
-          to: recipient || "",
-          amount: amount || "0",
-        },
-      };
-    } else if (method === "execute_intent" || method === "intent_transfer" || target === "intents.near") {
+    if (method === "execute_intent" || method === "intent_transfer" || target === "intents.near") {
       action = {
         IntentTransfer: {
           deposit_address: target || "intents.near",
@@ -179,12 +186,85 @@ export async function POST(req: Request) {
       new Set(
         [
           process.env.NEAR_TESTNET_RPC,
-          cred.nodeUrl,
           "https://test.rpc.fastnear.com",
-          "https://rpc.testnet.near.org",
         ].filter(Boolean) as string[]
       )
     );
+
+    // If dry run requested: call preflight view function without signing
+    if (isDryRun) {
+      let pfResult: any = null;
+      let lastErr: any = null;
+      for (const rpcUrl of rpcUrls) {
+        try {
+          const provider = new providers.JsonRpcProvider({ url: rpcUrl });
+          const raw = await provider.query({
+            request_type: "call_function",
+            account_id: guardContractId,
+            method_name: "preflight",
+            args_base64: Buffer.from(
+              JSON.stringify({
+                agent_account: envAgentAccount,
+                action,
+              })
+            ).toString("base64"),
+            finality: "optimistic",
+          });
+          pfResult = JSON.parse(Buffer.from((raw as any).result).toString());
+          if (pfResult) break;
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`RPC ${rpcUrl} preflight error: ${err.message}. Retrying next...`);
+        }
+      }
+
+      if (!pfResult) {
+        throw lastErr || new Error("Failed to execute preflight on NEAR Testnet across available RPC endpoints.");
+      }
+
+      const ruleNum = pfResult.reason
+        ? (RULE_NUMBER[pfResult.reason] ?? 0)
+        : pfResult.status === "PENDING"
+        ? 12
+        : 0;
+
+      return NextResponse.json({
+        success: true,
+        dryRun: true,
+        txHash: null,
+        explorerUrl: null,
+        outcome: pfResult,
+        verdict: {
+          status: pfResult.status,
+          reasonCode: pfResult.reason || (pfResult.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
+          ruleNumber: ruleNum,
+          ruleName: pfResult.reason ? pfResult.reason.replace(/_/g, " ") : pfResult.status === "PENDING" ? "High Value Timelock" : "Policy Check",
+          explanation: pfResult.reason
+            ? `Refused by onchain policy: ${pfResult.reason}`
+            : pfResult.status === "PENDING"
+            ? "High-value action held in 60-second owner veto quarantine."
+            : "Action cleared all onchain policy bounds in preflight verification.",
+          txHash: null,
+          attemptedTarget: target,
+          attemptedMethod: method,
+          attemptedAmount: amount,
+          fundsSaved: pfResult.status === "ALLOWED" ? "0" : amount,
+        },
+      });
+    }
+
+    // Full execution requires agent key
+    const cred = {
+      agentAccountId: envAgentAccount,
+      policyContractId: guardContractId,
+      publicKey: process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || "",
+      privateKey: envAgentKey!,
+      networkId: process.env.NEAR_NETWORK || "testnet",
+      nodeUrl: process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com",
+    };
+
+    const keyStore = new keyStores.InMemoryKeyStore();
+    await keyStore.setKey(cred.networkId || "testnet", cred.agentAccountId, KeyPair.fromString(cred.privateKey as any));
 
     let callResult: any = null;
     let lastError: any = null;
@@ -198,7 +278,7 @@ export async function POST(req: Request) {
         });
         const agentAccount = await near.account(cred.agentAccountId);
         callResult = await agentAccount.functionCall({
-          contractId: cred.policyContractId || getPolicyContractId(),
+          contractId: cred.policyContractId,
           methodName: "execute",
           args: { action },
           gas: BigInt("100000000000000"), // 100 TGas
@@ -239,7 +319,7 @@ export async function POST(req: Request) {
       reason: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "Action executed under verified policy" : parsedOutcome.status === "PENDING" ? `Queued in timelock quarantine (Intent #${parsedOutcome.pending_id || 1})` : undefined),
     });
 
-    // Fail-safe real-time alert dispatch to Telegram and Discord webhooks if configured
+    // Alert dispatch
     try {
       const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
       const telegramChat = process.env.TELEGRAM_CHAT_ID;
@@ -273,55 +353,31 @@ export async function POST(req: Request) {
         }
       }
     } catch {
-      // Non-blocking: alert dispatch errors never disrupt the onchain response
+      // Non-blocking
     }
 
-    // Invariant Check Order (1 to 12):
-    // 1: NOT_AGENT (caller identity)
-    // 2: PAUSED (circuit breaker / manual freeze)
-    // 3: LEASE_EXPIRED (time limit)
-    // 4: CANARY_TRIPPED (honey-token tripwire)
-    // 5: OVER_VELOCITY_CAP (tumbling 10-min action rate)
-    // 6: TARGET_NOT_ALLOWED (unauthorized contract)
-    // 7: METHOD_NOT_ALLOWED (unauthorized method / value-moving denylist)
-    // 8: OVER_DAILY_CAP (rolling 24-25h budget)
-    // 9: RECIPIENT_NOT_ALLOWED / INTENT_RECIPIENT_NOT_ALLOWED (destination allowlist)
-    // 10: INSUFFICIENT_VAULT_BALANCE (vault custody limit)
-    // 11: DRAWDOWN_EXCEEDED (high-water mark drawdown floor)
-    // 12: PENDING / PENDING_QUEUE_FULL (timelock quarantine queue capacity)
-    const RULE_NUMBER: Record<string, number> = {
-      NOT_AGENT: 1,
-      PAUSED: 2,
-      LEASE_EXPIRED: 3,
-      CANARY_TRIPPED: 4,
-      OVER_VELOCITY_CAP: 5,
-      TARGET_NOT_ALLOWED: 6,
-      METHOD_NOT_ALLOWED: 7,
-      OVER_DAILY_CAP: 8,
-      RECIPIENT_NOT_ALLOWED: 9,
-      CROSS_CHAIN_INTENT_NOT_ALLOWED: 9,
-      INTENT_RECIPIENT_NOT_ALLOWED: 9,
-      INSUFFICIENT_VAULT_BALANCE: 10,
-      OVER_MAX_DRAWDOWN: 11,
-      DRAWDOWN_EXCEEDED: 11,
-      PENDING_QUEUE_FULL: 12,
-    };
+    const ruleNumber = parsedOutcome.reason
+      ? (RULE_NUMBER[parsedOutcome.reason] ?? 0)
+      : parsedOutcome.status === "PENDING"
+      ? 12
+      : 0;
 
     return NextResponse.json({
       success: true,
+      dryRun: false,
       txHash,
       explorerUrl: `https://testnet.nearblocks.io/txns/${txHash}`,
       outcome: parsedOutcome,
       verdict: {
         status: parsedOutcome.status,
         reasonCode: parsedOutcome.reason || (parsedOutcome.status === "ALLOWED" ? "POLICY_PASSED" : "PENDING"),
-        ruleNumber: parsedOutcome.reason
-          ? RULE_NUMBER[parsedOutcome.reason] ?? 0
-          : parsedOutcome.status === "PENDING"
-          ? 12
-          : 0,
+        ruleNumber,
         ruleName: parsedOutcome.reason ? parsedOutcome.reason.replace(/_/g, " ") : parsedOutcome.status === "PENDING" ? "High Value Timelock" : "Policy Check",
-        explanation: parsedOutcome.reason ? `Refused by onchain policy: ${parsedOutcome.reason}` : parsedOutcome.status === "PENDING" ? "High-value action held in 60-second owner veto quarantine." : "Action cleared all onchain policy bounds.",
+        explanation: parsedOutcome.reason
+          ? `Refused by onchain policy: ${parsedOutcome.reason}`
+          : parsedOutcome.status === "PENDING"
+          ? "High-value action held in 60-second owner veto quarantine."
+          : "Action cleared all onchain policy bounds and executed on NEAR Testnet.",
         txHash,
         attemptedTarget: target,
         attemptedMethod: method,
