@@ -239,7 +239,7 @@ export class ScopeGuardWatcher {
 
       const foundEvents: ScopeGuardEvent[] = [];
       const start = this.lastBlockHeight + 1;
-      const end = Math.min(currentHeight, start + (lag > 10 ? 15 : 4));
+      const end = Math.min(currentHeight, start + (lag > 10 ? 3 : 1));
       let lastProcessed = this.lastBlockHeight;
 
       for (let h = start; h <= end; h++) {
@@ -315,7 +315,7 @@ if (require.main === module) {
     webhookUrl,
     telegramBotToken,
     telegramChatId,
-    pollIntervalMs: 2500,
+    pollIntervalMs: 20000,
   });
 
   watcher.start();
