@@ -1,8 +1,8 @@
 /**
  * Canonical NEAR RPC endpoint configuration and multi-provider failover.
  *
- * Provides verified RPC endpoints for NEAR Testnet with automatic failover
- * across FastNear, NEAR Foundation official testnet RPC, and archival RPC.
+ * Uses FastNear as primary public testnet RPC (recommended by NEAR Foundation
+ * following the deprecation of rpc.testnet.near.org on Nov 8, 2024).
  */
 
 export function getVerifiedRpcEndpoints(): string[] {
@@ -10,8 +10,6 @@ export function getVerifiedRpcEndpoints(): string[] {
   const endpoints = [
     customRpc,
     "https://test.rpc.fastnear.com",
-    "https://rpc.testnet.near.org",
-    "https://archival-rpc.testnet.near.org",
   ].filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
 
   return Array.from(new Set(endpoints));

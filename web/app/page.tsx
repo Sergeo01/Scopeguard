@@ -345,89 +345,10 @@ export default function HomePage() {
     setMethodName(s.method);
     setAmountVal(s.amount);
     setRecipientVal(s.recipient);
-
-    let ruleNum = s.ruleNumber;
-    let ruleTitle = "Target Contract Allowlist";
-    let explanation = "";
-
-    if (s.ruleCode === "NOT_AGENT") {
-      ruleNum = 1;
-      ruleTitle = "Registered Agent Caller";
-      explanation = "The caller is not the agent account registered for this policy.";
-    } else if (s.ruleCode === "PAUSED") {
-      ruleNum = 2;
-      ruleTitle = "Unpaused Operating State";
-      explanation = "Agent passkey is currently paused by the owner or emergency circuit breaker.";
-    } else if (s.ruleCode === "LEASE_EXPIRED") {
-      ruleNum = 3;
-      ruleTitle = "Task Session Lease Expiry";
-      explanation = "Actions refused once task lease timestamp expires.";
-    } else if (s.ruleCode === "CANARY_TRIPPED") {
-      ruleNum = 4;
-      ruleTitle = "Honeypot Decoy Tripwire";
-      explanation = "Calling advertised decoy methods immediately trips auto-pause lockout.";
-    } else if (s.ruleCode === "OVER_VELOCITY_CAP") {
-      ruleNum = 5;
-      ruleTitle = "Velocity Anti-Spam";
-      explanation = "The agent already used its full action allowance for the current 10-minute window.";
-    } else if (s.ruleCode === "TARGET_NOT_ALLOWED") {
-      ruleNum = 6;
-      ruleTitle = "Target Contract Allowlist";
-      explanation = `The smart contract ${s.target} is not on the approved target allowlist.`;
-    } else if (s.ruleCode === "METHOD_NOT_ALLOWED") {
-      ruleNum = 7;
-      ruleTitle = "Method Name Allowlist";
-      explanation = `Method ${s.method}() is not permitted on ${s.target}.`;
-    } else if (s.ruleCode === "OVER_DAILY_CAP") {
-      ruleNum = 8;
-      ruleTitle = "Daily Spending Cap";
-      explanation = `Amount ${s.amount} mUSD exceeds the approved daily spending limit.`;
-    } else if (s.ruleCode === "RECIPIENT_NOT_ALLOWED") {
-      ruleNum = 9;
-      ruleTitle = "Recipient Allowlist";
-      explanation = `Transfers to recipient ${s.recipient} are refused by onchain policy.`;
-    } else if (s.ruleCode === "INTENT_RECIPIENT_NOT_ALLOWED" || s.ruleCode === "CROSS_CHAIN_INTENT_NOT_ALLOWED") {
-      ruleNum = 10;
-      ruleTitle = "Cross-Chain Intent Allowlist";
-      explanation = "Cross-chain payout addresses must match approved IntentShield allowlist.";
-    } else if (s.ruleCode === "DRAWDOWN_EXCEEDED" || s.ruleCode === "OVER_MAX_DRAWDOWN") {
-      ruleNum = 11;
-      ruleTitle = "Max Portfolio Drawdown";
-      explanation = "Projected trade loss breaches maximum allowed portfolio drawdown from high-water mark.";
-    } else if (s.ruleCode === "PENDING") {
-      ruleNum = 12;
-      ruleTitle = "High-Value Quarantine Timelock";
-      explanation = "Amount is at or above the policy high-value threshold and is held in owner veto quarantine.";
-    } else if (s.ruleCode === "INSUFFICIENT_VAULT_BALANCE") {
-      ruleNum = 13;
-      ruleTitle = "Vault Balance Bound";
-      explanation = `The requested transfer of ${s.amount} mUSD exceeds the agent's own vault balance.`;
-    } else if (s.ruleCode === "PENDING_QUEUE_FULL") {
-      ruleNum = 14;
-      ruleTitle = "Pending Queue Bound";
-      explanation = "The quarantine queue is full, so no further high-value action can be queued.";
-    } else if (s.ruleCode === "POLICY_PASSED") {
-      ruleNum = 0;
-      ruleTitle = "Policy Checks Passed";
-      explanation = "Action cleared all onchain policy bounds in preflight verification (dry run, no transaction sent).";
-    }
-
-    if (ruleNum > 0) {
-      setSelectedRuleNum(ruleNum);
-    }
-
-    setActiveVerdict({
-      status: s.ruleCode === "PENDING" ? "PENDING" : s.ruleCode === "POLICY_PASSED" ? "ALLOWED" : "REJECTED",
-      reasonCode: s.ruleCode,
-      ruleNumber: ruleNum,
-      ruleName: ruleTitle,
-      explanation,
-      txHash: "",
-      attemptedTarget: s.target,
-      attemptedMethod: s.method,
-      attemptedAmount: s.amount,
-      fundsSaved: s.ruleCode === "POLICY_PASSED" ? "0" : s.amount,
-    });
+    setActiveVerdict(null);
+    setSelectedRuleNum(0);
+    setInspectHash(null);
+    setStatusMessage(`Scenario loaded: ${s.label}. Click 'Execute Attack Instruction' to run against NEAR Testnet.`);
   };
 
   const handlePromptChange = (text: string) => {
@@ -627,6 +548,8 @@ export default function HomePage() {
             : "Exploit blocked onchain. Zero funds moved."
         );
       } else {
+        setActiveVerdict(null);
+        setSelectedRuleNum(0);
         const errText = data?.error || "";
         const cleanMsg = errText.includes("-429") || errText.includes("Rate limits")
           ? "NEAR Testnet public RPC rate limit reached. Please wait a few seconds and retry."
@@ -634,6 +557,8 @@ export default function HomePage() {
         setStatusMessage(cleanMsg);
       }
     } catch {
+      setActiveVerdict(null);
+      setSelectedRuleNum(0);
       setStatusMessage("Network error communicating with NEAR Testnet RPC endpoint. Please retry.");
     } finally {
       setLoading(false);
@@ -1324,7 +1249,7 @@ export default function HomePage() {
                             </span>
                           ) : (
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
-                              Preflight Dry Run
+                              Preflight Check
                             </span>
                           )}
                         </div>
@@ -1388,7 +1313,7 @@ export default function HomePage() {
                           </div>
                         ) : (
                           <span className="text-slate-400 text-[11px] font-sans italic">
-                            Dry run, no transaction sent
+                            Preflight check (no transaction sent)
                           </span>
                         )}
                       </div>
@@ -1412,7 +1337,7 @@ export default function HomePage() {
                   <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
                     <RefreshCw className={`w-6 h-6 text-brand-blue ${loading ? "animate-spin" : ""}`} />
                     <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                      {loading ? "Querying live preflight check on NEAR Testnet..." : "Select a scenario to evaluate live onchain policy"}
+                      {loading ? "Querying live preflight check on NEAR Testnet..." : "Select a scenario and click 'Execute Attack Instruction' to evaluate onchain policy"}
                     </span>
                   </div>
                 )}

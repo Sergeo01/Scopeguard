@@ -1773,7 +1773,7 @@ export default function DashboardPage() {
               <span className="text-[10px] text-slate-400 font-medium block">
                 Targets
               </span>
-              <span className="font-mono text-xs font-bold text-mint-greenDark dark:text-mint-green">1 DEX</span>
+              <span className="font-mono text-xs font-bold text-mint-greenDark dark:text-mint-green">{policy?.targets ? `${Object.keys(policy.targets).length} Targets` : "3 Targets"}</span>
             </div>
 
             <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">

@@ -160,6 +160,6 @@ test("compare-scenario: computeComparisonSummary calculates metrics directly fro
   const summary = computeComparisonSummary(steps, budget);
   assert.strictEqual(summary.scopeGuardMovedText, "10 mUSD");
   assert.strictEqual(summary.rollingCapText, "500 mUSD");
-  assert.ok(summary.bannerText.startsWith("Unprotected agent: lost 1150 mUSD and 5 NEAR of 100 mUSD and 2 NEAR."));
+  assert.ok(summary.bannerText.includes("100 mUSD (100% drained; 1150 mUSD attempted)"));
   assert.ok(summary.bannerText.includes("ScopeGuard agent: moved 10 mUSD (rolling 24h cap: 500 mUSD)."));
 });

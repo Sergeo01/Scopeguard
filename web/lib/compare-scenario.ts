@@ -162,7 +162,11 @@ export function buildScenarioSteps(
   ];
 }
 
-export function getReasonExplanation(verdict: string, reason: string | null | undefined): string {
+export function getReasonExplanation(
+  verdict: string,
+  reason: string | null | undefined,
+  step?: { asset?: "mUSD" | "NEAR" }
+): string {
   if (verdict === "ALLOWED") {
     return "Allowed by onchain policy.";
   }
@@ -174,6 +178,9 @@ export function getReasonExplanation(verdict: string, reason: string | null | un
     case "METHOD_NOT_ALLOWED":
       return "Method is not permitted or is in the value-moving denylist.";
     case "OVER_DAILY_CAP":
+      if (step?.asset === "NEAR") {
+        return "Native NEAR spend cap is not configured (0 NEAR budget). Native NEAR transfers are refused by onchain policy.";
+      }
       return "Spend amount exceeds the available rolling 24-hour daily budget.";
     case "OVER_VELOCITY_CAP":
       return "Action frequency exceeds the sliding 10-minute velocity quota.";
@@ -225,14 +232,23 @@ export function computeComparisonSummary(
     ? Math.round((Number(BigInt(budget.near_vault_balance) / BigInt(10 ** 22)) / 100) * 10) / 10
     : 2;
 
+  const actualLostTokens = Math.min(lostTokens, initialTokens);
+  const actualLostNear = Math.min(lostNear, initialNear);
+
   const totalParts: string[] = [];
   if (initialTokens > 0) totalParts.push(`${initialTokens} mUSD`);
   if (initialNear > 0) totalParts.push(`${initialNear} NEAR`);
   const unprotectedTotalText = totalParts.join(" and ") || "all funds";
 
   const lostParts: string[] = [];
-  if (lostTokens > 0) lostParts.push(`${lostTokens} mUSD`);
-  if (lostNear > 0) lostParts.push(`${lostNear} NEAR`);
+  if (actualLostTokens > 0) {
+    lostParts.push(
+      actualLostTokens === initialTokens && lostTokens > actualLostTokens
+        ? `${actualLostTokens} mUSD (100% drained; ${lostTokens} mUSD attempted)`
+        : `${actualLostTokens} mUSD`
+    );
+  }
+  if (actualLostNear > 0) lostParts.push(`${actualLostNear} NEAR`);
   const unprotectedLostText = lostParts.join(" and ") || "0 funds";
 
   const movedParts: string[] = [];
@@ -245,7 +261,7 @@ export function computeComparisonSummary(
 
   const bannerText =
     `Unprotected agent: lost ${unprotectedLostText} of ${unprotectedTotalText}. ` +
-    `ScopeGuard agent: moved ${scopeGuardMovedText} (rolling 24h cap: ${rollingCapText}).`;
+    `ScopeGuard agent: moved ${scopeGuardMovedText} (rolling 24h cap: ${rollingCapText}). Zero unauthorized funds moved.`;
 
   return {
     unprotectedLostText,

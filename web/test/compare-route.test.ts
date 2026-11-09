@@ -136,7 +136,7 @@ test("compare-route: runs 6 preflight view calls with mocked RPC (1 ALLOWED, 5 R
 
     // Verify summary is computed from data
     const summary = computeComparisonSummary(body.steps, body.budget);
-    assert.ok(summary.bannerText.includes("Unprotected agent: lost 1150 mUSD and 5 NEAR of 100 mUSD and 2 NEAR."));
+    assert.ok(summary.bannerText.includes("100 mUSD (100% drained; 1150 mUSD attempted)"));
     assert.ok(summary.bannerText.includes("ScopeGuard agent: moved 10 mUSD (rolling 24h cap: 500 mUSD)."));
   } finally {
     setNearConnectForTest(null);

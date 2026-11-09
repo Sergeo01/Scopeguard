@@ -10,7 +10,7 @@ try {
 }
 const { connect, keyStores, KeyPair } = require;
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const NETWORK_ID = "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";

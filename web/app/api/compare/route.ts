@@ -85,9 +85,10 @@ export async function GET(req: Request) {
         dexContract,
       });
 
-      // Run read-only preflight views for all 6 steps
+      // Run read-only preflight views for all 6 steps with gentle pacing to avoid RPC rate limits
       const results: any[] = [];
-      for (const step of stepDefs) {
+      for (let i = 0; i < stepDefs.length; i++) {
+        const step = stepDefs[i];
         const pf = await account.viewFunction({
           contractId,
           methodName: "preflight",
@@ -97,6 +98,9 @@ export async function GET(req: Request) {
           },
         });
         results.push(pf);
+        if (i < stepDefs.length - 1) {
+          await new Promise((r) => setTimeout(r, 120));
+        }
       }
 
       preflightResults = results;
@@ -107,23 +111,16 @@ export async function GET(req: Request) {
     }
   }
 
-  // If live RPCs are rate limited, fall back to canonical onchain preflight outcomes
+  // Honest error reporting: never simulate or fake verdicts when live RPC fails
   if (preflightResults.length === 0) {
-    console.warn("All RPCs rate limited or unavailable for compare preflight. Using deterministic fallback.");
-    preflightResults = [
-      { status: "ALLOWED", reason: null },
-      { status: "REJECTED", reason: "RECIPIENT_NOT_ALLOWED" },
-      { status: "REJECTED", reason: "TARGET_NOT_ALLOWED" },
-      { status: "REJECTED", reason: "TARGET_NOT_ALLOWED" },
-      { status: "REJECTED", reason: "OVER_DAILY_CAP" },
-      { status: "REJECTED", reason: "METHOD_NOT_ALLOWED" },
-    ];
-    budget = budget || {
-      cap: "500",
-      spent: "0",
-      remaining: "500",
-      vault_balance: "350",
-    };
+    const errMsg = lastError?.message || "Failed to query NEAR RPC endpoints for preflight comparison.";
+    const userMessage = errMsg.includes("-429") || errMsg.includes("Rate limits")
+      ? "NEAR Testnet public RPC is currently rate limited. Please wait a few seconds before retrying."
+      : errMsg;
+    return NextResponse.json(
+      { error: userMessage, details: lastError?.message },
+      { status: 502 }
+    );
   }
 
   const stepDefs = buildScenarioSteps(budget, { tokenContract, dexContract });
@@ -131,7 +128,7 @@ export async function GET(req: Request) {
     const pf = preflightResults[idx] || {};
     const verdict = (pf.status as "ALLOWED" | "REJECTED" | "PENDING") || "REJECTED";
     const reason = pf.reason || null;
-    const explanation = getReasonExplanation(verdict, reason);
+    const explanation = getReasonExplanation(verdict, reason, def);
     return {
       ...def,
       verdict,

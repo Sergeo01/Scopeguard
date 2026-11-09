@@ -212,33 +212,13 @@ export async function POST(req: Request) {
         }
       }
 
-      // If all RPC queries are rate limited, evaluate deterministic rule checks
+      // If all RPC queries fail, throw an honest error (never simulate outcomes)
       if (!pfResult) {
-        console.warn("Preflight RPC query rate limited. Using deterministic rule fallback.");
-        let simulatedStatus = "REJECTED";
-        let simulatedReason: string | null = null;
-
-        if (target === guardContractId && (method === "drain_vault" || method === "admin_transfer")) {
-          simulatedReason = "CANARY_TRIPPED";
-        } else if (target === "near" || method === "near_transfer") {
-          simulatedReason = "METHOD_NOT_ALLOWED";
-        } else if (target !== "sergeo-guard-dex.testnet" && target !== "sergeo-guard-token.testnet" && target !== "intents.near") {
-          simulatedReason = "TARGET_NOT_ALLOWED";
-        } else if (target === "sergeo-guard-dex.testnet" && method !== "swap") {
-          simulatedReason = "METHOD_NOT_ALLOWED";
-        } else if (recipient && (recipient.includes("attacker") || recipient.startsWith("0x9999"))) {
-          simulatedReason = target === "intents.near" ? "INTENT_RECIPIENT_NOT_ALLOWED" : "RECIPIENT_NOT_ALLOWED";
-        } else if (parseFloat(amount || "0") > 500) {
-          simulatedReason = "OVER_DAILY_CAP";
-        } else if (parseFloat(amount || "0") >= 250) {
-          simulatedStatus = "PENDING";
-          simulatedReason = null;
-        } else {
-          simulatedStatus = "ALLOWED";
-          simulatedReason = null;
+        const errMsg = lastErr?.message || "";
+        if (errMsg.includes("-429") || errMsg.includes("Rate limits")) {
+          throw new Error("NEAR Testnet public RPC is currently rate limited. Please wait a few seconds before trying again.");
         }
-
-        pfResult = { status: simulatedStatus, reason: simulatedReason };
+        throw lastErr || new Error("Failed to execute preflight on NEAR Testnet RPC endpoint.");
       }
 
       const ruleNum = pfResult.reason
@@ -397,7 +377,7 @@ export async function POST(req: Request) {
         ruleNumber,
         ruleName: parsedOutcome.reason ? parsedOutcome.reason.replace(/_/g, " ") : parsedOutcome.status === "PENDING" ? "High Value Timelock" : "Policy Check",
         explanation: parsedOutcome.reason
-          ? `Refused by onchain policy: ${parsedOutcome.reason}`
+          ? `Action executed on NEAR Testnet and blocked onchain by ScopeGuard policy: ${parsedOutcome.reason}. Zero funds moved.`
           : parsedOutcome.status === "PENDING"
           ? "High-value action held in 60-second owner veto quarantine."
           : "Action cleared all onchain policy bounds and executed on NEAR Testnet.",
