@@ -5,6 +5,7 @@ import { connect, keyStores, KeyPair } from "near-api-js";
 import { guardSigningRequest } from "@/lib/api-guard";
 import { recordActivity } from "@/lib/ledger";
 import { getPolicyContractId } from "@/lib/config";
+import { getVerifiedRpcEndpoints } from "@/lib/rpc";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const AGENT_ID =
@@ -12,7 +13,6 @@ const AGENT_ID =
   process.env.SCOPEGUARD_AGENT_ID ||
   "agent.sergeo-guard.testnet";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
 /**
  * Resets the demo agent state on NEAR Testnet:
@@ -64,16 +64,7 @@ export async function POST(req: Request) {
     const keyStore = new keyStores.InMemoryKeyStore();
     await keyStore.setKey(NETWORK_ID, OWNER_ID, KeyPair.fromString(ownerPrivateKey as any));
 
-    const rpcUrls = Array.from(
-      new Set(
-        [
-          process.env.NEAR_TESTNET_RPC,
-          RPC_URL,
-          "https://test.rpc.fastnear.com",
-
-        ].filter(Boolean) as string[]
-      )
-    );
+    const rpcUrls = getVerifiedRpcEndpoints();
 
     let ownerAccount: any = null;
     let budget: any = null;

@@ -29,7 +29,7 @@ export const TopStatusBar: React.FC<{
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "");
+    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
     fetch("/api/state")
       .then((res) => res.json())

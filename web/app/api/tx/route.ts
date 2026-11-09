@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPolicyContractId } from "@/lib/config";
-
-const RPC_URL = process.env.NEXT_PUBLIC_NEAR_RPC || "https://test.rpc.fastnear.com";
-const FALLBACK_RPC = "https://test.rpc.fastnear.com";
+import { getVerifiedRpcEndpoints } from "@/lib/rpc";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +14,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Missing hash parameter" }, { status: 400 });
   }
 
-  // 1. Try primary RPC, then fallback, testing accountId then ownerId
+  // 1. Try primary RPC, then fallbacks, testing accountId then ownerId
   let rpcResult: any = null;
-  const urls = [RPC_URL, FALLBACK_RPC];
+  const urls = getVerifiedRpcEndpoints();
   const candidateSigners = [accountId];
   if (ownerId && ownerId !== accountId) {
     candidateSigners.push(ownerId);

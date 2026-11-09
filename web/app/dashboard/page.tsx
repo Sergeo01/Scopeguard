@@ -135,7 +135,7 @@ export default function DashboardPage() {
   const [rawNearVaultBalance, setRawNearVaultBalance] = useState("0");
   const [fleetAgents, setFleetAgents] = useState<string[]>([]);
   const [highWaterMark, setHighWaterMark] = useState<string>("350");
-  const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(1500);
+  const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(2000);
   const [leaseExpiresAt, setLeaseExpiresAt] = useState<number | string | null>(null);
   const [canaryMethods, setCanaryMethods] = useState<string[]>(["drain_vault", "admin_transfer"]);
   const [intentRecipients, setIntentRecipients] = useState<string[]>([]);
@@ -1100,15 +1100,7 @@ export default function DashboardPage() {
               <span>Deposit $100 mUSD</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleDepositNear}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
-              title="Deposit 1 native NEAR into the agent vault"
-            >
-              <Coins className="w-3.5 h-3.5" />
-              <span>Deposit 1 NEAR</span>
-            </button>
+
           </div>
         </div>
       </div>
@@ -1140,7 +1132,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-brand-blue" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                IntentShield: Cross-Chain Allowlist (Mock Deposit)
+                IntentShield: Cross-Chain Allowlist (targets intents.near)
               </h3>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
@@ -1149,7 +1141,7 @@ export default function DashboardPage() {
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains. IntentTransfer targets a mock deposit contract, not real NEAR Intents.
+            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.
           </p>
 
           <div className="space-y-1.5 pt-1">
@@ -1362,7 +1354,7 @@ export default function DashboardPage() {
               num: 10,
               name: "IntentShield Cross-Chain Allowlist",
               code: "INTENT_RECIPIENT_NOT_ALLOWED",
-              desc: "Cross-chain Intent transfers (targeting mock deposit contract, not real NEAR Intents) are restricted to explicitly allowlisted destination recipient addresses.",
+              desc: "Cross-chain Intent transfers (targets intents.near) are restricted to explicitly allowlisted destination recipient addresses. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.",
               config: isInitialLoading
                 ? "Syncing..."
                 : intentRecipients.length > 0
@@ -1379,8 +1371,8 @@ export default function DashboardPage() {
               num: 11,
               name: "Net Drawdown Floor Breaker",
               code: "DRAWDOWN_EXCEEDED",
-              desc: `Halts execution if vault drops below ${((10000 - (maxDrawdownBps ?? 1500)) / 100).toFixed(0)}% of peak high-water mark ($${highWaterMark}).`,
-              config: `${((maxDrawdownBps ?? 1500) / 100).toFixed(1)}% Max Drop`,
+              desc: `Halts execution if vault drops below ${((10000 - (maxDrawdownBps ?? 2000)) / 100).toFixed(0)}% of peak high-water mark (${highWaterMark}).`,
+              config: `${((maxDrawdownBps ?? 2000) / 100).toFixed(1)}% Max Drop`,
               badge: "Floor Protected",
               isLocked: false,
             },
@@ -1711,7 +1703,7 @@ export default function DashboardPage() {
 
                     <div className="flex items-center gap-3 self-end sm:self-center text-xs text-slate-400">
                       <span className="font-mono text-[10px]">
-                        {new Date(act.timestamp).toLocaleTimeString()}
+                        {new Date(act.timestamp).toLocaleDateString([], { month: "short", day: "numeric" })} {new Date(act.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       {act.txHash && (
                         <div className="flex items-center gap-2">
@@ -1838,15 +1830,7 @@ export default function DashboardPage() {
                 <span>Drain mUSD</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleWithdrawNear}
-                className="py-2 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Withdraw custodied native NEAR vault back to owner"
-              >
-                <DownloadCloud className="w-3.5 h-3.5" />
-                <span>Drain NEAR</span>
-              </button>
+
             </div>
           </div>
         </div>

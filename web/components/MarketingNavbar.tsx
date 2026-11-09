@@ -25,7 +25,7 @@ export const MarketingNavbar: React.FC = () => {
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "");
+    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
   }, []);
 
   const copyContract = () => {
@@ -57,7 +57,7 @@ export const MarketingNavbar: React.FC = () => {
                   Scope<span className="text-brand-blue">Guard</span>
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-slate-600 dark:text-slate-400">
-                  v0.2.0
+                  v0.4.0
                 </span>
               </div>
             </Link>

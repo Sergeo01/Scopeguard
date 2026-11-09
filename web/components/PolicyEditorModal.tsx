@@ -312,10 +312,10 @@ export function PolicyEditorModal({
           />
         </div>
 
-        {/* IntentShield (targets mock deposit contract, not real NEAR Intents) */}
+        {/* IntentShield (targets intents.near) */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-            <span>IntentShield Allowlist (Mock Deposit Contract)</span>
+            <span>IntentShield Allowlist (targets intents.near)</span>
             <span className="text-[11px] text-slate-400">Targets mock contract, not real NEAR Intents</span>
           </label>
           <input

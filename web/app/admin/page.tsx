@@ -168,7 +168,7 @@ export default function FleetConsolePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const guardId = fleet?.guardId || tryGetPolicyContractId();
+  const guardId = fleet?.guardId || tryGetPolicyContractId() || "guard2.sergeo-guard.testnet";
   const owner = fleet?.owner || "sergeo-guard.testnet";
   const agents = useMemo(() => fleet?.agents ?? [], [fleet?.agents]);
   const totals = fleet?.totals;

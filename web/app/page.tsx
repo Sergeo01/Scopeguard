@@ -409,7 +409,7 @@ export default function HomePage() {
     } else if (s.ruleCode === "POLICY_PASSED") {
       ruleNum = 0;
       ruleTitle = "Policy Checks Passed";
-      explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
+      explanation = "Action cleared all onchain policy bounds in preflight verification (dry run, no transaction sent).";
     }
 
     if (ruleNum > 0) {
@@ -577,7 +577,9 @@ export default function HomePage() {
         } else if (outcome.status === "ALLOWED") {
           ruleNum = 0;
           ruleTitle = "Policy Checks Passed";
-          explanation = "Action cleared all onchain security bounds and executed on NEAR Testnet.";
+          explanation = txHash
+            ? "Action cleared all onchain security bounds and executed on NEAR Testnet."
+            : "Action cleared all onchain policy bounds in preflight verification (dry run, no transaction sent).";
         }
 
         if (ruleNum > 0) {
@@ -625,7 +627,11 @@ export default function HomePage() {
             : "Exploit blocked onchain. Zero funds moved."
         );
       } else {
-        setStatusMessage(data.error || "Onchain attack execution failed. Please verify testnet connectivity and retry.");
+        const errText = data?.error || "";
+        const cleanMsg = errText.includes("-429") || errText.includes("Rate limits")
+          ? "NEAR Testnet public RPC rate limit reached. Please wait a few seconds and retry."
+          : errText || "Onchain attack execution failed. Please verify testnet connectivity and retry.";
+        setStatusMessage(cleanMsg);
       }
     } catch {
       setStatusMessage("Network error communicating with NEAR Testnet RPC endpoint. Please retry.");

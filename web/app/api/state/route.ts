@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 import { getRecentActivities } from "@/lib/ledger";
 import { getPolicyContractId } from "@/lib/config";
+import { getVerifiedRpcEndpoints } from "@/lib/rpc";
 
 const cacheMap = new Map<string, { state: any; timestamp: number }>();
 const CACHE_TTL_MS = 5000;
@@ -39,15 +40,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const rpcUrls = Array.from(
-      new Set(
-        [
-          process.env.NEAR_TESTNET_RPC,
-          "https://test.rpc.fastnear.com",
-
-        ].filter(Boolean) as string[]
-      )
-    );
+    const rpcUrls = getVerifiedRpcEndpoints();
 
     let budget: any = null;
     let pendingActions: any[] = [];

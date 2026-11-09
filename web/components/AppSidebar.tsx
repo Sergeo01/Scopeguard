@@ -55,7 +55,7 @@ export const AppSidebar: React.FC<{
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "");
+    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
   }, []);
 
   const operationItems: NavItem[] = [
@@ -253,7 +253,7 @@ export const AppSidebar: React.FC<{
             <span>Docs & Guides</span>
           </div>
           <span className="text-[10px] font-mono text-slate-400">
-            v0.2.0
+            v0.4.0
           </span>
         </Link>
 

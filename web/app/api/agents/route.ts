@@ -5,6 +5,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { connect, keyStores } from "near-api-js";
 import { getPolicyContractId } from "@/lib/config";
+import { getVerifiedRpcEndpoints } from "@/lib/rpc";
 
 const ACCOUNT_RE = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
 
@@ -52,16 +53,7 @@ export async function GET(req: Request) {
   }
   const networkId = process.env.NEAR_NETWORK || "testnet";
 
-  const rpcUrls = Array.from(
-    new Set(
-      [
-        process.env.NEAR_TESTNET_RPC,
-        "https://test.rpc.fastnear.com",
-
-
-      ].filter(Boolean) as string[]
-    )
-  );
+  const rpcUrls = getVerifiedRpcEndpoints();
 
   const started = Date.now();
   try {

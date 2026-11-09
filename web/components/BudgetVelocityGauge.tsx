@@ -29,7 +29,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
   windowResetsAt = "in 8 minutes",
   vaultBalance = 350,
   highWaterMark = 350,
-  maxDrawdownBps = 1500,
+  maxDrawdownBps = 2000,
   leaseExpiresAt = null,
   canaryMethodsCount = 2,
   intentRecipientsCount = 0,
@@ -54,7 +54,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
   // Drawdown breaker calculations
   const balanceNum = typeof vaultBalance === "string" ? parseFloat(vaultBalance) || 0 : vaultBalance;
   const hwmNum = typeof highWaterMark === "string" ? parseFloat(highWaterMark) || balanceNum : (highWaterMark || balanceNum);
-  const effectiveBps = maxDrawdownBps ?? 1500;
+  const effectiveBps = maxDrawdownBps ?? 2000;
   const maxDrawdownPercent = (effectiveBps / 100).toFixed(1);
   const floorThreshold = Math.floor((hwmNum * (10000 - effectiveBps)) / 10000);
   const cushionRemaining = Math.max(0, balanceNum - floorThreshold);
@@ -244,9 +244,9 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5" title="IntentTransfer targets mock deposit contract, not real NEAR Intents">
+          <div className="flex items-center gap-1.5" title="IntentTransfer targets intents.near. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.">
             <Shield className="w-3.5 h-3.5 text-brand-blue" />
-            <span className="text-slate-600 dark:text-slate-400">IntentShield (Mock):</span>
+            <span className="text-slate-600 dark:text-slate-400">IntentShield:</span>
             <span className="font-mono font-semibold text-slate-900 dark:text-white">
               {intentRecipientsCount > 0 ? `${intentRecipientsCount} allowlisted` : "Restricted"}
             </span>

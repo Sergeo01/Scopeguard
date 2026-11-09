@@ -97,7 +97,7 @@ export default function DocsPage() {
                   Scope<span className="text-blue-500">Guard</span>
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  Docs v0.2.0
+                  Docs v0.4.0
                 </span>
               </div>
             </Link>
