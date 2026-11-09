@@ -15,7 +15,7 @@ import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { tryGetPolicyContractId } from "@/lib/config";
 
 export const MarketingFooter: React.FC = () => {
-  const [contractId, setContractId] = useState("");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
   useEffect(() => {
     setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
@@ -42,7 +42,7 @@ export const MarketingFooter: React.FC = () => {
                 <span>NEAR Testnet Active</span>
               </div>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                {contractId || "Policy contract not configured"}
+                {contractId || "guard2.sergeo-guard.testnet"}
               </span>
             </div>
           </div>

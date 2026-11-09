@@ -26,7 +26,7 @@ export const TopStatusBar: React.FC<{
   const { user, accountId, isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [isAgentPaused, setIsAgentPaused] = useState<boolean | null>(null);
-  const [contractId, setContractId] = useState("");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
   useEffect(() => {
     setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
@@ -129,7 +129,7 @@ export const TopStatusBar: React.FC<{
             className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
             title="Click to copy Guard contract address"
           >
-            <span>{contractId || "Policy contract not configured"}</span>
+            <span>{contractId || "guard2.sergeo-guard.testnet"}</span>
             {copied ? (
               <Check className="w-3 h-3 text-mint-green" />
             ) : (

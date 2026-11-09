@@ -312,7 +312,7 @@ export default function FleetConsolePage() {
             Agents under policy
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 max-w-2xl">
-            Every row is read from <span className="font-mono">{guardId || "Policy contract not configured"}</span> via{" "}
+            Every row is read from <span className="font-mono">{guardId || "guard2.sergeo-guard.testnet"}</span> via{" "}
             <span className="font-mono">get_agents</span>. No wallet signature is required to view,
             and none is implied. Actions below emit commands you sign yourself.
           </p>

@@ -22,7 +22,7 @@ export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [contractId, setContractId] = useState("");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
   useEffect(() => {
     setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
@@ -192,7 +192,7 @@ export const MarketingNavbar: React.FC = () => {
                 onClick={copyContract}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800"
               >
-                <span>{contractId || "Policy contract not configured"}</span>
+                <span>{contractId || "guard2.sergeo-guard.testnet"}</span>
                 {copied ? <Check className="w-4 h-4 text-mint-green" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
 
