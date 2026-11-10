@@ -103,10 +103,17 @@ export const AppSidebar: React.FC<{
       items: [
         {
           href: contractId ? `https://testnet.nearblocks.io/address/${contractId}` : "#",
-          label: "Guard Contract",
+          label: "ScopeGuard Contract",
           icon: Shield,
           isExternal: Boolean(contractId),
-          badge: contractId ? "v0.4.0" : "Unconfigured",
+          badge: contractId ? "Active" : "Unconfigured",
+        },
+        {
+          href: "https://testnet.mynearwallet.com",
+          label: "Testnet Faucet",
+          icon: Coins,
+          isExternal: true,
+          badge: "Free NEAR",
         },
         {
           href: "https://testnet.nearblocks.io/address/sergeo-guard-token.testnet",
@@ -252,9 +259,7 @@ export const AppSidebar: React.FC<{
             <BookOpen className="w-4 h-4 text-brand-blue" />
             <span>Docs & Guides</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-400">
-            v0.4.0
-          </span>
+          <ExternalLink className="w-3 h-3 text-slate-400" />
         </Link>
 
         <div className="flex items-center justify-between px-1">

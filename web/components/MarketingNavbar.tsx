@@ -12,6 +12,8 @@ import {
   X,
   BookOpen,
   LayoutDashboard,
+  Coins,
+  ExternalLink,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -56,9 +58,6 @@ export const MarketingNavbar: React.FC = () => {
                 <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
                   Scope<span className="text-brand-blue">Guard</span>
                 </span>
-                <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 text-slate-600 dark:text-slate-400">
-                  v0.4.0
-                </span>
               </div>
             </Link>
           </div>
@@ -88,6 +87,16 @@ export const MarketingNavbar: React.FC = () => {
               <BookOpen className="w-3.5 h-3.5 text-brand-blue" />
               <span>Docs</span>
             </Link>
+            <a
+              href="https://testnet.mynearwallet.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-500" />
+              <span>Testnet Faucet</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
           </div>
 
           {/* Desktop Right Hand Actions */}
@@ -96,11 +105,11 @@ export const MarketingNavbar: React.FC = () => {
             <button
               type="button"
               onClick={copyContract}
-              title="Copy ScopeGuard Smart Contract on NEAR Testnet"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-medium bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 transition"
+              title={`Copy ScopeGuard Smart Contract on NEAR Testnet (${contractId || "guard2.sergeo-guard.testnet"})`}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 transition"
             >
               <span className="w-2 h-2 rounded-full bg-mint-green inline-block" />
-              <span className="text-slate-500 dark:text-slate-400">{contractId ? `${contractId.slice(0, 14)}...` : "guard contract"}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">ScopeGuard Contract</span>
               {copied ? (
                 <Check className="w-3 h-3 text-mint-green" />
               ) : (
@@ -184,15 +193,31 @@ export const MarketingNavbar: React.FC = () => {
                 <BookOpen className="w-4 h-4 text-brand-blue" />
                 <span>Documentation</span>
               </Link>
+              <a
+                href="https://testnet.mynearwallet.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-900 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-amber-500" />
+                  <span>Testnet Faucet</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+              </a>
             </div>
 
             <div className="pt-3 border-t border-slate-200 dark:border-obsidian-800 space-y-2">
               <button
                 type="button"
                 onClick={copyContract}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-obsidian-900 text-xs font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800"
               >
-                <span>{contractId || "guard2.sergeo-guard.testnet"}</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-mint-green inline-block" />
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">ScopeGuard Contract</span>
+                </div>
                 {copied ? <Check className="w-4 h-4 text-mint-green" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
 

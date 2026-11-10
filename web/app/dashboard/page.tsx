@@ -846,7 +846,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Guarded Agent: agent.sergeo-guard.testnet
+              Guarded Agent: ScopeGuard Fleet Agent
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
               Real-time telemetry from the public ScopeGuard demo agent. Ready to secure your own trading bot or background agent? Issue a custom scoped passkey with your own spending cap and allowlisted contracts in under 60 seconds.

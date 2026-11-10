@@ -10,6 +10,7 @@ import {
   Terminal,
   Activity,
   Layers,
+  Coins,
 } from "lucide-react";
 import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { tryGetPolicyContractId } from "@/lib/config";
@@ -41,8 +42,8 @@ export const MarketingFooter: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-mint-green" />
                 <span>NEAR Testnet Active</span>
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                {contractId || "guard2.sergeo-guard.testnet"}
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                ScopeGuard Contract
               </span>
             </div>
           </div>
@@ -129,6 +130,18 @@ export const MarketingFooter: React.FC = () => {
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Documentation</span>
                 </Link>
+              </li>
+              <li>
+                <a
+                  href="https://testnet.mynearwallet.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1"
+                >
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Testnet Faucet</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
               </li>
               <li>
                 <a

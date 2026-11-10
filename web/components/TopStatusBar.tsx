@@ -126,10 +126,10 @@ export const TopStatusBar: React.FC<{
           <button
             type="button"
             onClick={copyGuard}
-            className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-mono font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
-            title="Click to copy Guard contract address"
+            className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
+            title={`Click to copy: ${contractId || "guard2.sergeo-guard.testnet"}`}
           >
-            <span>{contractId || "guard2.sergeo-guard.testnet"}</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">ScopeGuard Contract</span>
             {copied ? (
               <Check className="w-3 h-3 text-mint-green" />
             ) : (

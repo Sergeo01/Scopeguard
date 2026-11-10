@@ -831,8 +831,8 @@ export default function HomePage() {
                             <span className="text-slate-400">Auto-Pause</span>
                           </div>
                         </div>
-                        <span className="text-[10px] font-mono text-center text-slate-500 dark:text-slate-400 block">
-                          {guardContractId || "Policy contract not configured"}
+                        <span className="text-[10px] font-medium text-center text-brand-blue dark:text-brand-blue block">
+                          ScopeGuard Policy Engine
                         </span>
                       </div>
 
@@ -856,6 +856,123 @@ export default function HomePage() {
               </div>
             </div>
 
+          </div>
+        </section>
+
+        {/* ========================================================= */}
+        {/* SECTION: THE DISEASE (#problem)                           */}
+        {/* ========================================================= */}
+        <section id="problem" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8 scroll-mt-20">
+          <div className="text-center space-y-3">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+              The Disease
+            </span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
+              Why Autonomous Agents Drain Vaults
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              Autonomous agents hold full-access private keys on host machines. A single malicious input or rogue plugin results in immediate, total loss.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                <Lock className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Master Key Exposure</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Traditional agents store raw cryptographic private keys in plaintext environment variables or container memory where any read exploit steals everything.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Prompt Injections</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Adversarial instructions buried in web scraping, emails, tweets, or Discord chats order the agent to transfer treasury funds to an attacker account.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-500">
+                <Bot className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Poisoned Tool Registry</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Third-party agent skills and plugins from public marketplaces can inject arbitrary contract calls into the transaction execution queue.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                <TrendingDown className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Zero Timelocks or Caps</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Direct transactions settle irreversibly in a single block. Without an onchain circuit breaker or daily spending velocity caps, recovery is impossible.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================= */}
+        {/* SECTION: HOW IT WORKS (#how-it-works)                     */}
+        {/* ========================================================= */}
+        <section id="how-it-works" className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-16 space-y-8 scroll-mt-20">
+          <div className="text-center space-y-3">
+            <span className="text-xs font-semibold text-brand-blue uppercase tracking-wider">
+              How It Works
+            </span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
+              Protocol Guardrails in 3 Clean Steps
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              From an exposed agent with full private keys to a secure, policy-enforced autonomous worker in less than 60 seconds.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-full bg-brand-blue/10 text-brand-blue border border-brand-blue/20 flex items-center justify-center font-bold text-xs font-mono">
+                  01
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Custody</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Isolated Vault Custody</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Your agent operates under a dedicated sub-account. The owner deposits only working capital into the Guard contract vault. The agent never touches the owner main treasury.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-full bg-mint-green/10 text-mint-greenDark dark:text-mint-green border border-mint-green/20 flex items-center justify-center font-bold text-xs font-mono">
+                  02
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Key Scope</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Restricted Passkey Keypair</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                The agent runtime receives exclusively a NEAR FunctionCall access key restricted to ScopeGuard execute. It cannot transfer native NEAR directly, deploy contracts, or add keys.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center font-bold text-xs font-mono">
+                  03
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Enforcement</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Onchain Policy &amp; Circuit Breakers</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Every transaction is validated against rolling daily caps, target allowlists, and drawdown boundaries. Successive rejections automatically trip an emergency onchain pause.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -964,8 +1081,8 @@ export default function HomePage() {
                         ? "Circuit Breaker Tripped on NEAR"
                         : "Demo Agent Armed & Active"}
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-obsidian-850 text-slate-600 dark:text-slate-400">
-                      agent.sergeo-guard.testnet
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-200 dark:bg-obsidian-850 text-slate-700 dark:text-slate-300">
+                      ScopeGuard Agent
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
