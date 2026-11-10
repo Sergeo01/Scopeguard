@@ -55,7 +55,7 @@ export const AppSidebar: React.FC<{
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
   }, []);
 
   const operationItems: NavItem[] = [

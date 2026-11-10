@@ -26,10 +26,10 @@ export const TopStatusBar: React.FC<{
   const { user, accountId, isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [isAgentPaused, setIsAgentPaused] = useState<boolean | null>(null);
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
 
     fetch("/api/state")
       .then((res) => res.json())
@@ -127,7 +127,7 @@ export const TopStatusBar: React.FC<{
             type="button"
             onClick={copyGuard}
             className="hidden xl:inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-obsidian-800 items-center gap-1.5 hover:bg-slate-200 dark:hover:bg-obsidian-850 transition"
-            title={`Click to copy: ${contractId || "guard2.sergeo-guard.testnet"}`}
+            title={`Click to copy: ${contractId || "scopeguard.testnet"}`}
           >
             <span className="font-semibold text-slate-800 dark:text-slate-200">ScopeGuard Contract</span>
             {copied ? (

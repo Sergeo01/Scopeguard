@@ -7,7 +7,7 @@ async function main() {
     method: 'query',
     params: {
       request_type: 'call_function',
-      account_id: 'guard2.sergeo-guard.testnet',
+      account_id: 'scopeguard.testnet',
       method_name: 'get_version',
       args_base64: '',
       finality: 'optimistic',

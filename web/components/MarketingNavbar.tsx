@@ -24,10 +24,10 @@ export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
   }, []);
 
   const copyContract = () => {
@@ -105,7 +105,7 @@ export const MarketingNavbar: React.FC = () => {
             <button
               type="button"
               onClick={copyContract}
-              title={`Copy ScopeGuard Smart Contract on NEAR Testnet (${contractId || "guard2.sergeo-guard.testnet"})`}
+              title={`Copy ScopeGuard Smart Contract on NEAR Testnet (${contractId || "scopeguard.testnet"})`}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-900 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-slate-700 dark:text-slate-300 transition"
             >
               <span className="w-2 h-2 rounded-full bg-mint-green inline-block" />

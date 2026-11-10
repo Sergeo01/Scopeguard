@@ -169,7 +169,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Guard</span>
             <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white truncate block">
-              {txData?.receiverId || (txData?.found === false ? "--" : (tryGetPolicyContractId() || "guard2.sergeo-guard.testnet"))}
+              {txData?.receiverId || (txData?.found === false ? "--" : (tryGetPolicyContractId() || "scopeguard.testnet"))}
             </span>
           </div>
 

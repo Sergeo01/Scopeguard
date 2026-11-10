@@ -23,7 +23,7 @@ async function reset() {
   });
 
   const owner = await near.account("sergeo-guard.testnet");
-  const guardId = "guard2.sergeo-guard.testnet";
+  const guardId = "scopeguard.testnet";
   const agentId = "agent.sergeo-guard.testnet";
 
   console.log("Unpausing agent...");

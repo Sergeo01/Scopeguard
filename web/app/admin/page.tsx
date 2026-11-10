@@ -168,7 +168,7 @@ export default function FleetConsolePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const guardId = fleet?.guardId || tryGetPolicyContractId() || "guard2.sergeo-guard.testnet";
+  const guardId = fleet?.guardId || tryGetPolicyContractId() || "scopeguard.testnet";
   const owner = fleet?.owner || "sergeo-guard.testnet";
   const agents = useMemo(() => fleet?.agents ?? [], [fleet?.agents]);
   const totals = fleet?.totals;
@@ -312,7 +312,7 @@ export default function FleetConsolePage() {
             Agents under policy
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 max-w-2xl">
-            Every row is read from <span className="font-mono">{guardId || "guard2.sergeo-guard.testnet"}</span> via{" "}
+            Every row is read from <span className="font-mono">{guardId || "scopeguard.testnet"}</span> via{" "}
             <span className="font-mono">get_agents</span>. No wallet signature is required to view,
             and none is implied. Actions below emit commands you sign yourself.
           </p>
@@ -382,7 +382,7 @@ export default function FleetConsolePage() {
             <div className="pt-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white text-[11px] font-mono border border-white/15">
                 <Database className="w-3 h-3 text-emerald-400" />
-                {guardId || "guard2.sergeo-guard.testnet"}
+                {guardId || "scopeguard.testnet"}
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-white text-[11px] font-mono border border-white/15">
                 <Radio className="w-3 h-3 text-blue-400" />
@@ -442,7 +442,7 @@ export default function FleetConsolePage() {
               icon={<ShieldCheck className="w-3.5 h-3.5" />}
               label="Contract version"
               value={fleet?.contractVersion || "-"}
-              note={guardId || "guard2.sergeo-guard.testnet"}
+              note={guardId || "scopeguard.testnet"}
               tone="emerald"
             />
           </div>
@@ -524,7 +524,7 @@ export default function FleetConsolePage() {
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Owner <span className="font-mono">{owner}</span> · {agents.length} on{" "}
-                <span className="font-mono">{guardId || "guard2.sergeo-guard.testnet"}</span>
+                <span className="font-mono">{guardId || "scopeguard.testnet"}</span>
               </p>
             </div>
 
@@ -751,7 +751,7 @@ export default function FleetConsolePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Fact
               label="Policy contract"
-              value={guardId || "guard2.sergeo-guard.testnet"}
+              value={guardId || "scopeguard.testnet"}
               href={guardId ? `https://testnet.nearblocks.io/address/${guardId}` : undefined}
             />
             <Fact

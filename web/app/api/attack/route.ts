@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         target = "intents.near";
         method = "execute_intent";
       } else if (canaryMatch && (!method || method === "drain_vault" || body.fromPrompt)) {
-        target = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || process.env.SCOPEGUARD_POLICY_CONTRACT || "guard2.sergeo-guard.testnet";
+        target = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || process.env.SCOPEGUARD_POLICY_CONTRACT || "scopeguard.testnet";
         method = "drain_vault";
         amount = "0";
       } else if (!target || !method) {

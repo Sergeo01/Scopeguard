@@ -2,7 +2,7 @@ const { connect, keyStores, utils } = require("../sdk/node_modules/near-api-js")
 
 async function check() {
   const near = await connect({ networkId: "testnet", nodeUrl: "https://test.rpc.fastnear.com", keyStore: new keyStores.InMemoryKeyStore() });
-  for (const accId of ["sergeo-guard.testnet", "guard2.sergeo-guard.testnet", "agent.sergeo-guard.testnet", "sergeo-guard-dex.testnet", "sergeo-guard-token.testnet"]) {
+  for (const accId of ["sergeo-guard.testnet", "scopeguard.testnet", "agent.sergeo-guard.testnet", "sergeo-guard-dex.testnet", "sergeo-guard-token.testnet"]) {
     try {
       const a = await near.account(accId);
       const b = await a.getAccountBalance();

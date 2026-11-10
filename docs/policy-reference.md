@@ -124,7 +124,7 @@ The Guard checks rules in this exact, immutable order:
 ### Query Agent Policy (`get_policy`)
 
 ```bash
-near contract call-function as-read-only guard2.sergeo-guard.testnet get_policy \
+near contract call-function as-read-only scopeguard.testnet get_policy \
   json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
   network-config testnet
 ```
@@ -157,7 +157,7 @@ Expected output:
 ### Query Agent Budget (`get_budget`)
 
 ```bash
-near contract call-function as-read-only guard2.sergeo-guard.testnet get_budget \
+near contract call-function as-read-only scopeguard.testnet get_budget \
   json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
   network-config testnet
 ```

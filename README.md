@@ -9,7 +9,7 @@ Give your agents a budget, not your private keys. ScopeGuard provides onchain gu
 
 - **Live Console:** [https://scopeguard.blockframe.cloud](https://scopeguard.blockframe.cloud)
 - **Interactive Attack Comparison:** [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)
-- **Deployed Testnet Contract:** `guard2.sergeo-guard.testnet`
+- **Deployed Testnet Contract:** `scopeguard.testnet`
 
 ---
 
@@ -29,12 +29,12 @@ Query the deployed policy contract directly using NEAR CLI:
 
 ```bash
 # Verify contract deployment and version
-near view guard2.sergeo-guard.testnet get_version
+near view scopeguard.testnet get_version
 # Expected output: "0.4.0"
 
 # Query registered agent budget and policy status
 # Note: agent_account is required for get_budget and get_policy queries
-near view guard2.sergeo-guard.testnet get_budget '{"agent_account": "agent.sergeo-guard.testnet"}'
+near view scopeguard.testnet get_budget '{"agent_account": "agent.sergeo-guard.testnet"}'
 # Expected output:
 # {
 #   "cap": "500",
@@ -53,7 +53,7 @@ near view guard2.sergeo-guard.testnet get_budget '{"agent_account": "agent.serge
 # }
 
 # Query registered agent policy rules
-near view guard2.sergeo-guard.testnet get_policy '{"agent_account": "agent.sergeo-guard.testnet"}'
+near view scopeguard.testnet get_policy '{"agent_account": "agent.sergeo-guard.testnet"}'
 ```
 
 ---

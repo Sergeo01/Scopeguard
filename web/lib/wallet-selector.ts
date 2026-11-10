@@ -32,7 +32,7 @@ export async function getNearWalletSelector(): Promise<{ selector: WalletSelecto
       });
 
       const modal = setupModal(selector, {
-        contractId: tryGetPolicyContractId() || "guard2.sergeo-guard.testnet",
+        contractId: tryGetPolicyContractId() || "scopeguard.testnet",
         theme: "dark",
       });
 
