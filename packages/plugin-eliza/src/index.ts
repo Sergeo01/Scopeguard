@@ -508,4 +508,5 @@ export const scopeGuardPlugin: Plugin = {
   ],
 };
 
+export const scopeguardPlugin = scopeGuardPlugin;
 export default scopeGuardPlugin;

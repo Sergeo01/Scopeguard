@@ -185,11 +185,11 @@ export function PolicyChatAssistant({
   );
 
   const elizaConfigSnippet = `// ElizaOS Agent Character File Integration
-import { scopeguardPlugin } from "@scopeguard/plugin-eliza";
+import { scopeGuardPlugin } from "@scopeguard/plugin-eliza";
 
 export const defaultCharacter: Character = {
   name: "${currentAgentName || "agent.sergeo-guard.testnet"}",
-  plugins: [scopeguardPlugin],
+  plugins: [scopeGuardPlugin],
   settings: {
     secrets: {
       SCOPEGUARD_CREDENTIAL_PATH: "./credentials/agent.json"
