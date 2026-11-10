@@ -119,7 +119,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [user, fetchNearBalance]);
 
-  // Handle MyNearWallet redirect return and Supabase auth state change
+  // Handle wallet redirect return and Supabase auth state change
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);

@@ -88,7 +88,7 @@ export const MarketingNavbar: React.FC = () => {
               <span>Docs</span>
             </Link>
             <a
-              href="https://testnet.mynearwallet.com"
+              href="https://near-faucet.io"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
@@ -194,7 +194,7 @@ export const MarketingNavbar: React.FC = () => {
                 <span>Documentation</span>
               </Link>
               <a
-                href="https://testnet.mynearwallet.com"
+                href="https://near-faucet.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}

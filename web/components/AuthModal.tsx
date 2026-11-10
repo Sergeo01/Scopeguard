@@ -142,19 +142,32 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* Primary Action: Official NEAR Wallet Selector */}
-        <button
-          type="button"
-          onClick={handleConnectNear}
-          className="w-full h-12 rounded-xl bg-white hover:bg-slate-200 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2.5 transition shadow-sm cursor-pointer"
-        >
-          <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M7.74 5.25L13.56 13.58C13.8 13.92 14.28 13.76 14.28 13.34V5.45C14.28 5.2 14.48 5 14.73 5H16.27C16.52 5 16.72 5.2 16.72 5.45V18.55C16.72 18.8 16.52 19 16.27 19H15.01C14.65 19 14.32 18.82 14.13 18.51L8.31 10.18C8.07 9.84 7.59 10 7.59 10.42V18.55C7.59 18.8 7.39 19 7.14 19H5.6C5.35 19 5.15 18.8 5.15 18.55V5.45C5.15 5.2 5.35 5 5.6 5H6.86C7.22 5 7.55 5.18 7.74 5.25Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span>Connect NEAR Wallet</span>
-        </button>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={handleConnectNear}
+            className="w-full h-12 rounded-xl bg-white hover:bg-slate-200 text-slate-950 font-semibold text-sm flex items-center justify-center gap-2.5 transition shadow-sm cursor-pointer"
+          >
+            <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M7.74 5.25L13.56 13.58C13.8 13.92 14.28 13.76 14.28 13.34V5.45C14.28 5.2 14.48 5 14.73 5H16.27C16.52 5 16.72 5.2 16.72 5.45V18.55C16.72 18.8 16.52 19 16.27 19H15.01C14.65 19 14.32 18.82 14.13 18.51L8.31 10.18C8.07 9.84 7.59 10 7.59 10.42V18.55C7.59 18.8 7.39 19 7.14 19H5.6C5.35 19 5.15 18.8 5.15 18.55V5.45C5.15 5.2 5.35 5 5.6 5H6.86C7.22 5 7.55 5.18 7.74 5.25Z"
+                fill="currentColor"
+              />
+            </svg>
+            <span>Connect NEAR Wallet</span>
+          </button>
+          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span>Supports Meteor, Here, Sender</span>
+            <a
+              href="https://testnet.meteorwallet.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-blue hover:underline"
+            >
+              Get Meteor Wallet
+            </a>
+          </div>
+        </div>
 
         {/* Social Authentication */}
         <div className="grid grid-cols-2 gap-2.5">

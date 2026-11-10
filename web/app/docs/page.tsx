@@ -798,7 +798,7 @@ if !is_promise_success() {
                   <span>Direct Web3 Wallets</span>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Direct connection via MyNearWallet (web redirect), Meteor Wallet, Here Wallet, Sender, and Nightly without pasting private keys.
+                  Direct connection via Meteor Wallet, Here Wallet, Sender, and Nightly without pasting private keys.
                 </p>
               </div>
 
@@ -865,7 +865,7 @@ if !is_promise_success() {
                 { title: "IronClaw MCP Server (packages/ironclaw-mcp)", desc: "Standard Model Context Protocol stdio server providing 6 autonomous self-awareness tools for desktop LLMs like Claude, Cursor, and standard MCP clients." },
                 { title: "Real-Time Watcher & Webhooks (watcher/)", desc: "Background event monitoring daemon delivering instant Telegram and Discord alerts on policy rejections and circuit breaker triggers." },
                 { title: "Operations Security Console", desc: "Comprehensive Next.js dashboard featuring spend gauge, velocity bar, circuit breaker banner, and real-time activity feed." },
-                { title: "Supabase & Multi-Wallet Authentication", desc: "Google OAuth, Email OTP, and direct NEAR Web3 wallet connection (MyNearWallet, Meteor, Here, Sender) with hidden admin protection." },
+                { title: "Supabase & Multi-Wallet Authentication", desc: "Google OAuth, Email OTP, and direct NEAR Web3 wallet connection (Meteor, Here, Sender) with hidden admin protection." },
                 { title: "Zero Em/En Dash Copy Invariant", desc: "Strict typography linting ensuring zero em or en dashes across UI, documentation, and codebase." },
               ].map((f, i) => (
                 <div

@@ -2,7 +2,6 @@
 
 import { setupWalletSelector, type WalletSelector } from "@near-wallet-selector/core";
 import { setupModal, type WalletSelectorModal } from "@near-wallet-selector/modal-ui";
-import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
 import { setupSender } from "@near-wallet-selector/sender";
@@ -26,7 +25,6 @@ export async function getNearWalletSelector(): Promise<{ selector: WalletSelecto
       const selector = await setupWalletSelector({
         network: "testnet",
         modules: [
-          setupMyNearWallet(),
           setupMeteorWallet(),
           setupHereWallet(),
           setupSender(),
@@ -34,7 +32,7 @@ export async function getNearWalletSelector(): Promise<{ selector: WalletSelecto
       });
 
       const modal = setupModal(selector, {
-        contractId: tryGetPolicyContractId() || "policy-contract-not-configured.testnet",
+        contractId: tryGetPolicyContractId() || "guard2.sergeo-guard.testnet",
         theme: "dark",
       });
 

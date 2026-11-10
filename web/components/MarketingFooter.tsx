@@ -133,7 +133,7 @@ export const MarketingFooter: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://testnet.mynearwallet.com"
+                  href="https://near-faucet.io"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1"
