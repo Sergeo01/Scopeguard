@@ -47,7 +47,7 @@ A deployment script is provided that automates all account creation, deployment,
 ```bash
 # Set target configuration
 export OWNER_ACCOUNT_ID="sergeo-guard.testnet"
-export SCOPEGUARD_POLICY_CONTRACT="guard-v4.sergeo-guard.testnet"
+export SCOPEGUARD_POLICY_CONTRACT="guard2.sergeo-guard.testnet"
 export SCOPEGUARD_AGENT_ACCOUNT="agent.sergeo-guard.testnet"
 export SCOPEGUARD_TOKEN_CONTRACT="sergeo-guard-token.testnet"
 export SCOPEGUARD_DEX_CONTRACT="sergeo-guard-dex.testnet"
@@ -68,7 +68,7 @@ If you prefer using the command line directly, follow these sequential steps.
 Create the dedicated sub-account funded with 5 NEAR:
 
 ```bash
-near account create-account fund-myself guard-v4.sergeo-guard.testnet '5 NEAR' \
+near account create-account fund-myself guard2.sergeo-guard.testnet '5 NEAR' \
   use-manually-provided-seed-phrase 'YOUR_NEW_ACCOUNT_SEED_PHRASE' \
   sign-as sergeo-guard.testnet \
   network-config testnet
@@ -79,11 +79,11 @@ near account create-account fund-myself guard-v4.sergeo-guard.testnet '5 NEAR' \
 Deploy the compiled v0.4.0 contract bytecode to the new account:
 
 ```bash
-near contract deploy guard-v4.sergeo-guard.testnet \
+near contract deploy guard2.sergeo-guard.testnet \
   use-file contracts/target/wasm32-unknown-unknown/release/policy_contract.wasm \
   without-init-call \
   network-config testnet \
-  sign-as guard-v4.sergeo-guard.testnet
+  sign-as guard2.sergeo-guard.testnet
 ```
 
 ### Step 4.3: Initialize Contract State
@@ -91,11 +91,11 @@ near contract deploy guard-v4.sergeo-guard.testnet \
 Initialize the contract state by calling `new`:
 
 ```bash
-near contract call-function as-transaction guard-v4.sergeo-guard.testnet new \
+near contract call-function as-transaction guard2.sergeo-guard.testnet new \
   json-args {} \
   prepaid-gas '30.0 Tgas' \
   attached-deposit '0 NEAR' \
-  sign-as guard-v4.sergeo-guard.testnet \
+  sign-as guard2.sergeo-guard.testnet \
   network-config testnet
 ```
 
@@ -104,7 +104,7 @@ near contract call-function as-transaction guard-v4.sergeo-guard.testnet new \
 Register the agent with independent rolling spend caps (500 token units, 5 NEAR native daily budget, 1 NEAR high-value threshold):
 
 ```bash
-near contract call-function as-transaction guard-v4.sergeo-guard.testnet register_agent \
+near contract call-function as-transaction guard2.sergeo-guard.testnet register_agent \
   json-args '{
     "agent_account": "agent.sergeo-guard.testnet",
     "policy": {
@@ -139,7 +139,7 @@ Generate an Ed25519 keypair for the agent runtime and add a scoped function-call
 near account add-key agent.sergeo-guard.testnet \
   grant-function-call-access \
   --allowance '0.25 NEAR' \
-  --receiver-account-id guard-v4.sergeo-guard.testnet \
+  --receiver-account-id guard2.sergeo-guard.testnet \
   --method-names execute \
   use-manually-provided-public-key 'ed25519:AGENT_PUBLIC_KEY' \
   sign-as agent.sergeo-guard.testnet \
@@ -151,7 +151,7 @@ Save the generated private key to `demo-agent/credentials/agent.json`:
 ```json
 {
   "agentAccountId": "agent.sergeo-guard.testnet",
-  "policyContractId": "guard-v4.sergeo-guard.testnet",
+  "policyContractId": "guard2.sergeo-guard.testnet",
   "publicKey": "ed25519:AGENT_PUBLIC_KEY",
   "privateKey": "ed25519:AGENT_PRIVATE_KEY",
   "networkId": "testnet",
@@ -165,7 +165,7 @@ Register storage on the NEP-141 token contract:
 
 ```bash
 near contract call-function as-transaction sergeo-guard-token.testnet storage_deposit \
-  json-args '{"account_id": "guard-v4.sergeo-guard.testnet"}' \
+  json-args '{"account_id": "guard2.sergeo-guard.testnet"}' \
   prepaid-gas '30.0 Tgas' \
   attached-deposit '0.00125 NEAR' \
   sign-as sergeo-guard.testnet \
@@ -177,7 +177,7 @@ Deposit 100 mUSD into the agent token vault:
 ```bash
 near contract call-function as-transaction sergeo-guard-token.testnet ft_transfer_call \
   json-args '{
-    "receiver_id": "guard-v4.sergeo-guard.testnet",
+    "receiver_id": "guard2.sergeo-guard.testnet",
     "amount": "100",
     "msg": "agent.sergeo-guard.testnet"
   }' \
@@ -190,7 +190,7 @@ near contract call-function as-transaction sergeo-guard-token.testnet ft_transfe
 Deposit 2 NEAR into the agent native NEAR vault:
 
 ```bash
-near contract call-function as-transaction guard-v4.sergeo-guard.testnet deposit_near \
+near contract call-function as-transaction guard2.sergeo-guard.testnet deposit_near \
   json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
   prepaid-gas '30.0 Tgas' \
   attached-deposit '2 NEAR' \
@@ -203,7 +203,7 @@ near contract call-function as-transaction guard-v4.sergeo-guard.testnet deposit
 Query `get_budget` to confirm both token and native NEAR vault balances:
 
 ```bash
-near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_budget \
+near contract call-function as-read-only guard2.sergeo-guard.testnet get_budget \
   json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
   network-config testnet
 ```
@@ -236,7 +236,7 @@ Update the environment configuration across packages to target the new guard con
 
 In `.env` / root:
 ```bash
-SCOPEGUARD_POLICY_CONTRACT="guard-v4.sergeo-guard.testnet"
+SCOPEGUARD_POLICY_CONTRACT="guard2.sergeo-guard.testnet"
 SCOPEGUARD_AGENT_ACCOUNT="agent.sergeo-guard.testnet"
 SCOPEGUARD_TOKEN_CONTRACT="sergeo-guard-token.testnet"
 SCOPEGUARD_DEX_CONTRACT="sergeo-guard-dex.testnet"
@@ -246,7 +246,7 @@ NEAR_TESTNET_RPC="https://test.rpc.fastnear.com"
 
 In `web/.env.local`:
 ```bash
-NEXT_PUBLIC_POLICY_CONTRACT_ID="guard-v4.sergeo-guard.testnet"
+NEXT_PUBLIC_POLICY_CONTRACT_ID="guard2.sergeo-guard.testnet"
 NEXT_PUBLIC_TOKEN_CONTRACT="sergeo-guard-token.testnet"
 NEXT_PUBLIC_DEX_CONTRACT="sergeo-guard-dex.testnet"
 
@@ -312,12 +312,12 @@ Verify your deployed contract against the live network:
 
 1. Confirm contract deployment and version:
    ```bash
-   near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_version network-config testnet
+   near contract call-function as-read-only guard2.sergeo-guard.testnet get_version network-config testnet
    # Expected output: "0.4.0"
    ```
 2. Confirm agent policy and budget status:
    ```bash
-   near contract call-function as-read-only guard-v4.sergeo-guard.testnet get_budget \
+   near contract call-function as-read-only guard2.sergeo-guard.testnet get_budget \
      json-args '{"agent_account": "agent.sergeo-guard.testnet"}' \
      network-config testnet
    ```

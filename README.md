@@ -9,7 +9,7 @@ Give your agents a budget, not your private keys. ScopeGuard provides onchain gu
 
 - **Live Console:** [https://scopeguard.blockframe.cloud](https://scopeguard.blockframe.cloud)
 - **Interactive Attack Comparison:** [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)
-- **Deployed Testnet Contract:** `guard-v4.sergeo-guard.testnet`
+- **Deployed Testnet Contract:** `guard2.sergeo-guard.testnet`
 
 ---
 
@@ -29,21 +29,31 @@ Query the deployed policy contract directly using NEAR CLI:
 
 ```bash
 # Verify contract deployment and version
-near view guard-v4.sergeo-guard.testnet get_version
+near view guard2.sergeo-guard.testnet get_version
 # Expected output: "0.4.0"
 
 # Query registered agent budget and policy status
-near view guard-v4.sergeo-guard.testnet get_budget '{"agent_account": "agent.sergeo-guard.testnet"}'
+# Note: agent_account is required for get_budget and get_policy queries
+near view guard2.sergeo-guard.testnet get_budget '{"agent_account": "agent.sergeo-guard.testnet"}'
 # Expected output:
 # {
-#   "vault_balance": "1000",
-#   "near_vault_balance": "1000000000000000000000000",
+#   "cap": "500",
+#   "spent": "0",
+#   "remaining": "500",
+#   "vault_balance": "350",
 #   "actions_in_window": 0,
 #   "paused": false,
 #   "revoked": false,
-#   "high_water_mark": "1000",
-#   "near_high_water_mark": "1000000000000000000000000"
+#   "high_water_mark": "350",
+#   "max_drawdown_bps": 2000,
+#   "near_vault_balance": "0",
+#   "near_cap": "5000000000000000000000000",
+#   "near_spent": "0",
+#   "near_remaining": "5000000000000000000000000"
 # }
+
+# Query registered agent policy rules
+near view guard2.sergeo-guard.testnet get_policy '{"agent_account": "agent.sergeo-guard.testnet"}'
 ```
 
 ---
