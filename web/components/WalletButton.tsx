@@ -17,6 +17,7 @@ import {
   Lock,
   User,
   Radio,
+  AlertCircle,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 
@@ -282,12 +283,19 @@ export const WalletButton: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!newSubAccountInput.trim()}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold transition disabled:opacity-40 cursor-pointer flex items-center gap-1"
+                    title={!newSubAccountInput.trim() ? "Enter a sub-account ID to link" : "Link sub-account"}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Link</span>
                   </button>
                 </div>
+                {!newSubAccountInput.trim() && (
+                  <span className="text-[10px] text-rose-500 dark:text-rose-400 flex items-center gap-1 px-1">
+                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                    Sub-account ID is required to enable Link
+                  </span>
+                )}
               </form>
             </div>
 

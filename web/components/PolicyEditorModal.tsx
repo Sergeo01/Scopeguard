@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Sliders, Zap, RefreshCw, Check, Copy, Shield } from "lucide-react";
+import { X, Sliders, Zap, RefreshCw, Check, Copy, Shield, AlertCircle, AlertTriangle } from "lucide-react";
 
 export interface PolicyEditorModalProps {
   isOpen: boolean;
@@ -229,17 +229,36 @@ export function PolicyEditorModal({
 
         {/* Allowlisted Target Contracts */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-            <span>Allowlisted Target Contracts</span>
-            <span className="text-[11px] text-slate-400">Comma-separated</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Allowlisted Target Contracts
+            </label>
+            {!editTargets.trim() ? (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Target Required
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400">Comma-separated</span>
+            )}
+          </div>
           <input
             type="text"
             placeholder="sergeo-guard-dex.testnet, wrap.testnet"
             value={editTargets}
             onChange={(e) => setEditTargets(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-blue"
+            className={`w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-obsidian-950 border font-mono focus:outline-none transition ${
+              !editTargets.trim()
+                ? "border-rose-500 ring-2 ring-rose-500/30 text-rose-900 dark:text-rose-100"
+                : "border-slate-200 dark:border-obsidian-800 text-slate-900 dark:text-white focus:border-brand-blue"
+            }`}
           />
+          {!editTargets.trim() && (
+            <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+              <span>Enter at least one target contract address (e.g. sergeo-guard-dex.testnet)</span>
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {[
               { label: "Testnet DEX", contract: "sergeo-guard-dex.testnet" },
@@ -327,39 +346,100 @@ export function PolicyEditorModal({
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 space-y-2">
-          {isWalletConnected ? (
-            <button
-              type="button"
-              onClick={handleSavePolicyOnchain}
-              disabled={isSigningPolicy}
-              className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
-            >
-              {isSigningPolicy ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Broadcasting set_policy to NEAR...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>Sign &amp; Stage Policy on NEAR ({connectedWalletId})</span>
-                </>
+        {/* Action Buttons & Red Blockers Signal */}
+        {(() => {
+          const isCapValid = typeof editDailyCap === "number" && editDailyCap > 0;
+          const isTargetsValid = typeof editTargets === "string" && editTargets.trim().length > 0;
+          const isEditorValid = isCapValid && isTargetsValid && !isSigningPolicy;
+
+          const editorBlockers: { field: string; message: string; fix: string }[] = [];
+          if (!isCapValid) {
+            editorBlockers.push({
+              field: "Daily Spending Cap",
+              message: "Token daily spending cap must be greater than $0.",
+              fix: "Enter a positive dollar figure (e.g. 100) or select one of the preset chips.",
+            });
+          }
+          if (!isTargetsValid) {
+            editorBlockers.push({
+              field: "Target Platform Contracts",
+              message: "At least one target platform contract is required.",
+              fix: "Specify a contract account ID (e.g. sergeo-guard-dex.testnet) or click one of the quick add presets.",
+            });
+          }
+
+          return (
+            <div className="pt-2 space-y-2">
+              {editorBlockers.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/50 space-y-1.5 text-xs text-rose-700 dark:text-rose-300 animate-in fade-in">
+                  <div className="flex items-center gap-1.5 font-bold text-rose-600 dark:text-rose-400">
+                    <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>Cannot Stage Policy: {editorBlockers.length} Requirement{editorBlockers.length > 1 ? "s" : ""} Missing</span>
+                  </div>
+                  <ul className="space-y-1 text-[11px]">
+                    {editorBlockers.map((b, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="font-bold text-rose-500">•</span>
+                        <div>
+                          <span className="font-semibold text-rose-800 dark:text-rose-200">{b.field}:</span> {b.message} (Fix: {b.fix})
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (openAuthModal) openAuthModal();
-              }}
-              className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Connect Owner Wallet to Sign on NEAR</span>
-            </button>
-          )}
+
+              {isWalletConnected ? (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={handleSavePolicyOnchain}
+                    disabled={!isEditorValid}
+                    title={
+                      editorBlockers.length > 0
+                        ? `Button locked: ${editorBlockers.map((b) => b.message).join(" | ")}`
+                        : "Sign and stage policy update on NEAR"
+                    }
+                    className={`w-full py-2.5 px-3 rounded-lg text-white text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                      isEditorValid
+                        ? "bg-brand-blue hover:bg-brand-blueHover cursor-pointer shadow-xs"
+                        : "bg-brand-blue/50 opacity-50 cursor-not-allowed border border-rose-500/40"
+                    }`}
+                  >
+                    {isSigningPolicy ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Broadcasting set_policy to NEAR...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 fill-current" />
+                        <span>Sign &amp; Stage Policy on NEAR ({connectedWalletId})</span>
+                      </>
+                    )}
+                  </button>
+                  {editorBlockers.length > 0 && (
+                    <div className="text-[10px] text-rose-500 dark:text-rose-400 font-semibold flex items-center justify-center gap-1 py-0.5">
+                      <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                      <span>Resolve {editorBlockers.length} red signal{editorBlockers.length > 1 ? "s" : ""} above to enable button</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (openAuthModal) openAuthModal();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>Connect Owner Wallet to Sign on NEAR</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
           {policyUpdateTxHash && (
             <div className="p-3 rounded-lg bg-mint-green/10 border border-mint-green/20 text-center space-y-1">
@@ -377,7 +457,6 @@ export function PolicyEditorModal({
               {policyUpdateError}
             </p>
           )}
-        </div>
 
         {/* CLI Fallback */}
         <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-obsidian-800">

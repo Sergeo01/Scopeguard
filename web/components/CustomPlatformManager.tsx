@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Trash2, Shield, Check, X, Code2, Globe } from "lucide-react";
+import { Plus, Trash2, Shield, Check, X, Code2, Globe, AlertCircle } from "lucide-react";
 
 export interface ConfiguredPlatform {
   id: string;
@@ -287,22 +287,36 @@ export const CustomPlatformManager: React.FC<CustomPlatformManagerProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={handleSavePlatform}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>Allowlist This Protocol</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSavePlatform}
+                disabled={!customContract.trim()}
+                title={!customContract.trim() ? "Enter a target contract ID to enable allowlist button" : "Allowlist this protocol"}
+                className={`px-4 py-2 rounded-xl text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 ${
+                  !customContract.trim()
+                    ? "bg-blue-600/50 opacity-50 cursor-not-allowed border border-rose-500/40"
+                    : "bg-blue-600 hover:bg-blue-500 cursor-pointer"
+                }`}
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Allowlist This Protocol</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAdding(false)}
+                className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+            {!customContract.trim() && (
+              <span className="text-[11px] text-rose-500 dark:text-rose-400 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <span>Target contract ID is required</span>
+              </span>
+            )}
           </div>
         </div>
       )}

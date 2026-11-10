@@ -16,6 +16,7 @@ import {
   Lock,
   ArrowRight,
   Terminal,
+  AlertCircle,
 } from "lucide-react";
 import { MarketingNavbar } from "@/components/MarketingNavbar";
 import { tryGetPolicyContractId } from "@/lib/config";
@@ -297,7 +298,20 @@ export default function ComparePage() {
               type="button"
               onClick={handleTogglePlay}
               disabled={loading || steps.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
+              title={
+                loading
+                  ? "Loading preflight steps..."
+                  : steps.length === 0
+                  ? "No test steps loaded to execute. Check RPC connection."
+                  : isPlaying
+                  ? "Pause execution"
+                  : "Execute all comparison scenario steps"
+              }
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-semibold shadow-sm transition ${
+                loading || steps.length === 0
+                  ? "bg-brand-blue/50 opacity-50 cursor-not-allowed border border-rose-500/40"
+                  : "bg-brand-blue hover:bg-brand-blueHover cursor-pointer"
+              }`}
             >
               {isPlaying ? (
                 <>
@@ -316,7 +330,18 @@ export default function ComparePage() {
               type="button"
               onClick={handleReset}
               disabled={loading || executedCount === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition disabled:opacity-50"
+              title={
+                loading
+                  ? "Execution in progress..."
+                  : executedCount === 0
+                  ? "Run comparison scenarios first before resetting"
+                  : "Reset comparison results"
+              }
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
+                loading || executedCount === 0
+                  ? "bg-slate-100 dark:bg-obsidian-800 text-slate-400 opacity-50 cursor-not-allowed border border-slate-300 dark:border-slate-700"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-700 text-slate-700 dark:text-slate-300 cursor-pointer"
+              }`}
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>

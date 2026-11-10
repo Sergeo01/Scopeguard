@@ -1883,6 +1883,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={handleSignOwnerAction}
                     disabled={isSigningAction}
+                    title={isSigningAction ? "Signing action with NEAR wallet in progress..." : undefined}
                     className={`w-full py-2.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 ${
                       activeOwnerModal.isDanger
                         ? "bg-rose-600 hover:bg-rose-700 text-white"
@@ -1920,7 +1921,8 @@ export default function DashboardPage() {
                       type="button"
                       onClick={handleQuickFund}
                       disabled={isFunding}
-                      className="flex-1 py-2 px-2.5 rounded-lg border border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 hover:bg-slate-100 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5"
+                      title={isFunding ? "Minting and depositing via faucet in progress..." : undefined}
+                      className="flex-1 py-2 px-2.5 rounded-lg border border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 hover:bg-slate-100 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-300 text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                       {isFunding ? (
                         <>

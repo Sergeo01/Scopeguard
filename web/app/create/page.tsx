@@ -25,13 +25,15 @@ import {
   Crosshair,
   Shield,
   AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
+import { PolicyChatAssistant } from "../../components/PolicyChatAssistant";
 import { useWallet } from "@/context/WalletContext";
-import { validatePolicyShape, lintPolicy } from "@/lib/drafter";
+import { validatePolicyShape, lintPolicy, DrafterPolicy } from "@/lib/drafter";
 import { tryGetPolicyContractId } from "@/lib/config";
 
 interface TargetPlatform extends ConfiguredPlatform {}
@@ -97,7 +99,7 @@ export default function CreateAgentPage() {
   const handleDailyCapChange = (val: string) => {
     setDailyCapInput(val);
     const parsed = Number(val);
-    if (!isNaN(parsed) && parsed >= 0) {
+    if (!isNaN(parsed) && parsed > 0 && Number.isInteger(parsed)) {
       setDailyCap(parsed);
       setTimelockThreshold(Math.max(1, Math.floor(parsed / 2)));
     }
@@ -168,10 +170,17 @@ export default function CreateAgentPage() {
     ? [externalRecipient.trim()]
     : [];
 
+  const numericDailyCap = Number(dailyCapInput);
+  const isDailyCapValid =
+    dailyCapInput.trim().length > 0 &&
+    !isNaN(numericDailyCap) &&
+    numericDailyCap > 0 &&
+    Number.isInteger(numericDailyCap);
+
   const compiledPolicyJson = {
     token: "sergeo-guard-token.testnet",
     targets: compiledTargets,
-    daily_cap: Number(dailyCap),
+    daily_cap: isDailyCapValid ? numericDailyCap : 0,
     recipients: compiledRecipients,
     max_actions_per_10min: speedLimit,
     auto_pause_rejects: autoPauseAfter,
@@ -199,6 +208,171 @@ export default function CreateAgentPage() {
   const policyLintWarnings = lintPolicy(compiledPolicyJson as any);
   const hasDangerPolicyLint = policyLintWarnings.some((w) => w.severity === "danger");
   const isPolicyValid = policyValidationErrors.length === 0 && !hasDangerPolicyLint;
+
+  const handleApplyDraftPolicy = (draft: DrafterPolicy) => {
+    if (draft.daily_cap) {
+      setDailyCap(draft.daily_cap);
+      setDailyCapInput(draft.daily_cap.toString());
+      setTimelockThreshold(draft.high_value_threshold || Math.max(1, Math.floor(draft.daily_cap / 2)));
+    }
+    if (draft.max_actions_per_10min) {
+      setSpeedLimit(draft.max_actions_per_10min);
+    }
+    if (draft.auto_pause_rejects) {
+      setAutoPauseAfter(draft.auto_pause_rejects);
+    }
+    if (draft.auto_pause_window_minutes) {
+      setAutoPauseWindowMinutes(draft.auto_pause_window_minutes);
+    }
+    if (draft.targets && Object.keys(draft.targets).length > 0) {
+      const newPlatforms: TargetPlatform[] = Object.entries(draft.targets).map(([contract, methods], idx) => ({
+        id: `draft-p-${Date.now()}-${idx}`,
+        contract,
+        methods: Array.isArray(methods) ? methods.join(", ") : "swap",
+        label: contract.includes("dex") ? "ScopeGuard Testnet DEX" : contract,
+        isPreset: false,
+      }));
+      setPlatforms(newPlatforms);
+    }
+    if (draft.recipients && draft.recipients.length > 0) {
+      setAllowExternalTransfers(true);
+      setExternalRecipient(draft.recipients[0]);
+    } else {
+      setAllowExternalTransfers(false);
+      setExternalRecipient("");
+    }
+    if (draft.canary_methods && draft.canary_methods.length > 0) {
+      setCanaryMethodsInput(draft.canary_methods.join(", "));
+    }
+    if (draft.intent_recipients && draft.intent_recipients.length > 0) {
+      setIntentRecipientsInput(draft.intent_recipients.join(", "));
+    }
+  };
+
+  const isAgentNameValid =
+    agentName.trim().length >= 2 &&
+    agentName.trim().length <= 64 &&
+    /^[a-z0-9._-]+$/.test(agentName.trim());
+  const hasValidPlatforms = platforms.length > 0 && Object.keys(compiledTargets).length > 0;
+  const isRecipientValid =
+    !allowExternalTransfers ||
+    (externalRecipient.trim().length >= 2 &&
+      externalRecipient.trim().length <= 64 &&
+      /^[a-z0-9._-]+$/.test(externalRecipient.trim()));
+  const isAutoPauseValid = Number.isInteger(autoPauseAfter) && autoPauseAfter >= 1 && autoPauseAfter <= 50;
+  const isSpeedLimitValid = Number.isInteger(speedLimit) && speedLimit >= 1 && speedLimit <= 100;
+  const isAutoPauseWindowValid =
+    Number.isInteger(autoPauseWindowMinutes) && autoPauseWindowMinutes >= 1 && autoPauseWindowMinutes <= 1440;
+
+  const buttonBlockers: { id: string; field: string; message: string; fix: string }[] = [];
+
+  if (!agentName.trim()) {
+    buttonBlockers.push({
+      id: "missing-agent-name",
+      field: "Agent Sub-Account",
+      message: "Agent Sub-Account ID is required.",
+      fix: "Enter a valid NEAR account name (e.g. agent.sergeo-guard.testnet) in the Agent Sub-Account field.",
+    });
+  } else if (agentName.trim().length < 2 || agentName.trim().length > 64) {
+    buttonBlockers.push({
+      id: "invalid-agent-name-length",
+      field: "Agent Sub-Account",
+      message: "Agent Sub-Account length must be between 2 and 64 characters.",
+      fix: "Provide an account identifier between 2 and 64 characters to satisfy NEAR standards.",
+    });
+  } else if (!/^[a-z0-9._-]+$/.test(agentName.trim())) {
+    buttonBlockers.push({
+      id: "invalid-agent-name",
+      field: "Agent Sub-Account",
+      message: "Agent Sub-Account contains invalid characters or spaces.",
+      fix: "Use only lowercase alphanumeric characters, dots, hyphens, and underscores (e.g. agent.alice.testnet).",
+    });
+  }
+
+  if (!isDailyCapValid) {
+    buttonBlockers.push({
+      id: "invalid-daily-cap",
+      field: "Daily Spending Cap",
+      message: "Daily Spending Cap must be a positive whole number greater than $0.",
+      fix: "Type an integer dollar figure greater than 0 (e.g. 100) or click one of the quick preset chips.",
+    });
+  }
+
+  if (!hasValidPlatforms) {
+    buttonBlockers.push({
+      id: "missing-platforms",
+      field: "Approved Platforms",
+      message: "At least one target platform contract with callable methods is required.",
+      fix: "Select a pre-vetted platform (e.g. Testnet DEX) or add a custom contract with at least one callable method.",
+    });
+  }
+
+  if (allowExternalTransfers && !externalRecipient.trim()) {
+    buttonBlockers.push({
+      id: "missing-recipient",
+      field: "Designated Recipient",
+      message: "Direct cash transfers are enabled but no recipient account is specified.",
+      fix: "Enter a destination NEAR account (e.g. sergeo-guard.testnet) or turn off the external transfers toggle.",
+    });
+  } else if (allowExternalTransfers && externalRecipient.trim() && (externalRecipient.trim().length < 2 || externalRecipient.trim().length > 64 || !/^[a-z0-9._-]+$/.test(externalRecipient.trim()))) {
+    buttonBlockers.push({
+      id: "invalid-recipient",
+      field: "Designated Recipient",
+      message: "Recipient account address contains invalid characters or length.",
+      fix: "Enter a valid NEAR account ID between 2 and 64 characters (lowercase letters, numbers, hyphens, dots).",
+    });
+  }
+
+  if (!isAutoPauseValid) {
+    buttonBlockers.push({
+      id: "invalid-auto-pause",
+      field: "Auto-Brake Strikes",
+      message: "Auto-brake strikes must be an integer between 1 and 50.",
+      fix: "Set a strike count between 1 and 50 rejections.",
+    });
+  }
+
+  if (!isSpeedLimitValid) {
+    buttonBlockers.push({
+      id: "invalid-speed-limit",
+      field: "Speed Throttle",
+      message: "Speed limit must be between 1 and 100 calls per 10 minutes.",
+      fix: "Set the speed limit between 1 and 100.",
+    });
+  }
+
+  if (!isAutoPauseWindowValid) {
+    buttonBlockers.push({
+      id: "invalid-auto-pause-window",
+      field: "Check Window",
+      message: "Check window must be between 1 and 1440 minutes.",
+      fix: "Set rolling minutes between 1 and 1440.",
+    });
+  }
+
+  policyValidationErrors.forEach((err, idx) => {
+    if (err.includes("daily_cap") && buttonBlockers.some((b) => b.id === "invalid-daily-cap")) return;
+    if (err.includes("targets") && buttonBlockers.some((b) => b.id === "missing-platforms")) return;
+    buttonBlockers.push({
+      id: `schema-err-${idx}`,
+      field: "Policy Schema",
+      message: err,
+      fix: "Update policy inputs to satisfy onchain schema requirements.",
+    });
+  });
+
+  policyLintWarnings
+    .filter((w) => w.severity === "danger")
+    .forEach((w, idx) => {
+      buttonBlockers.push({
+        id: `lint-danger-${idx}`,
+        field: "Security Policy Lint",
+        message: w.message,
+        fix: "Remove dangerous administrative methods or wildcard '*' to satisfy security invariants.",
+      });
+    });
+
+  const isFormValid = buttonBlockers.length === 0 && !isDeploying;
 
   const handleIssueCard = async () => {
     setIsDeploying(true);
@@ -543,14 +717,30 @@ export default function CreateAgentPage() {
           registrationCommand={registrationCommand}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Form Side (Col 7: Clean Single-Layer Card) */}
-          <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+        <div className="space-y-6">
+          {/* Conversational Policy Assistant & Autonomous Agent Studio */}
+          <PolicyChatAssistant
+            onApplyPolicy={handleApplyDraftPolicy}
+            currentDailyCap={dailyCap}
+            currentAgentName={agentName}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Form Side (Col 7: Clean Single-Layer Card) */}
+            <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
               {/* Agent Sub-Account */}
               <div className="space-y-1.5">
-                <label htmlFor="agent-subaccount-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
-                  Agent Sub-Account
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="agent-subaccount-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
+                    Agent Sub-Account
+                  </label>
+                  {!isAgentNameValid && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Required
+                    </span>
+                  )}
+                </div>
                 <input
                   id="agent-subaccount-input"
                   name="agent-subaccount"
@@ -558,8 +748,18 @@ export default function CreateAgentPage() {
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
                   placeholder="e.g. agent.sergeo-guard.testnet"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition ${
+                    !isAgentNameValid
+                      ? "border-rose-500 ring-2 ring-rose-500/30"
+                      : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                  }`}
                 />
+                {!isAgentNameValid && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                    <span>Please enter a valid NEAR agent sub-account (e.g. agent.sergeo-guard.testnet)</span>
+                  </p>
+                )}
                 {isWalletConnected && connectedWalletId && (
                   <div className="flex items-center gap-2 pt-0.5">
                     <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
@@ -581,15 +781,27 @@ export default function CreateAgentPage() {
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <div>
-                  <label htmlFor="daily-spending-cap-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
-                    Daily Spending Cap (mUSD / day)
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="daily-spending-cap-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
+                      Daily Spending Cap (mUSD / day)
+                    </label>
+                    {!isDailyCapValid && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Must be &gt; $0
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Type any figure manually. Can be $1 or any custom budget.
                   </span>
                 </div>
-                <span className="font-mono font-bold text-sm text-slate-900 dark:text-white bg-slate-100 dark:bg-obsidian-800 px-2.5 py-1 rounded-lg">
-                  ${dailyCap} mUSD
+                <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg ${
+                  isDailyCapValid
+                    ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-obsidian-800"
+                    : "text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30"
+                }`}>
+                  {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
                 </span>
               </div>
 
@@ -604,7 +816,11 @@ export default function CreateAgentPage() {
                     step="1"
                     value={dailyCapInput}
                     onChange={(e) => handleDailyCapChange(e.target.value)}
-                    className="w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none transition ${
+                      !isDailyCapValid
+                        ? "border-rose-500 ring-2 ring-rose-500/30"
+                        : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                    }`}
                     placeholder="100"
                   />
                 </div>
@@ -625,14 +841,26 @@ export default function CreateAgentPage() {
                   ))}
                 </div>
               </div>
+              {!isDailyCapValid && (
+                <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                  <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                  <span>Enter a positive spending cap greater than $0</span>
+                </p>
+              )}
             </div>
 
             {/* Quick-Add Pre-Vetted Platforms */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
               <PlatformPresets
                 activeContracts={platforms.map((p) => p.contract)}
                 onTogglePreset={togglePresetPlatform}
               />
+              {!hasValidPlatforms && (
+                <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>At least one target platform contract must be added with callable methods.</span>
+                </div>
+              )}
             </div>
 
             {/* Custom Multi-Platform Manager */}
@@ -728,7 +956,17 @@ export default function CreateAgentPage() {
 
               {allowExternalTransfers && (
                 <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
-                  <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300">Designated Allowed Recipient</label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300">
+                      Designated Allowed Recipient
+                    </label>
+                    {!isRecipientValid && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Recipient Required
+                      </span>
+                    )}
+                  </div>
                   <input
                     id="external-recipient-input"
                     name="external-recipient"
@@ -736,8 +974,18 @@ export default function CreateAgentPage() {
                     value={externalRecipient}
                     onChange={(e) => setExternalRecipient(e.target.value)}
                     placeholder="e.g. sergeo-guard.testnet"
-                    className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className={`w-full px-3 py-2 bg-white dark:bg-obsidian-900 border rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none transition ${
+                      !isRecipientValid
+                        ? "border-rose-500 ring-2 ring-rose-500/30"
+                        : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                    }`}
                   />
+                  {!isRecipientValid && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                      <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                      <span>Enter an authorized recipient account (e.g. alice.testnet) or turn off external transfers</span>
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -888,30 +1136,6 @@ export default function CreateAgentPage() {
               </div>
             </div>
 
-            {/* Validation & Security Feedback */}
-            {policyValidationErrors.length > 0 && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
-                <div className="font-bold">Policy Schema Validation Error:</div>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {policyValidationErrors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {hasDangerPolicyLint && (
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-slate-800 dark:text-slate-200 text-xs space-y-1">
-                <div className="font-bold">Security Lint Warning:</div>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {policyLintWarnings
-                    .filter((w) => w.severity === "danger")
-                    .map((w, i) => (
-                      <li key={i}>{w.message}</li>
-                    ))}
-                </ul>
-              </div>
-            )}
-
             {/* Deploy Error Banner */}
             {deployError && (
               <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
@@ -923,25 +1147,79 @@ export default function CreateAgentPage() {
               </div>
             )}
 
-            {/* Register Action Button */}
-            <button
-              type="button"
-              disabled={isDeploying || !isPolicyValid}
-              onClick={handleIssueCard}
-              className="w-full py-3 px-4 rounded-xl bg-brand-blue hover:bg-brand-blueHover text-white font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeploying ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Generating Policy Specification...</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Preview Scope & Generate Handoff</span>
-                </>
+            {/* Red Signals: Blockers Warning Card Explaining Exactly Why Button is Unclickable & What to Fix */}
+            {buttonBlockers.length > 0 && (
+              <div
+                id="preview-scope-button-blockers"
+                className="p-4 rounded-xl bg-rose-500/10 dark:bg-rose-950/50 border-2 border-rose-500/60 dark:border-rose-500/50 space-y-2.5 animate-in fade-in"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 animate-pulse" />
+                    <span>Button Unclickable: {buttonBlockers.length} Requirement{buttonBlockers.length > 1 ? "s" : ""} Missing</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold">
+                    Action Blocked
+                  </span>
+                </div>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
+                  Fix the following requirements to enable the Preview Scope &amp; Generate Handoff button:
+                </p>
+                <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+                  {buttonBlockers.map((b) => (
+                    <li key={b.id} className="flex items-start gap-2 bg-white/50 dark:bg-black/30 p-2.5 rounded-lg border border-rose-500/20">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                      <div className="flex-1">
+                        <span className="font-bold text-rose-900 dark:text-rose-200">{b.field}:</span>{" "}
+                        <span className="text-rose-800 dark:text-rose-300">{b.message}</span>
+                        <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 flex items-center gap-1">
+                          <span className="font-semibold text-rose-700 dark:text-rose-300">Fix:</span> {b.fix}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Register Action Button & Locked Status */}
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                disabled={!isFormValid}
+                onClick={handleIssueCard}
+                title={
+                  buttonBlockers.length > 0
+                    ? `Button disabled: ${buttonBlockers.map((b) => b.message).join(" | ")}`
+                    : "Preview policy scope and issue agent passkey"
+                }
+                className={`w-full py-3 px-4 rounded-xl text-white font-semibold text-xs transition flex items-center justify-center gap-2 ${
+                  isFormValid
+                    ? "bg-brand-blue hover:bg-brand-blueHover cursor-pointer shadow-sm"
+                    : "bg-brand-blue/50 opacity-50 cursor-not-allowed border-2 border-rose-500/50"
+                }`}
+              >
+                {isDeploying ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Generating Policy Specification...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Preview Scope &amp; Generate Handoff</span>
+                  </>
+                )}
+              </button>
+              {buttonBlockers.length > 0 && (
+                <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-center gap-1.5 pt-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span>
+                    Button locked: Complete the {buttonBlockers.length} highlighted item{buttonBlockers.length > 1 ? "s" : ""} above to proceed.
+                  </span>
+                </div>
               )}
-            </button>
+            </div>
           </div>
 
         {/* Blueprint & Physical Card (Col 5: Clean Single-Layer Card) */}
@@ -994,16 +1272,20 @@ export default function CreateAgentPage() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                         Assigned Agent
                       </span>
-                      <span className="font-mono text-sm text-slate-100 font-semibold block truncate">
-                        {agentName}
+                      <span className={`font-mono text-sm font-semibold block truncate ${
+                        !isAgentNameValid ? "text-rose-400" : "text-slate-100"
+                      }`}>
+                        {agentName.trim() || "(Agent name required)"}
                       </span>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-[10px] text-slate-400 block">Daily Limit</span>
-                        <span className="font-mono font-bold text-emerald-400">
-                          ${dailyCap} mUSD
+                        <span className={`font-mono font-bold ${
+                          isDailyCapValid ? "text-emerald-400" : "text-rose-400"
+                        }`}>
+                          {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
                         </span>
                       </div>
                       <div>
@@ -1081,7 +1363,8 @@ export default function CreateAgentPage() {
               )}
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail } from "lucide-react";
+import { X, Mail, AlertCircle } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 
 export const AuthModal: React.FC = () => {
@@ -222,23 +222,59 @@ export const AuthModal: React.FC = () => {
 
         {/* Email Form */}
         <form onSubmit={handleEmailSubmit} className="space-y-2">
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="name@example.com"
-              className="w-full h-11 pl-10 pr-3 rounded-xl bg-white/[0.03] border border-white/[0.08] focus:border-blue-500 text-xs text-white placeholder-slate-500 outline-none transition"
-            />
+          <div className="space-y-1">
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="name@example.com"
+                className={`w-full h-11 pl-10 pr-3 rounded-xl bg-white/[0.03] border text-xs text-white placeholder-slate-500 outline-none transition ${
+                  emailInput.length > 0 && !emailInput.includes("@")
+                    ? "border-rose-500 ring-1 ring-rose-500/40"
+                    : "border-white/[0.08] focus:border-blue-500"
+                }`}
+              />
+            </div>
+            {emailInput.length > 0 && !emailInput.includes("@") && (
+              <p className="text-[11px] text-rose-400 flex items-center gap-1 px-1 font-medium">
+                <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                <span>Please enter a valid email address with an '@' symbol</span>
+              </p>
+            )}
           </div>
-          <button
-            type="submit"
-            disabled={!emailInput.trim() || !!loadingProvider}
-            className="w-full h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-slate-200 hover:text-white transition cursor-pointer disabled:opacity-40"
-          >
-            {loadingProvider === "email" ? "Signing in..." : "Continue with Email"}
-          </button>
+
+          <div className="space-y-1">
+            <button
+              type="submit"
+              disabled={!emailInput.trim() || !emailInput.includes("@") || !!loadingProvider}
+              title={
+                !emailInput.trim()
+                  ? "Enter your email address to enable Continue with Email"
+                  : !emailInput.includes("@")
+                  ? "Enter a valid email address with @ to enable"
+                  : "Continue with Email"
+              }
+              className={`w-full h-10 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 ${
+                emailInput.trim() && emailInput.includes("@") && !loadingProvider
+                  ? "bg-white/[0.08] hover:bg-white/[0.14] text-white cursor-pointer"
+                  : "bg-white/[0.03] text-slate-400 border border-rose-500/30 opacity-60 cursor-not-allowed"
+              }`}
+            >
+              {loadingProvider === "email" ? "Signing in..." : "Continue with Email"}
+            </button>
+            {(!emailInput.trim() || !emailInput.includes("@")) && (
+              <div className="text-[10px] text-rose-400/90 text-center flex items-center justify-center gap-1 py-0.5">
+                <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                <span>
+                  {!emailInput.trim()
+                    ? "Email is required to enable sign-in button"
+                    : "Valid email (e.g. name@example.com) required"}
+                </span>
+              </div>
+            )}
+          </div>
         </form>
       </div>
     </div>

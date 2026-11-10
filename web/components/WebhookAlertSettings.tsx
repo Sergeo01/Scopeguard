@@ -367,12 +367,23 @@ export function WebhookAlertSettings({ agentId }: WebhookAlertSettingsProps) {
 
       {/* Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <button
             type="button"
             onClick={handleSendTest}
-            disabled={isSendingTest}
-            className="py-2 px-3.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            disabled={isSendingTest || !isConfigured}
+            title={
+              isSendingTest
+                ? "Sending test alert..."
+                : !isConfigured
+                ? `Enter valid ${activeTab === "discord" ? "Discord Webhook URL" : "Telegram credentials"} to enable`
+                : "Send test alert"
+            }
+            className={`py-2 px-3.5 rounded-lg text-white text-xs font-semibold transition flex items-center gap-1.5 ${
+              isSendingTest || !isConfigured
+                ? "bg-brand-blue/50 opacity-50 cursor-not-allowed border border-rose-500/40"
+                : "bg-brand-blue hover:bg-brand-blueHover cursor-pointer"
+            }`}
           >
             {isSendingTest ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -381,6 +392,17 @@ export function WebhookAlertSettings({ agentId }: WebhookAlertSettingsProps) {
             )}
             <span>{isSendingTest ? "Sending Test Alert..." : "Send Test Alert"}</span>
           </button>
+
+          {!isConfigured && (
+            <span className="text-[11px] text-rose-500 dark:text-rose-400 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span>
+                {activeTab === "discord"
+                  ? "Valid webhook URL required to test"
+                  : "Bot Token and Chat ID required to test"}
+              </span>
+            </span>
+          )}
 
           <button
             type="button"

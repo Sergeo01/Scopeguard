@@ -33,6 +33,7 @@ import {
   TrendingDown,
   Activity,
   CheckCheck,
+  AlertCircle,
 } from "lucide-react";
 import { MarketingNavbar } from "@/components/MarketingNavbar";
 import { MarketingFooter } from "@/components/MarketingFooter";
@@ -1320,11 +1321,34 @@ export default function HomePage() {
                   </div>
                 )}
 
+                {!guardContractId && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>Button Unclickable: Policy Contract Missing</span>
+                    </div>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 leading-relaxed">
+                      Configure NEXT_PUBLIC_POLICY_CONTRACT_ID in your environment to target an active onchain guard for attack simulation.
+                    </p>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={handleExecuteAttack}
                   disabled={loading || !guardContractId}
-                  className="w-full py-2.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  title={
+                    loading
+                      ? "Evaluating attack on NEAR testnet..."
+                      : !guardContractId
+                      ? "Button unclickable: Set NEXT_PUBLIC_POLICY_CONTRACT_ID to enable attack simulation"
+                      : "Execute attack instruction against onchain guard"
+                  }
+                  className={`w-full py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2 ${
+                    loading || !guardContractId
+                      ? "bg-brand-blue/50 opacity-50 cursor-not-allowed border border-rose-500/40"
+                      : "bg-brand-blue hover:bg-brand-blueHover text-white cursor-pointer shadow-xs"
+                  }`}
                 >
                   {loading ? (
                     <>
@@ -1333,8 +1357,8 @@ export default function HomePage() {
                     </>
                   ) : !guardContractId ? (
                     <>
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Policy contract not configured</span>
+                      <Lock className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-rose-200">Policy contract not configured</span>
                     </>
                   ) : (
                     <>
