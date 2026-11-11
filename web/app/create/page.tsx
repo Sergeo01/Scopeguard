@@ -40,20 +40,66 @@ import { PolicyChatAssistant } from "../../components/PolicyChatAssistant";
 import { useWallet } from "@/context/WalletContext";
 import { validatePolicyShape, lintPolicy, DrafterPolicy } from "@/lib/drafter";
 import { tryGetPolicyContractId } from "@/lib/config";
+import {
+  suggestNextAgentName,
+  isAgentSubaccountOwnerValid,
+  checkAgentRegisteredOnchain,
+  parseRegistrationError,
+  ParsedRegistrationError,
+} from "@/lib/registration";
 
 interface TargetPlatform extends ConfiguredPlatform {}
 
 export default function CreateAgentPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
-  const [agentName, setAgentName] = useState("agent.sergeo-guard.testnet");
+  const [agentName, setAgentName] = useState("agent2.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(500);
   const [dailyCapInput, setDailyCapInput] = useState<string>("500");
   const [guardContractId, setGuardContractId] = useState<string | null>(tryGetPolicyContractId);
   const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
+  const [isAgentNameRegistered, setIsAgentNameRegistered] = useState<boolean | null>(null);
+  const [isCheckingAgentOnchain, setIsCheckingAgentOnchain] = useState<boolean>(false);
+  const [parsedDeployError, setParsedDeployError] = useState<ParsedRegistrationError | null>(null);
 
   useEffect(() => {
     setGuardContractId(tryGetPolicyContractId());
   }, []);
+
+  // When a wallet connects, automatically set the agent subaccount to match the connected owner
+  useEffect(() => {
+    if (isWalletConnected && connectedWalletId) {
+      if (
+        agentName === "agent.sergeo-guard.testnet" ||
+        agentName === "agent2.sergeo-guard.testnet" ||
+        !agentName.endsWith(`.${connectedWalletId}`)
+      ) {
+        setAgentName(`agent.${connectedWalletId}`);
+      }
+    }
+  }, [isWalletConnected, connectedWalletId]);
+
+  // Debounced preflight onchain check to detect duplicate agent registration before submission
+  useEffect(() => {
+    const trimmed = agentName.trim();
+    if (!trimmed || !guardContractId || trimmed.length < 2) {
+      setIsAgentNameRegistered(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingAgentOnchain(true);
+      try {
+        const exists = await checkAgentRegisteredOnchain(guardContractId, trimmed);
+        setIsAgentNameRegistered(exists);
+      } catch {
+        setIsAgentNameRegistered(null);
+      } finally {
+        setIsCheckingAgentOnchain(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [agentName, guardContractId]);
 
   const [platforms, setPlatforms] = useState<TargetPlatform[]>([
     {
@@ -308,15 +354,17 @@ export default function CreateAgentPage() {
     });
   };
 
+  const effectiveOwner = connectedWalletId || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
+
   if (!agentName.trim()) {
     buttonBlockers.push({
       id: "missing-agent-name",
       field: "Agent Sub-Account",
       message: "Agent Sub-Account ID is required.",
-      fix: "Enter a valid NEAR account name (e.g. agent.sergeo-guard.testnet) in the Agent Sub-Account field.",
+      fix: "Enter a valid NEAR account name in the Agent Sub-Account field.",
       targetElementId: "agent-subaccount-input",
-      quickFixLabel: "⚡ Use agent.sergeo-guard.testnet",
-      quickFix: () => setAgentName("agent.sergeo-guard.testnet"),
+      quickFixLabel: connectedWalletId ? `⚡ Use agent.${connectedWalletId}` : "⚡ Use agent2.sergeo-guard.testnet",
+      quickFix: () => setAgentName(connectedWalletId ? `agent.${connectedWalletId}` : "agent2.sergeo-guard.testnet"),
     });
   } else if (agentName.trim().length < 2 || agentName.trim().length > 64) {
     buttonBlockers.push({
@@ -333,6 +381,37 @@ export default function CreateAgentPage() {
       message: "Agent Sub-Account contains invalid characters or spaces.",
       fix: "Use only lowercase alphanumeric characters, dots, hyphens, and underscores (e.g. agent.alice.testnet).",
       targetElementId: "agent-subaccount-input",
+    });
+  } else if (isWalletConnected && connectedWalletId && !isAgentSubaccountOwnerValid(agentName.trim(), connectedWalletId)) {
+    buttonBlockers.push({
+      id: "agent-owner-mismatch",
+      field: "Agent Sub-Account",
+      message: `Account "${agentName.trim()}" must be a sub-account of your connected wallet (${connectedWalletId}) or match your account.`,
+      fix: `Change your agent sub-account name so it ends with .${connectedWalletId} (e.g. agent.${connectedWalletId}).`,
+      targetElementId: "agent-subaccount-input",
+      quickFixLabel: `⚡ Set to agent.${connectedWalletId}`,
+      quickFix: () => setAgentName(`agent.${connectedWalletId}`),
+    });
+  } else if (!isWalletConnected && !isAgentSubaccountOwnerValid(agentName.trim(), effectiveOwner)) {
+    buttonBlockers.push({
+      id: "agent-owner-mismatch",
+      field: "Agent Sub-Account",
+      message: `In demo signing mode, account "${agentName.trim()}" must be a sub-account of ${effectiveOwner}.`,
+      fix: `Change sub-account to end with .${effectiveOwner} (e.g. agent2.${effectiveOwner}) or connect your NEAR wallet.`,
+      targetElementId: "agent-subaccount-input",
+      quickFixLabel: `⚡ Set to agent2.${effectiveOwner}`,
+      quickFix: () => setAgentName(`agent2.${effectiveOwner}`),
+    });
+  } else if (isAgentNameRegistered) {
+    const nextAgent = suggestNextAgentName(agentName.trim(), effectiveOwner);
+    buttonBlockers.push({
+      id: "agent-already-registered",
+      field: "Agent Sub-Account",
+      message: `Sub-account "${agentName.trim()}" is already registered on this Guard.`,
+      fix: `Each agent requires a unique sub-account on NEAR. Use ${nextAgent} or click the 1-click fix.`,
+      targetElementId: "agent-subaccount-input",
+      quickFixLabel: `⚡ Use ${nextAgent} (1-Click Fix)`,
+      quickFix: () => setAgentName(nextAgent),
     });
   }
 
@@ -629,7 +708,9 @@ export default function CreateAgentPage() {
           setIsDeploying(false);
           setIssuedSuccess(true);
         } else {
-          setDeployError(errorMsg);
+          const parsed = regData.parsedError || parseRegistrationError(errorMsg, targetAgent, connectedWalletId || effectiveOwner);
+          setParsedDeployError(parsed);
+          setDeployError(parsed.message || errorMsg);
           setRegistrationStatus("idle");
           setIsDeploying(false);
           return;
@@ -648,7 +729,10 @@ export default function CreateAgentPage() {
       }
     } catch (e: any) {
       setIsDeploying(false);
-      setDeployError(e.message || "Failed to generate passkey or register agent");
+      setRegistrationStatus("idle");
+      const parsed = parseRegistrationError(e, targetAgent, connectedWalletId || effectiveOwner);
+      setParsedDeployError(parsed);
+      setDeployError(parsed.message || e.message || "Failed to generate passkey or register agent");
     }
   };
 
@@ -659,7 +743,7 @@ export default function CreateAgentPage() {
         ? agentName.trim()
         : isWalletConnected && connectedWalletId
         ? `agent.${connectedWalletId}`
-        : "agent.sergeo-guard.testnet";
+        : "agent2.sergeo-guard.testnet";
     if (!agentName.trim()) {
       setAgentName(targetAgent);
     }
@@ -715,6 +799,38 @@ export default function CreateAgentPage() {
               <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
               <span>Please enter a valid NEAR agent sub-account (e.g. agent.sergeo-guard.testnet)</span>
             </p>
+          )}
+          {isAgentNameRegistered && (
+            <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-700 dark:text-amber-300">
+              <span className="flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Account already registered on Guard.</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setAgentName(suggestNextAgentName(agentName, connectedWalletId || effectiveOwner))}
+                className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Use {suggestNextAgentName(agentName, connectedWalletId || effectiveOwner)}</span>
+              </button>
+            </div>
+          )}
+          {isWalletConnected && connectedWalletId && !isAgentSubaccountOwnerValid(agentName, connectedWalletId) && (
+            <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-700 dark:text-amber-300">
+              <span className="flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Must be a sub-account of {connectedWalletId}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setAgentName(`agent.${connectedWalletId}`)}
+                className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1 shrink-0"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Set to agent.{connectedWalletId}</span>
+              </button>
+            </div>
           )}
           {isWalletConnected && connectedWalletId && (
             <div className="flex items-center gap-2 pt-0.5">
@@ -1154,14 +1270,81 @@ export default function CreateAgentPage() {
           </div>
         </details>
 
-        {/* Deploy Error Banner */}
-        {deployError && (
-          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
-            <div className="font-bold flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-              <span>Registration Failed:</span>
+        {/* Registration Guidance / Error Assist Card */}
+        {(parsedDeployError || deployError) && (
+          <div
+            id="registration-error-assistance"
+            className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-700/60 space-y-3 animate-in fade-in shadow-xs"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                    {parsedDeployError?.title || "Registration Assistance"}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {parsedDeployError?.message || deployError}
+                  </p>
+                  {parsedDeployError?.fixGuidance && (
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium pt-0.5">
+                      Fix: {parsedDeployError.fixGuidance}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setParsedDeployError(null);
+                  setDeployError(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-semibold px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              >
+                Dismiss
+              </button>
             </div>
-            <p className="leading-relaxed font-mono text-[11px] break-all">{deployError}</p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-200/60 dark:border-amber-800/40">
+              {parsedDeployError?.quickFixLabel && parsedDeployError?.suggestedAccount && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgentName(parsedDeployError.suggestedAccount!);
+                    setParsedDeployError(null);
+                    setDeployError(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors shadow-xs cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{parsedDeployError.quickFixLabel}</span>
+                </button>
+              )}
+
+              {parsedDeployError?.targetElementId && (
+                <button
+                  type="button"
+                  onClick={() => handleJumpToField(parsedDeployError.targetElementId!)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  <span>Go to Field</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {parsedDeployError?.rawError && (
+              <details className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                <summary className="cursor-pointer hover:underline text-[10px] text-slate-400 dark:text-slate-500">
+                  Technical details
+                </summary>
+                <pre className="mt-1.5 p-2 rounded-lg bg-slate-900 text-slate-300 font-mono text-[10px] overflow-x-auto whitespace-pre-wrap break-all">
+                  {parsedDeployError.rawError}
+                </pre>
+              </details>
+            )}
           </div>
         )}
 

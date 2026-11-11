@@ -142,6 +142,27 @@ test("register-route: server-signing-enabled branch handles missing key and exec
     const dataWithKey = await resWithKey.json();
     assert.strictEqual(dataWithKey.success, false);
     assert.ok(dataWithKey.error);
+
+    // Sub-case C: Subaccount owner mismatch (agent.otherowner.testnet does not match ownerId)
+    const reqMismatch = new Request("https://scopeguard.blockframe.cloud/api/register", {
+      method: "POST",
+      headers: {
+        origin: "https://scopeguard.blockframe.cloud",
+        host: "scopeguard.blockframe.cloud",
+        "content-type": "application/json",
+        "x-scopeguard-secret": "signing-branch-test-secret",
+      },
+      body: JSON.stringify({
+        agentAccountId: "agent.unrelated-owner.testnet",
+        policy: { token: "sergeo-guard-token.testnet" },
+      }),
+    });
+    const resMismatch = await registerHandler(reqMismatch);
+    assert.strictEqual(resMismatch.status, 400);
+    const dataMismatch = await resMismatch.json();
+    assert.strictEqual(dataMismatch.success, false);
+    assert.strictEqual(dataMismatch.code, "SUBACCOUNT_OWNER_MISMATCH");
+    assert.ok(dataMismatch.error.includes("must be a sub-account of owner"));
   } finally {
     restoreEnv("SCOPEGUARD_ALLOW_SERVER_SIGNING", origFlag);
     restoreEnv("SCOPEGUARD_SHARED_SECRET", origSecret);

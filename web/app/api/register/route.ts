@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { guardSigningRequest } from "@/lib/api-guard";
 import { getPolicyContractId } from "@/lib/config";
+import { suggestNextAgentName, parseRegistrationError } from "@/lib/registration";
 
 const DEFAULT_OWNER = "sergeo-guard.testnet";
 
@@ -21,9 +22,11 @@ const DEFAULT_OWNER = "sergeo-guard.testnet";
  * remove.
  */
 export async function POST(req: Request) {
+  let agentAccountId = "";
+  let ownerId = DEFAULT_OWNER;
   try {
     const body = await req.json().catch(() => ({}));
-    const agentAccountId = String(body?.agentAccountId || "").trim();
+    agentAccountId = String(body?.agentAccountId || "").trim();
     const policy = body?.policy;
     const publicKey = body?.publicKey || null;
 
@@ -39,9 +42,21 @@ export async function POST(req: Request) {
       guardId = getPolicyContractId();
     } catch {}
 
-    const ownerId = process.env.OWNER_ACCOUNT_ID || DEFAULT_OWNER;
+    ownerId = process.env.OWNER_ACCOUNT_ID || DEFAULT_OWNER;
     const networkId = process.env.NEAR_NETWORK || "testnet";
     const nodeUrl = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
+
+    // Validate subaccount ownership invariant before taking onchain actions
+    if (!agentAccountId.endsWith(`.${ownerId}`) && agentAccountId !== ownerId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Agent sub-account "${agentAccountId}" must be a sub-account of owner "${ownerId}" (e.g. agent.${ownerId}).`,
+          code: "SUBACCOUNT_OWNER_MISMATCH",
+        },
+        { status: 400 }
+      );
+    }
 
     const command = `near call ${guardId} register_agent '${JSON.stringify({
       agent_account: agentAccountId,
@@ -153,6 +168,34 @@ export async function POST(req: Request) {
       }
     }
 
+    // Preflight onchain check: verify agent is not already registered on this Guard
+    try {
+      const policyRes = await near.connection.provider.query<any>({
+        request_type: "call_function",
+        finality: "final",
+        account_id: guardId,
+        method_name: "get_policy",
+        args_base64: Buffer.from(JSON.stringify({ agent_account: agentAccountId })).toString("base64"),
+      });
+      if (policyRes && policyRes.result && Array.isArray(policyRes.result)) {
+        const existing = JSON.parse(Buffer.from(policyRes.result).toString("utf-8"));
+        if (existing !== null && typeof existing === "object") {
+          const nextAccount = suggestNextAgentName(agentAccountId, ownerId);
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Agent sub-account "${agentAccountId}" is already registered on Guard contract ${guardId}. Please select a unique sub-account name (such as ${nextAccount}).`,
+              code: "AGENT_ALREADY_REGISTERED",
+              suggestedAccount: nextAccount,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } catch {
+      // Non-blocking if view query fails
+    }
+
     const callResult = await ownerAccount.functionCall({
       contractId: guardId,
       methodName: "register_agent",
@@ -173,10 +216,12 @@ export async function POST(req: Request) {
       registeredAt: Date.now(),
     });
   } catch (err: any) {
+    const parsed = parseRegistrationError(err, agentAccountId, ownerId);
     return NextResponse.json(
       {
         success: false,
-        error: err.message || "Failed to broadcast registration transaction",
+        error: parsed.message || err.message || "Failed to broadcast registration transaction",
+        parsedError: parsed,
       },
       { status: 500 }
     );

@@ -3,6 +3,7 @@ import assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { draftPolicyFromText, validatePolicyShape, lintPolicy } from "../lib/drafter";
+import { isAgentSubaccountOwnerValid, suggestNextAgentName } from "../lib/registration";
 
 export interface FormInputs {
   agentName: string;
@@ -13,6 +14,8 @@ export interface FormInputs {
   autoPauseAfter: number;
   speedLimit: number;
   autoPauseWindowMinutes: number;
+  connectedWalletId?: string;
+  isAgentNameRegistered?: boolean;
 }
 
 export function computeButtonBlockers(inputs: FormInputs) {
@@ -66,6 +69,21 @@ export function computeButtonBlockers(inputs: FormInputs) {
       field: "Agent Sub-Account",
       message: "Agent Sub-Account contains invalid characters or spaces.",
       fix: "Use only lowercase alphanumeric characters, dots, hyphens, and underscores (e.g. agent.alice.testnet).",
+    });
+  } else if (inputs.connectedWalletId && !isAgentSubaccountOwnerValid(inputs.agentName, inputs.connectedWalletId)) {
+    blockers.push({
+      id: "subaccount-owner-mismatch",
+      field: "Agent Sub-Account",
+      message: `Account "${inputs.agentName}" must be a sub-account of your connected wallet (${inputs.connectedWalletId}).`,
+      fix: `Change your agent sub-account to end with .${inputs.connectedWalletId}.`,
+    });
+  } else if (inputs.isAgentNameRegistered) {
+    const next = suggestNextAgentName(inputs.agentName, inputs.connectedWalletId);
+    blockers.push({
+      id: "agent-already-registered",
+      field: "Agent Sub-Account",
+      message: `Sub-account "${inputs.agentName}" is already registered on this Guard.`,
+      fix: `Every agent must have a unique sub-account. Use ${next} instead.`,
     });
   }
 
@@ -194,6 +212,28 @@ test("button-blockers: detects missing agent sub-account name and yields actiona
   const shortBlocker = shortNameBlockers.find((b) => b.id === "invalid-agent-name-length");
   assert.ok(shortBlocker);
   assert.strictEqual(shortBlocker.field, "Agent Sub-Account");
+
+  // Ownership mismatch against connected wallet
+  const mismatchBlockers = computeButtonBlockers({
+    ...validBaseline,
+    agentName: "agent.sergeo-guard.testnet",
+    connectedWalletId: "blckfme.testnet",
+  });
+  const mismatch = mismatchBlockers.find((b) => b.id === "subaccount-owner-mismatch");
+  assert.ok(mismatch);
+  assert.ok(mismatch.message.includes("must be a sub-account of your connected wallet (blckfme.testnet)"));
+
+  // Duplicate registration detection
+  const duplicateBlockers = computeButtonBlockers({
+    ...validBaseline,
+    agentName: "agent.alice.testnet",
+    connectedWalletId: "alice.testnet",
+    isAgentNameRegistered: true,
+  });
+  const dup = duplicateBlockers.find((b) => b.id === "agent-already-registered");
+  assert.ok(dup);
+  assert.ok(dup.message.includes("is already registered on this Guard"));
+  assert.ok(dup.fix.includes("agent2.alice.testnet"));
 });
 
 test("button-blockers: detects zero or invalid daily spending cap and yields actionable fix", () => {
