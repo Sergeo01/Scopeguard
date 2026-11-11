@@ -24,10 +24,10 @@ export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
+    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
   }, []);
 
   const copyContract = () => {

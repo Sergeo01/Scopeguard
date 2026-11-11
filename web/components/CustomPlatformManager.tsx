@@ -20,6 +20,21 @@ const COMMON_NEAR_METHODS = [
   "execute",
 ];
 
+export const FORBIDDEN_VALUE_METHODS = [
+  "ft_transfer",
+  "ft_transfer_call",
+  "nft_transfer",
+  "nft_transfer_call",
+  "mt_transfer",
+  "mt_transfer_call",
+  "mt_batch_transfer",
+  "mt_batch_transfer_call",
+  "storage_unregister",
+  "storage_withdraw",
+  "near_withdraw",
+  "withdraw",
+];
+
 interface CustomPlatformManagerProps {
   platforms: ConfiguredPlatform[];
   onAddCustomPlatform: (platform: { contract: string; methods: string; label?: string }) => void;
@@ -52,8 +67,13 @@ export const CustomPlatformManager: React.FC<CustomPlatformManagerProps> = ({
 
   const handleAddCustomMethod = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setErrorMsg("");
     const trimmed = customMethodInput.trim().toLowerCase();
     if (!trimmed) return;
+    if (FORBIDDEN_VALUE_METHODS.includes(trimmed)) {
+      setErrorMsg(`'${trimmed}' is a value-moving transfer method. ScopeGuard handles transfers safely with daily spending limits; do not add it as a custom contract call.`);
+      return;
+    }
     if (!selectedMethods.includes(trimmed)) {
       setSelectedMethods([...selectedMethods, trimmed]);
     }
@@ -89,6 +109,12 @@ export const CustomPlatformManager: React.FC<CustomPlatformManagerProps> = ({
 
     if (selectedMethods.length === 0) {
       setErrorMsg("At least one allowed method must be selected.");
+      return;
+    }
+
+    const forbiddenFound = selectedMethods.filter((m) => FORBIDDEN_VALUE_METHODS.includes(m.toLowerCase()));
+    if (forbiddenFound.length > 0) {
+      setErrorMsg(`Please remove forbidden transfer method (${forbiddenFound.join(", ")}). Direct fund transfers are managed through ScopeGuard's native Transfer rules.`);
       return;
     }
 
@@ -372,14 +398,34 @@ export const CustomPlatformManager: React.FC<CustomPlatformManagerProps> = ({
                   <Code2 className="w-3 h-3" />
                   <span>Methods:</span>
                 </span>
-                {methodList.map((m) => (
-                  <span
-                    key={m}
-                    className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded bg-white dark:bg-obsidian-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-2xs"
-                  >
-                    {m}
-                  </span>
-                ))}
+                {methodList.map((m) => {
+                  const isForbidden = FORBIDDEN_VALUE_METHODS.includes(m.toLowerCase());
+                  return (
+                    <span
+                      key={m}
+                      className={`font-mono text-[10px] font-semibold px-2 py-0.5 rounded border shadow-2xs inline-flex items-center gap-1 ${
+                        isForbidden
+                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800"
+                          : "bg-white dark:bg-obsidian-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800"
+                      }`}
+                    >
+                      <span>{m}</span>
+                      {isForbidden && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMethods = methodList.filter((x) => x.toLowerCase() !== m.toLowerCase());
+                            onUpdatePlatformMethods(p.id, newMethods.length > 0 ? newMethods.join(", ") : "swap");
+                          }}
+                          className="hover:text-rose-900 dark:hover:text-rose-100 text-rose-500 font-bold ml-0.5 cursor-pointer"
+                          title="Remove forbidden method"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );

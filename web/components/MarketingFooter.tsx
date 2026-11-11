@@ -16,10 +16,10 @@ import { ScopeGuardLogo } from "@/components/ScopeGuardLogo";
 import { tryGetPolicyContractId } from "@/lib/config";
 
 export const MarketingFooter: React.FC = () => {
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
+    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
   }, []);
   return (
     <footer className="w-full border-t border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 text-slate-600 dark:text-slate-400 py-16 px-6 sm:px-10 lg:px-16 transition-colors">

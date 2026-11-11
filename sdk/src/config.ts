@@ -8,20 +8,12 @@
 export function tryGetPolicyContractId(): string | null {
   const serverId = process.env.SCOPEGUARD_POLICY_CONTRACT;
   if (typeof serverId === "string" && serverId.trim().length > 0 && serverId !== "undefined") {
-    const trimmed = serverId.trim();
-    if (trimmed.includes("guard2")) {
-      return "scopeguard.testnet";
-    }
-    return trimmed;
+    return serverId.trim();
   }
 
   const publicId = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
   if (typeof publicId === "string" && publicId.trim().length > 0 && publicId !== "undefined") {
-    const trimmed = publicId.trim();
-    if (trimmed.includes("guard2")) {
-      return "scopeguard.testnet";
-    }
-    return trimmed;
+    return publicId.trim();
   }
 
   return null;

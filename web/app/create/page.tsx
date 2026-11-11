@@ -270,7 +270,43 @@ export default function CreateAgentPage() {
   const isAutoPauseWindowValid =
     Number.isInteger(autoPauseWindowMinutes) && autoPauseWindowMinutes >= 1 && autoPauseWindowMinutes <= 1440;
 
-  const buttonBlockers: { id: string; field: string; message: string; fix: string; targetElementId?: string }[] = [];
+  const buttonBlockers: {
+    id: string;
+    field: string;
+    message: string;
+    fix: string;
+    targetElementId?: string;
+    quickFix?: () => void;
+    quickFixLabel?: string;
+  }[] = [];
+
+  const handleRemoveForbiddenMethod = (contractName: string, methodName: string) => {
+    setPlatforms((prev) => {
+      const updated = prev.map((p) => {
+        if (p.contract.toLowerCase() === contractName.toLowerCase()) {
+          const list = p.methods
+            .split(",")
+            .map((m) => m.trim())
+            .filter((m) => m.toLowerCase() !== methodName.toLowerCase() && m.length > 0);
+          return {
+            ...p,
+            methods: list.join(", "),
+          };
+        }
+        return p;
+      });
+      const cleaned = updated.filter((p) => p.contract.toLowerCase() !== contractName.toLowerCase() || p.methods.trim().length > 0);
+      return cleaned.length > 0 ? cleaned : [
+        {
+          id: "p1",
+          contract: "sergeo-guard-dex.testnet",
+          methods: "swap",
+          label: "ScopeGuard Testnet DEX",
+          isPreset: true,
+        },
+      ];
+    });
+  };
 
   if (!agentName.trim()) {
     buttonBlockers.push({
@@ -279,6 +315,8 @@ export default function CreateAgentPage() {
       message: "Agent Sub-Account ID is required.",
       fix: "Enter a valid NEAR account name (e.g. agent.sergeo-guard.testnet) in the Agent Sub-Account field.",
       targetElementId: "agent-subaccount-input",
+      quickFixLabel: "⚡ Use agent.sergeo-guard.testnet",
+      quickFix: () => setAgentName("agent.sergeo-guard.testnet"),
     });
   } else if (agentName.trim().length < 2 || agentName.trim().length > 64) {
     buttonBlockers.push({
@@ -305,6 +343,12 @@ export default function CreateAgentPage() {
       message: "Daily Spending Cap must be a positive whole number greater than $0.",
       fix: "Type an integer dollar figure greater than 0 (e.g. 100) or click one of the quick preset chips.",
       targetElementId: "daily-spending-cap-input",
+      quickFixLabel: "⚡ Set to $100",
+      quickFix: () => {
+        setDailyCap(100);
+        setDailyCapInput("100");
+        setTimelockThreshold(50);
+      },
     });
   }
 
@@ -315,6 +359,10 @@ export default function CreateAgentPage() {
       message: "At least one target platform contract with callable methods is required.",
       fix: "Select a pre-vetted platform (e.g. Testnet DEX) or add a custom contract with at least one callable method.",
       targetElementId: "platform-presets-section",
+      quickFixLabel: "⚡ Add Testnet DEX",
+      quickFix: () => {
+        if (PRESET_PLATFORMS[0]) togglePresetPlatform(PRESET_PLATFORMS[0]);
+      },
     });
   }
 
@@ -382,14 +430,23 @@ export default function CreateAgentPage() {
     .filter((w) => w.severity === "danger")
     .forEach((w, idx) => {
       const isValueMoving = w.message.includes("forbidden value-moving method");
+      const methodMatch = w.message.match(/forbidden value-moving method:\s*([a-z0-9_]+)/i);
+      const targetMatch = w.message.match(/Target\s+([a-z0-9_.-]+)\s+includes/i);
+      const forbiddenMethod = methodMatch ? methodMatch[1] : null;
+      const offendingTarget = targetMatch ? targetMatch[1] : null;
+
       buttonBlockers.push({
         id: `lint-danger-${idx}`,
         field: "Security Policy Lint",
         message: w.message,
         fix: isValueMoving
-          ? "Click the platform card or remove the transfer method from the list. To allow your agent to send money, use the 'Direct Cash Transfers' toggle below instead."
+          ? "Remove the forbidden transfer method. ScopeGuard enforces token transfers natively through guarded transfer actions, so you don't need to add it to custom contract calls."
           : "Remove dangerous administrative methods or wildcard '*' to satisfy security invariants.",
         targetElementId: "custom-platforms-container",
+        quickFix: isValueMoving && offendingTarget && forbiddenMethod ? () => {
+          handleRemoveForbiddenMethod(offendingTarget, forbiddenMethod);
+        } : undefined,
+        quickFixLabel: isValueMoving && forbiddenMethod ? `⚡ Remove '${forbiddenMethod}' (1-Click Fix)` : undefined,
       });
     });
 
@@ -1151,16 +1208,28 @@ export default function CreateAgentPage() {
                     </div>
                   </div>
 
-                  {b.targetElementId && (
-                    <button
-                      type="button"
-                      onClick={() => handleJumpToField(b.targetElementId!)}
-                      className="shrink-0 self-start sm:self-center px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-blue dark:text-sky-400 bg-brand-blue/10 dark:bg-sky-950/50 hover:bg-brand-blue/20 dark:hover:bg-sky-900/50 border border-brand-blue/20 dark:border-sky-800/50 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <span>Fix this now</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    {b.quickFix && (
+                      <button
+                        type="button"
+                        onClick={b.quickFix}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700/60 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{b.quickFixLabel || "Auto-Fix"}</span>
+                      </button>
+                    )}
+                    {b.targetElementId && (
+                      <button
+                        type="button"
+                        onClick={() => handleJumpToField(b.targetElementId!)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-blue dark:text-sky-400 bg-brand-blue/10 dark:bg-sky-950/50 hover:bg-brand-blue/20 dark:hover:bg-sky-900/50 border border-brand-blue/20 dark:border-sky-800/50 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <span>Fix manually</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

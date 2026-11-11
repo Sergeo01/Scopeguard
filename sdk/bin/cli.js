@@ -307,7 +307,7 @@ async function runAct() {
   const rpcUrl = flags.rpc || credential?.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
   if (!privateKey) {
-    console.error("Error: No agent passkey found. Run 'node sdk/bin/cli.js connect' or provide --key.");
+    console.error("Error: No agent passkey found. Save credentials in agent.json or pass --key ed25519:...");
     process.exit(1);
   }
 
