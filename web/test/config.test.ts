@@ -52,3 +52,20 @@ test("config: returns trimmed contract ID when SCOPEGUARD_POLICY_CONTRACT is con
     if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;
   }
 });
+
+test("config: preserves guard2 contract identity without forced rewrite to scopeguard.testnet", () => {
+  const origServer = process.env.SCOPEGUARD_POLICY_CONTRACT;
+  const origPublic = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  delete process.env.SCOPEGUARD_POLICY_CONTRACT;
+
+  try {
+    process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = "guard2.sergeo-guard.testnet";
+    assert.strictEqual(tryGetPolicyContractId(), "guard2.sergeo-guard.testnet");
+    assert.strictEqual(getPolicyContractId(), "guard2.sergeo-guard.testnet");
+  } finally {
+    if (origServer !== undefined) process.env.SCOPEGUARD_POLICY_CONTRACT = origServer;
+    else delete process.env.SCOPEGUARD_POLICY_CONTRACT;
+    if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;
+    else delete process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
+  }
+});
