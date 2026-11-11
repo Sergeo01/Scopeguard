@@ -71,19 +71,19 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const universalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${actualPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
+    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${actualPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
     : `node -e "console.log('No passkey provided.');"`;
 
   const displayUniversalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${revealKey ? actualPasskey : maskedPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
+    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${revealKey ? actualPasskey : maskedPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
     : `node -e "console.log('No passkey provided.');"`;
 
   const powershellCommand = actualPasskey
-    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${actualPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
+    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${actualPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
     : `Write-Host "No passkey provided."`;
 
   const displayPowershellCommand = actualPasskey
-    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${revealKey ? actualPasskey : maskedPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
+    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${revealKey ? actualPasskey : maskedPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
     : `Write-Host "No passkey provided."`;
 
   const envVarCommand = actualPasskey
@@ -140,12 +140,13 @@ INTEGRATION INSTRUCTIONS FOR AI AGENTS:
   "networkId": "testnet",
   "nodeUrl": "https://test.rpc.fastnear.com",
   "dailyCap": ${dailyCap},
-  "query_live_rules_url": "https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"
+  "query_live_rules_url": "http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"
 }
 
 HOW TO QUERY YOUR ACTIVE CONSTRAINTS & RULES:
 To verify your exact allowed actions, approved platforms, daily spending limit, and remaining balance at any time, run a simple HTTP GET request:
-curl https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}
+curl http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}
+(or https://scopeguard.blockframe.cloud:9443/api/agents?agent=${agentName})
 
 Or inspect onchain directly via NEAR RPC:
 near view ${guardContractDisplay} get_budget '{"agent_account":"${agentName}"}'
@@ -171,7 +172,7 @@ ACTIVE CONSTRAINTS & LIMITS:
     networkId: "testnet",
     nodeUrl: "https://test.rpc.fastnear.com",
     dailyCap: dailyCap,
-    query_live_rules_url: `https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}`,
+    query_live_rules_url: `http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}`,
     constraints: {
       daily_spending_cap_musd: dailyCap,
       auto_pause_strikes: autoPauseAfter,
