@@ -18,9 +18,18 @@ export async function getNearWalletSelector(): Promise<{ selector: WalletSelecto
 
   // Automatically purge retired wallet cache from previous sessions so users never get sent to defunct login URLs
   try {
-    const selected = localStorage.getItem("near-wallet-selector:selectedWalletId");
-    if (selected && (selected.includes("my-near-wallet") || selected === '"my-near-wallet"')) {
-      localStorage.removeItem("near-wallet-selector:selectedWalletId");
+    const keysToPurge = [
+      "near-wallet-selector:selectedWalletId",
+      "near-wallet-selector:recentlySignedInWallets",
+      "near_app_wallet_auth_key",
+      "_wallet_auth_key",
+      "null_wallet_auth_key",
+    ];
+    for (const key of keysToPurge) {
+      const val = localStorage.getItem(key);
+      if (val && (val.includes("my-near-wallet") || val.includes("mynearwallet"))) {
+        localStorage.removeItem(key);
+      }
     }
   } catch {}
 

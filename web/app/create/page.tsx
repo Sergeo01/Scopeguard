@@ -29,10 +29,12 @@ import {
   Sliders,
   Sparkles,
   ChevronDown,
+  Info,
+  ArrowRight,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
-import { PlatformPresets, PresetPlatform } from "../../components/PlatformPresets";
+import { PlatformPresets, PresetPlatform, PRESET_PLATFORMS } from "../../components/PlatformPresets";
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { PolicyChatAssistant } from "../../components/PolicyChatAssistant";
 import { useWallet } from "@/context/WalletContext";
@@ -268,7 +270,7 @@ export default function CreateAgentPage() {
   const isAutoPauseWindowValid =
     Number.isInteger(autoPauseWindowMinutes) && autoPauseWindowMinutes >= 1 && autoPauseWindowMinutes <= 1440;
 
-  const buttonBlockers: { id: string; field: string; message: string; fix: string }[] = [];
+  const buttonBlockers: { id: string; field: string; message: string; fix: string; targetElementId?: string }[] = [];
 
   if (!agentName.trim()) {
     buttonBlockers.push({
@@ -276,6 +278,7 @@ export default function CreateAgentPage() {
       field: "Agent Sub-Account",
       message: "Agent Sub-Account ID is required.",
       fix: "Enter a valid NEAR account name (e.g. agent.sergeo-guard.testnet) in the Agent Sub-Account field.",
+      targetElementId: "agent-subaccount-input",
     });
   } else if (agentName.trim().length < 2 || agentName.trim().length > 64) {
     buttonBlockers.push({
@@ -283,6 +286,7 @@ export default function CreateAgentPage() {
       field: "Agent Sub-Account",
       message: "Agent Sub-Account length must be between 2 and 64 characters.",
       fix: "Provide an account identifier between 2 and 64 characters to satisfy NEAR standards.",
+      targetElementId: "agent-subaccount-input",
     });
   } else if (!/^[a-z0-9._-]+$/.test(agentName.trim())) {
     buttonBlockers.push({
@@ -290,6 +294,7 @@ export default function CreateAgentPage() {
       field: "Agent Sub-Account",
       message: "Agent Sub-Account contains invalid characters or spaces.",
       fix: "Use only lowercase alphanumeric characters, dots, hyphens, and underscores (e.g. agent.alice.testnet).",
+      targetElementId: "agent-subaccount-input",
     });
   }
 
@@ -299,6 +304,7 @@ export default function CreateAgentPage() {
       field: "Daily Spending Cap",
       message: "Daily Spending Cap must be a positive whole number greater than $0.",
       fix: "Type an integer dollar figure greater than 0 (e.g. 100) or click one of the quick preset chips.",
+      targetElementId: "daily-spending-cap-input",
     });
   }
 
@@ -308,6 +314,7 @@ export default function CreateAgentPage() {
       field: "Approved Platforms",
       message: "At least one target platform contract with callable methods is required.",
       fix: "Select a pre-vetted platform (e.g. Testnet DEX) or add a custom contract with at least one callable method.",
+      targetElementId: "platform-presets-section",
     });
   }
 
@@ -317,6 +324,7 @@ export default function CreateAgentPage() {
       field: "Designated Recipient",
       message: "Direct cash transfers are enabled but no recipient account is specified.",
       fix: "Enter a destination NEAR account (e.g. sergeo-guard.testnet) or turn off the external transfers toggle.",
+      targetElementId: "external-recipient-input",
     });
   } else if (allowExternalTransfers && externalRecipient.trim() && (externalRecipient.trim().length < 2 || externalRecipient.trim().length > 64 || !/^[a-z0-9._-]+$/.test(externalRecipient.trim()))) {
     buttonBlockers.push({
@@ -324,6 +332,7 @@ export default function CreateAgentPage() {
       field: "Designated Recipient",
       message: "Recipient account address contains invalid characters or length.",
       fix: "Enter a valid NEAR account ID between 2 and 64 characters (lowercase letters, numbers, hyphens, dots).",
+      targetElementId: "external-recipient-input",
     });
   }
 
@@ -333,6 +342,7 @@ export default function CreateAgentPage() {
       field: "Auto-Brake Strikes",
       message: "Auto-brake strikes must be an integer between 1 and 50.",
       fix: "Set a strike count between 1 and 50 rejections.",
+      targetElementId: "auto-pause-after-input",
     });
   }
 
@@ -342,6 +352,7 @@ export default function CreateAgentPage() {
       field: "Speed Throttle",
       message: "Speed limit must be between 1 and 100 calls per 10 minutes.",
       fix: "Set the speed limit between 1 and 100.",
+      targetElementId: "speed-limit-input",
     });
   }
 
@@ -351,6 +362,7 @@ export default function CreateAgentPage() {
       field: "Check Window",
       message: "Check window must be between 1 and 1440 minutes.",
       fix: "Set rolling minutes between 1 and 1440.",
+      targetElementId: "auto-pause-window-input",
     });
   }
 
@@ -362,6 +374,7 @@ export default function CreateAgentPage() {
       field: "Policy Schema",
       message: err,
       fix: "Update policy inputs to satisfy onchain schema requirements.",
+      targetElementId: "agent-subaccount-input",
     });
   });
 
@@ -376,10 +389,44 @@ export default function CreateAgentPage() {
         fix: isValueMoving
           ? "Click the platform card or remove the transfer method from the list. To allow your agent to send money, use the 'Direct Cash Transfers' toggle below instead."
           : "Remove dangerous administrative methods or wildcard '*' to satisfy security invariants.",
+        targetElementId: "custom-platforms-container",
       });
     });
 
   const isFormValid = buttonBlockers.length === 0 && !isDeploying;
+
+  const handleJumpToField = (elementId: string) => {
+    if (creationMode === "ai") {
+      const aiAccordion = document.getElementById("ai-manual-settings-details") as HTMLDetailsElement | null;
+      if (aiAccordion) {
+        aiAccordion.open = true;
+      }
+    }
+
+    setTimeout(() => {
+      const target = document.getElementById(elementId);
+      if (!target) return;
+
+      let parent = target.parentElement;
+      while (parent) {
+        if (parent.tagName.toLowerCase() === "details") {
+          (parent as HTMLDetailsElement).open = true;
+        }
+        parent = parent.parentElement;
+      }
+
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      if (typeof (target as HTMLElement).focus === "function") {
+        (target as HTMLElement).focus();
+      }
+
+      target.classList.add("ring-4", "ring-brand-blue/60", "transition-all", "duration-300");
+      setTimeout(() => {
+        target.classList.remove("ring-4", "ring-brand-blue/60", "transition-all", "duration-300");
+      }, 2500);
+    }, 60);
+  };
 
   const handleIssueCard = async (override?: { agentAccountId?: string; policy?: any }) => {
     setIsDeploying(true);
@@ -702,29 +749,40 @@ export default function CreateAgentPage() {
         </div>
 
         {/* 3. Quick-Add Pre-Vetted Platforms */}
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        <div id="platform-presets-section" className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
           <PlatformPresets
             activeContracts={platforms.map((p) => p.contract)}
             onTogglePreset={togglePresetPlatform}
           />
           {!hasValidPlatforms && (
-            <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>At least one target platform contract must be added with callable methods.</span>
+            <div className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Select at least one platform above (e.g. Ref Finance DEX) to enable your agent.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => PRESET_PLATFORMS[0] && togglePresetPlatform(PRESET_PLATFORMS[0])}
+                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-[11px] shrink-0 cursor-pointer shadow-xs"
+              >
+                Add Testnet DEX
+              </button>
             </div>
           )}
         </div>
 
         {/* Custom Multi-Platform Manager */}
-        <CustomPlatformManager
-          platforms={platforms}
-          onAddCustomPlatform={addCustomPlatform}
-          onRemovePlatform={removePlatform}
-          onUpdatePlatformMethods={updatePlatformMethods}
-        />
+        <div id="custom-platforms-container">
+          <CustomPlatformManager
+            platforms={platforms}
+            onAddCustomPlatform={addCustomPlatform}
+            onRemovePlatform={removePlatform}
+            onUpdatePlatformMethods={updatePlatformMethods}
+          />
+        </div>
 
         {/* DROPDOWN 1: Speed Limits & Auto-Pause Circuit Breaker */}
-        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+        <details id="speed-limits-details" className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
           <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-brand-blue" />
@@ -787,7 +845,7 @@ export default function CreateAgentPage() {
         </details>
 
         {/* DROPDOWN 2: Direct External Cash Transfers */}
-        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+        <details id="cash-transfers-details" className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
           <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
             <div className="flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4 text-emerald-500" />
@@ -861,7 +919,7 @@ export default function CreateAgentPage() {
         </details>
 
         {/* DROPDOWN 3: Advanced Security (Canary Tripwires, Drawdowns & Timelocks) */}
-        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+        <details id="advanced-security-details" className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
           <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
             <div className="flex items-center gap-2">
               <Crosshair className="w-4 h-4 text-amber-500" />
@@ -1050,42 +1108,66 @@ export default function CreateAgentPage() {
           </div>
         )}
 
-        {/* Red Signals: Blockers Warning Card Explaining Exactly Why Button is Unclickable & What to Fix */}
+        {/* Friendly Guidance Checklist Explaining Exactly What to Complete Before Previewing */}
         {buttonBlockers.length > 0 && (
           <div
             id="preview-scope-button-blockers"
-            className="p-4 rounded-xl bg-rose-500/10 dark:bg-rose-950/50 border-2 border-rose-500/60 dark:border-rose-500/50 space-y-2.5 animate-in fade-in"
+            className="p-4 sm:p-5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/25 border border-amber-300/80 dark:border-amber-700/60 space-y-3 animate-in fade-in shadow-xs"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 animate-pulse" />
-                <span>Button Unclickable: {buttonBlockers.length} Requirement{buttonBlockers.length > 1 ? "s" : ""} Missing</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-semibold text-xs">
+                <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <span>Almost ready! {buttonBlockers.length} requirement{buttonBlockers.length > 1 ? "s" : ""} to complete before issuing passkey:</span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold">
-                Action Blocked
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 shrink-0">
+                {buttonBlockers.length} step{buttonBlockers.length > 1 ? "s" : ""} left
               </span>
             </div>
-            <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
-              Fix the following requirements to enable the Preview Scope &amp; Generate Handoff button:
+            <p className="text-xs text-amber-900/80 dark:text-amber-300/90 leading-relaxed">
+              Click any link below to jump directly to the field and fix it:
             </p>
-            <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+            <ul className="space-y-2">
               {buttonBlockers.map((b) => (
-                <li key={b.id} className="flex items-start gap-2 bg-white/50 dark:bg-black/30 p-2.5 rounded-lg border border-rose-500/20">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <span className="font-bold text-rose-900 dark:text-rose-200">{b.field}:</span>{" "}
-                    <span className="text-rose-800 dark:text-rose-300">{b.message}</span>
-                    <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 flex items-center gap-1">
-                      <span className="font-semibold text-rose-700 dark:text-rose-300">Fix:</span> {b.fix}
+                <li
+                  key={b.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/95 dark:bg-obsidian-900/90 p-3 rounded-xl border border-amber-200/80 dark:border-amber-800/40 shadow-xs"
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white">
+                          {b.field}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {b.message}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">How to fix:</span> {b.fix}
+                      </p>
                     </div>
                   </div>
+
+                  {b.targetElementId && (
+                    <button
+                      type="button"
+                      onClick={() => handleJumpToField(b.targetElementId!)}
+                      className="shrink-0 self-start sm:self-center px-3 py-1.5 rounded-lg text-xs font-semibold text-brand-blue dark:text-sky-400 bg-brand-blue/10 dark:bg-sky-950/50 hover:bg-brand-blue/20 dark:hover:bg-sky-900/50 border border-brand-blue/20 dark:border-sky-800/50 transition inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <span>Fix this now</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* Register Action Button & Locked Status */}
+        {/* Register Action Button & Status */}
         <div className="space-y-1.5">
           <button
             type="button"
@@ -1096,10 +1178,10 @@ export default function CreateAgentPage() {
                 ? `Button disabled: ${buttonBlockers.map((b) => b.message).join(" | ")}`
                 : "Preview policy scope and issue agent passkey"
             }
-            className={`w-full py-3 px-4 rounded-xl text-white font-semibold text-xs transition flex items-center justify-center gap-2 ${
+            className={`w-full py-3 px-4 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 ${
               isFormValid
-                ? "bg-brand-blue hover:bg-brand-blueHover cursor-pointer shadow-sm"
-                : "bg-brand-blue/50 opacity-50 cursor-not-allowed border-2 border-rose-500/50"
+                ? "bg-brand-blue hover:bg-brand-blueHover text-white cursor-pointer shadow-sm"
+                : "bg-slate-200 dark:bg-obsidian-800 text-slate-500 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700"
             }`}
           >
             {isDeploying ? (
@@ -1115,11 +1197,21 @@ export default function CreateAgentPage() {
             )}
           </button>
           {buttonBlockers.length > 0 && (
-            <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-center gap-1.5 pt-1">
-              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 pt-1 flex-wrap">
+              <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>
-                Button locked: Complete the {buttonBlockers.length} highlighted item{buttonBlockers.length > 1 ? "s" : ""} above to proceed.
+                To enable this button, complete the {buttonBlockers.length} item{buttonBlockers.length > 1 ? "s" : ""} in the checklist above.
               </span>
+              {buttonBlockers[0]?.targetElementId && (
+                <button
+                  type="button"
+                  onClick={() => handleJumpToField(buttonBlockers[0].targetElementId!)}
+                  className="text-brand-blue hover:underline font-semibold cursor-pointer inline-flex items-center gap-0.5"
+                >
+                  <span>Fix first item</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1534,7 +1626,7 @@ export default function CreateAgentPage() {
               />
 
               {/* Optional Collapsible Dropdown for fine-tuning manual settings in AI mode */}
-              <details className="group rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-obsidian-950/40 p-4 transition">
+              <details id="ai-manual-settings-details" className="group rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-obsidian-950/40 p-4 transition">
                 <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-brand-blue">
                   <div className="flex items-center gap-2">
                     <Sliders className="w-4 h-4 text-brand-blue" />
