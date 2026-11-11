@@ -28,6 +28,7 @@ import {
   AlertCircle,
   Sliders,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
@@ -572,6 +573,698 @@ export default function CreateAgentPage() {
     await handleIssueCard({ agentAccountId: targetAgent, policy: policyToUse });
   };
 
+  const renderManualBuilder = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Form Side (Col 7: Clean Single-Layer Card) */}
+      <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
+        {/* 1. Agent Sub-Account */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="agent-subaccount-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
+              Agent Sub-Account
+            </label>
+            {!isAgentNameValid && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Required
+              </span>
+            )}
+          </div>
+          <input
+            id="agent-subaccount-input"
+            name="agent-subaccount"
+            type="text"
+            value={agentName}
+            onChange={(e) => setAgentName(e.target.value)}
+            placeholder="e.g. agent.sergeo-guard.testnet"
+            className={`w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition ${
+              !isAgentNameValid
+                ? "border-rose-500 ring-2 ring-rose-500/30"
+                : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+            }`}
+          />
+          {!isAgentNameValid && (
+            <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+              <span>Please enter a valid NEAR agent sub-account (e.g. agent.sergeo-guard.testnet)</span>
+            </p>
+          )}
+          {isWalletConnected && connectedWalletId && (
+            <div className="flex items-center gap-2 pt-0.5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
+              <button
+                type="button"
+                onClick={() => setAgentName(`agent.${connectedWalletId}`)}
+                className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              >
+                Use agent.{connectedWalletId}
+              </button>
+            </div>
+          )}
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+            The NEAR account holding the scoped passkey. Isolated from your master wallet.
+          </span>
+        </div>
+
+        {/* 2. Daily Spending Cap: Free-form manual input */}
+        <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="daily-spending-cap-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
+                  Daily Spending Cap (mUSD / day)
+                </label>
+                {!isDailyCapValid && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Must be &gt; $0
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Type any figure manually. Can be $1 or any custom budget.
+              </span>
+            </div>
+            <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg ${
+              isDailyCapValid
+                ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-obsidian-800"
+                : "text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30"
+            }`}>
+              {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">$</span>
+              <input
+                id="daily-spending-cap-input"
+                name="daily-spending-cap"
+                type="number"
+                min="1"
+                step="1"
+                value={dailyCapInput}
+                onChange={(e) => handleDailyCapChange(e.target.value)}
+                className={`w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none transition ${
+                  !isDailyCapValid
+                    ? "border-rose-500 ring-2 ring-rose-500/30"
+                    : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                }`}
+                placeholder="100"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              {[25, 100, 250, 500, 1000].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPresetChip(preset)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium border transition ${
+                    dailyCap === preset
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-slate-50 dark:bg-obsidian-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-obsidian-800"
+                  }`}
+                >
+                  ${preset}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!isDailyCapValid && (
+            <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+              <span>Enter a positive spending cap greater than $0</span>
+            </p>
+          )}
+        </div>
+
+        {/* 3. Quick-Add Pre-Vetted Platforms */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <PlatformPresets
+            activeContracts={platforms.map((p) => p.contract)}
+            onTogglePreset={togglePresetPlatform}
+          />
+          {!hasValidPlatforms && (
+            <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>At least one target platform contract must be added with callable methods.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Custom Multi-Platform Manager */}
+        <CustomPlatformManager
+          platforms={platforms}
+          onAddCustomPlatform={addCustomPlatform}
+          onRemovePlatform={removePlatform}
+          onUpdatePlatformMethods={updatePlatformMethods}
+        />
+
+        {/* DROPDOWN 1: Speed Limits & Auto-Pause Circuit Breaker */}
+        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+          <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-brand-blue" />
+              <span>Speed Limits &amp; Auto-Pause Circuit Breakers (Optional)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="text-[10px] font-mono group-open:hidden">{autoPauseAfter} rejects / {autoPauseWindowMinutes}m</span>
+              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+            </div>
+          </summary>
+          <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Configure how many failed calls freeze the key, and how fast the agent can act.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <label htmlFor="auto-pause-after-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Auto-Brake Strikes</label>
+                <input
+                  id="auto-pause-after-input"
+                  name="auto-pause-after"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={autoPauseAfter}
+                  onChange={(e) => setAutoPauseAfter(Number(e.target.value) || 1)}
+                  className="w-full px-2 py-1 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-rose-600 dark:text-rose-400 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400 block">Rejections to freeze</span>
+              </div>
+              <div className="p-3 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <label htmlFor="auto-pause-window-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Check Window (Min)</label>
+                <input
+                  id="auto-pause-window-input"
+                  name="auto-pause-window"
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={autoPauseWindowMinutes}
+                  onChange={(e) => setAutoPauseWindowMinutes(Number(e.target.value) || 1)}
+                  className="w-full px-2 py-1 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400 block">Rolling minutes</span>
+              </div>
+              <div className="p-3 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <label htmlFor="speed-limit-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Speed Throttle</label>
+                <input
+                  id="speed-limit-input"
+                  name="speed-limit"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={speedLimit}
+                  onChange={(e) => setSpeedLimit(Number(e.target.value) || 1)}
+                  className="w-full px-2 py-1 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400 block">Max calls / window</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        {/* DROPDOWN 2: Direct External Cash Transfers */}
+        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+          <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+              <span>Direct Cash Transfers &amp; Outside Recipients (Optional)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="text-[10px] font-mono group-open:hidden">{allowExternalTransfers ? "Active: " + (externalRecipient || "Not set") : "Off by default"}</span>
+              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+            </div>
+          </summary>
+          <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-slate-900 dark:text-white block">
+                  Allow Direct Transfers to Outside Wallets?
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Default is OFF. Blocks sending funds to third-party personal accounts.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAllowExternalTransfers(!allowExternalTransfers)}
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                  allowExternalTransfers ? "bg-emerald-600" : "bg-slate-300 dark:bg-obsidian-800"
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    allowExternalTransfers ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {allowExternalTransfers && (
+              <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300 font-medium">
+                    Designated Allowed Recipient
+                  </label>
+                  {!isRecipientValid && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Recipient Required
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="external-recipient-input"
+                  name="external-recipient"
+                  type="text"
+                  value={externalRecipient}
+                  onChange={(e) => setExternalRecipient(e.target.value)}
+                  placeholder="e.g. sergeo-guard.testnet"
+                  className={`w-full px-3 py-2 bg-white dark:bg-obsidian-900 border rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none transition ${
+                    !isRecipientValid
+                      ? "border-rose-500 ring-2 ring-rose-500/30"
+                      : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                  }`}
+                />
+                {!isRecipientValid && (
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
+                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                    <span>Enter an authorized recipient account (e.g. alice.testnet) or turn off external transfers</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+
+        {/* DROPDOWN 3: Advanced Security (Canary Tripwires, Drawdowns & Timelocks) */}
+        <details className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-obsidian-950/60 p-4 transition">
+          <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-amber-500" />
+              <span>Advanced Security: Canary Tripwires, Drawdowns &amp; Timelocks (Optional)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="text-[10px] font-mono group-open:hidden">Honeypots &amp; Quarantine</span>
+              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+            </div>
+          </summary>
+          <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-4 text-xs">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Onchain circuit breakers, cross-chain allowlists, and decoy honeypots.
+            </p>
+
+            {/* 1. Net Drawdown Breaker */}
+            <div className="p-3.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    Net Drawdown Breaker
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                  {maxDrawdownPercent}% Max Loss
+                </span>
+              </div>
+              <input
+                id="max-drawdown-range"
+                name="max-drawdown"
+                type="range"
+                min="5"
+                max="50"
+                step="5"
+                value={maxDrawdownPercent}
+                onChange={(e) => setMaxDrawdownPercent(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer"
+              />
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                Trips automatic freeze if agent trading losses exceed {maxDrawdownPercent}% from peak vault balance.
+              </span>
+            </div>
+
+            {/* 2. High-Value Quarantine Timelock */}
+            <div className="p-3.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-3.5 h-3.5 text-blue-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    High-Value Quarantine Timelock Threshold
+                  </span>
+                </div>
+                <span className={`font-mono font-bold text-xs ${
+                  timelockThreshold > 0 ? "text-blue-600 dark:text-blue-400" : "text-rose-600 dark:text-rose-400"
+                }`}>
+                  {timelockThreshold > 0 ? `$${timelockThreshold} mUSD` : "Invalid Threshold"}
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">$</span>
+                <input
+                  id="high-value-threshold-input"
+                  name="high-value-threshold"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={timelockThreshold}
+                  onChange={(e) => setTimelockThreshold(Math.max(1, Number(e.target.value) || 1))}
+                  placeholder="250"
+                  className={`w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none transition ${
+                    timelockThreshold <= 0
+                      ? "border-rose-500 ring-2 ring-rose-500/30"
+                      : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
+                  }`}
+                />
+              </div>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                Actions at or above this threshold enter a 60-second owner quarantine queue for manual review before execution.
+              </span>
+            </div>
+
+            {/* 3. Task Lease Expiry Duration */}
+            <div className="p-3.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-3.5 h-3.5 text-purple-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    Task Lease Duration
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnableLeaseExpiry(!enableLeaseExpiry)}
+                  className={`w-9 h-5 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                    enableLeaseExpiry ? "bg-purple-600" : "bg-slate-300 dark:bg-obsidian-800"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                      enableLeaseExpiry ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              {enableLeaseExpiry ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="task-lease-hours-input"
+                      name="task-lease-hours"
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={taskLeaseHours}
+                      onChange={(e) => setTaskLeaseHours(Math.max(1, Math.min(168, Number(e.target.value) || 1)))}
+                      className="w-20 px-2 py-1 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-xs text-slate-900 dark:text-white"
+                    />
+                    <span className="text-xs text-slate-600 dark:text-slate-400">hours from activation</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                    The policy automatically expires after {taskLeaseHours} hour(s), after which actions fail closed with LEASE_EXPIRED.
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                  Perpetual lease (does not auto-expire until manually revoked).
+                </span>
+              )}
+            </div>
+
+            {/* 4. Cross-Chain Allowlists */}
+            <div className="p-3.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center gap-2">
+                <ArrowUpRight className="w-3.5 h-3.5 text-blue-500" />
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  Cross-Chain Intent Destinations (Defuse / 1Click)
+                </span>
+              </div>
+              <input
+                id="intent-recipients-input"
+                name="intent-recipients"
+                type="text"
+                value={intentRecipientsInput}
+                onChange={(e) => setIntentRecipientsInput(e.target.value)}
+                placeholder="0x742d35Cc6634C0532925a3b844Bc454e4438f44e, bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                Comma-separated destination addresses for IntentTransfer actions. Live contract checks recipient allowlist.
+              </span>
+            </div>
+
+            {/* 5. Canary Decoy Tripwires */}
+            <div className="p-3.5 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center gap-2">
+                <Crosshair className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  Canary Decoy Tripwires (Honeypot Methods)
+                </span>
+              </div>
+              <input
+                id="canary-methods-input"
+                name="canary-methods"
+                type="text"
+                value={canaryMethodsInput}
+                onChange={(e) => setCanaryMethodsInput(e.target.value)}
+                placeholder="drain_vault, admin_transfer, emergency_withdraw"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                Honeypot method names advertised to bait rogue agents or prompt attackers. Calling these trips auto-pause immediately.
+              </span>
+            </div>
+          </div>
+        </details>
+
+        {/* Deploy Error Banner */}
+        {deployError && (
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
+            <div className="font-bold flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span>Registration Failed:</span>
+            </div>
+            <p className="leading-relaxed font-mono text-[11px] break-all">{deployError}</p>
+          </div>
+        )}
+
+        {/* Red Signals: Blockers Warning Card Explaining Exactly Why Button is Unclickable & What to Fix */}
+        {buttonBlockers.length > 0 && (
+          <div
+            id="preview-scope-button-blockers"
+            className="p-4 rounded-xl bg-rose-500/10 dark:bg-rose-950/50 border-2 border-rose-500/60 dark:border-rose-500/50 space-y-2.5 animate-in fade-in"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 animate-pulse" />
+                <span>Button Unclickable: {buttonBlockers.length} Requirement{buttonBlockers.length > 1 ? "s" : ""} Missing</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold">
+                Action Blocked
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
+              Fix the following requirements to enable the Preview Scope &amp; Generate Handoff button:
+            </p>
+            <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
+              {buttonBlockers.map((b) => (
+                <li key={b.id} className="flex items-start gap-2 bg-white/50 dark:bg-black/30 p-2.5 rounded-lg border border-rose-500/20">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <span className="font-bold text-rose-900 dark:text-rose-200">{b.field}:</span>{" "}
+                    <span className="text-rose-800 dark:text-rose-300">{b.message}</span>
+                    <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 flex items-center gap-1">
+                      <span className="font-semibold text-rose-700 dark:text-rose-300">Fix:</span> {b.fix}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Register Action Button & Locked Status */}
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            disabled={!isFormValid}
+            onClick={() => handleIssueCard()}
+            title={
+              buttonBlockers.length > 0
+                ? `Button disabled: ${buttonBlockers.map((b) => b.message).join(" | ")}`
+                : "Preview policy scope and issue agent passkey"
+            }
+            className={`w-full py-3 px-4 rounded-xl text-white font-semibold text-xs transition flex items-center justify-center gap-2 ${
+              isFormValid
+                ? "bg-brand-blue hover:bg-brand-blueHover cursor-pointer shadow-sm"
+                : "bg-brand-blue/50 opacity-50 cursor-not-allowed border-2 border-rose-500/50"
+            }`}
+          >
+            {isDeploying ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Generating Policy Specification...</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-4 h-4" />
+                <span>Preview Scope &amp; Generate Handoff</span>
+              </>
+            )}
+          </button>
+          {buttonBlockers.length > 0 && (
+            <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-center gap-1.5 pt-1">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span>
+                Button locked: Complete the {buttonBlockers.length} highlighted item{buttonBlockers.length > 1 ? "s" : ""} above to proceed.
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Blueprint & Physical Card (Col 5: Clean Single-Layer Card) */}
+      <div className="lg:col-span-5 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Digital Key Specification</h2>
+          <div className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-obsidian-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setActiveView("visual")}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                activeView === "visual"
+                  ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Card
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("json")}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                activeView === "json"
+                  ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              JSON
+            </button>
+          </div>
+        </div>
+
+        {activeView === "visual" ? (
+          <div className="space-y-4">
+            {/* Physical Passkey Widget */}
+            <div className="p-6 rounded-xl bg-obsidian-900 text-white space-y-4 border border-obsidian-800">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-emerald-400" />
+                  <span className="font-semibold tracking-wider text-slate-200 text-[11px]">
+                    SCOPEGUARD PASSKEY
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">
+                  NEAR TESTNET
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  Assigned Agent
+                </span>
+                <span className={`font-mono text-sm font-semibold block truncate ${
+                  !isAgentNameValid ? "text-rose-400" : "text-slate-100"
+                }`}>
+                  {agentName.trim() || "(Agent name required)"}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Daily Limit</span>
+                  <span className={`font-mono font-bold ${
+                    isDailyCapValid ? "text-emerald-400" : "text-rose-400"
+                  }`}>
+                    {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Platforms</span>
+                  <span className="font-mono font-semibold text-slate-200">
+                    {platforms.length} Approved
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Policy Invariants */}
+            <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs text-slate-700 dark:text-slate-300">
+              <span className="font-bold text-slate-900 dark:text-white block mb-1">
+                Enforceable Invariants
+              </span>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  Calls restricted to {platforms.length} allowlisted contract(s)
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  Daily spending strictly bounded to ${dailyCap} mUSD
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  Auto-freeze after {autoPauseAfter} rejects in {autoPauseWindowMinutes}m
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  Max {maxDrawdownPercent}% portfolio drawdown breaker
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  Task lease: {enableLeaseExpiry ? `${taskLeaseHours}h fixed duration` : "Perpetual lease"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  {canaryMethodsInput.split(',').filter((s) => s.trim().length > 0).length} armed canary decoy tripwires
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  {intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length > 0
+                    ? `${intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length} allowlisted cross-chain destination(s)`
+                    : "Cross-chain payouts restricted"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>
+                  {allowExternalTransfers
+                    ? `Transfers allowed only to ${externalRecipient || "designated wallet"}`
+                    : "Transfers to personal accounts are refused"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+            <pre>{JSON.stringify(compiledPolicyJson, null, 2)}</pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Hero Passkey Studio Card (Clean Single-Layer Container) */}
@@ -752,706 +1445,112 @@ export default function CreateAgentPage() {
         />
       ) : (
         <div className="space-y-6">
-          {/* Mode Switcher: AI Assistant vs Manual Form */}
-          <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-                Configuration Mode
-              </span>
-              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                {creationMode === "ai"
-                  ? "AI Prompt Mode: Type your instructions in plain English. The AI configures everything and can generate your key directly."
-                  : "Manual Builder Mode: Configure rules using the visual controls, preset chips, and sliders below. Zero typing required."}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-obsidian-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0">
-              <button
-                type="button"
-                onClick={() => setCreationMode("ai")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  creationMode === "ai"
-                    ? "bg-brand-blue text-white shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>AI Prompt (Type English)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCreationMode("manual")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  creationMode === "manual"
-                    ? "bg-brand-blue text-white shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Manual Builder (No Typing)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Render AI Assistant ONLY when in AI mode */}
-          {creationMode === "ai" && (
-            <PolicyChatAssistant
-              onApplyPolicy={handleApplyDraftPolicy}
-              onDirectGenerate={handleDirectGenerateFromDraft}
-              currentDailyCap={dailyCap}
-              currentAgentName={agentName}
-            />
-          )}
-
-          {/* When in AI mode, add a subtle divider indicating manual settings below are synchronized / optional */}
-          {creationMode === "ai" && (
-            <div className="flex items-center gap-3 pt-2">
-              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                Synchronized Policy Settings (Optional to Edit Below)
-              </span>
-              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Form Side (Col 7: Clean Single-Layer Card) */}
-            <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-6">
-              {/* Agent Sub-Account */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="agent-subaccount-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
-                    Agent Sub-Account
-                  </label>
-                  {!isAgentNameValid && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Required
-                    </span>
-                  )}
-                </div>
-                <input
-                  id="agent-subaccount-input"
-                  name="agent-subaccount"
-                  type="text"
-                  value={agentName}
-                  onChange={(e) => setAgentName(e.target.value)}
-                  placeholder="e.g. agent.sergeo-guard.testnet"
-                  className={`w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition ${
-                    !isAgentNameValid
-                      ? "border-rose-500 ring-2 ring-rose-500/30"
-                      : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
-                  }`}
-                />
-                {!isAgentNameValid && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
-                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-                    <span>Please enter a valid NEAR agent sub-account (e.g. agent.sergeo-guard.testnet)</span>
-                  </p>
-                )}
-                {isWalletConnected && connectedWalletId && (
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Connected account prefix:</span>
-                    <button
-                      type="button"
-                      onClick={() => setAgentName(`agent.${connectedWalletId}`)}
-                      className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                    >
-                      Use agent.{connectedWalletId}
-                    </button>
-                  </div>
-                )}
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                  The NEAR account holding the scoped passkey. Isolated from your master wallet.
-                </span>
-              </div>
-
-            {/* Daily Spending Cap: Free-form manual input */}
-            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="daily-spending-cap-input" className="text-xs font-semibold text-slate-900 dark:text-white block">
-                      Daily Spending Cap (mUSD / day)
-                    </label>
-                    {!isDailyCapValid && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Must be &gt; $0
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Type any figure manually. Can be $1 or any custom budget.
-                  </span>
-                </div>
-                <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg ${
-                  isDailyCapValid
-                    ? "text-slate-900 dark:text-white bg-slate-100 dark:bg-obsidian-800"
-                    : "text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30"
-                }`}>
-                  {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">$</span>
-                  <input
-                    id="daily-spending-cap-input"
-                    name="daily-spending-cap"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={dailyCapInput}
-                    onChange={(e) => handleDailyCapChange(e.target.value)}
-                    className={`w-full pl-7 pr-3 py-2 bg-slate-50 dark:bg-obsidian-950 border rounded-xl text-xs font-mono font-semibold text-slate-900 dark:text-white focus:outline-none transition ${
-                      !isDailyCapValid
-                        ? "border-rose-500 ring-2 ring-rose-500/30"
-                        : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
-                    }`}
-                    placeholder="100"
-                  />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {[25, 100, 250, 500, 1000].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setPresetChip(preset)}
-                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium border transition ${
-                        dailyCap === preset
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                          : "bg-slate-50 dark:bg-obsidian-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-obsidian-800"
-                      }`}
-                    >
-                      ${preset}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {!isDailyCapValid && (
-                <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
-                  <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-                  <span>Enter a positive spending cap greater than $0</span>
-                </p>
-              )}
-            </div>
-
-            {/* Quick-Add Pre-Vetted Platforms */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <PlatformPresets
-                activeContracts={platforms.map((p) => p.contract)}
-                onTogglePreset={togglePresetPlatform}
-              />
-              {!hasValidPlatforms && (
-                <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/40 border border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                  <span>At least one target platform contract must be added with callable methods.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Custom Multi-Platform Manager */}
-            <CustomPlatformManager
-              platforms={platforms}
-              onAddCustomPlatform={addCustomPlatform}
-              onRemovePlatform={removePlatform}
-              onUpdatePlatformMethods={updatePlatformMethods}
-            />
-
-            {/* Custom Circuit Breaker & Velocity Safeguards */}
-            <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-              <div>
-                <label className="font-semibold text-slate-900 dark:text-white block">Custom Circuit Breaker & Rate Limits</label>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Configure how many failed calls freeze the key, and how fast the agent can act.
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <label htmlFor="auto-pause-after-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Auto-Brake Strikes</label>
-                  <input
-                    id="auto-pause-after-input"
-                    name="auto-pause-after"
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={autoPauseAfter}
-                    onChange={(e) => setAutoPauseAfter(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-rose-600 dark:text-rose-400 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <span className="text-[10px] text-slate-400 block">Rejections to freeze</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <label htmlFor="auto-pause-window-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Check Window (Min)</label>
-                  <input
-                    id="auto-pause-window-input"
-                    name="auto-pause-window"
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={autoPauseWindowMinutes}
-                    onChange={(e) => setAutoPauseWindowMinutes(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <span className="text-[10px] text-slate-400 block">Rolling minutes</span>
-                </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1">
-                  <label htmlFor="speed-limit-input" className="text-[11px] text-slate-500 dark:text-slate-400 block">Speed Throttle</label>
-                  <input
-                    id="speed-limit-input"
-                    name="speed-limit"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={speedLimit}
-                    onChange={(e) => setSpeedLimit(Number(e.target.value) || 1)}
-                    className="w-full px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono font-bold text-slate-800 dark:text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <span className="text-[10px] text-slate-400 block">Max calls / window</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Direct External Cash Transfers Toggle */}
-            <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-slate-900 dark:text-white block">
-                    Allow Direct Transfers to Outside Wallets?
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Default is OFF. Blocks sending funds to third-party personal accounts.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAllowExternalTransfers(!allowExternalTransfers)}
-                  className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                    allowExternalTransfers ? "bg-emerald-600" : "bg-slate-300 dark:bg-obsidian-800"
+          {/* Two Big Prominent Choice Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Card 1: AI Prompt Assistant */}
+            <button
+              type="button"
+              onClick={() => setCreationMode("ai")}
+              className={`p-5 sm:p-6 rounded-2xl border-2 text-left transition relative cursor-pointer ${
+                creationMode === "ai"
+                  ? "border-brand-blue bg-brand-blue/5 dark:bg-brand-blue/10 shadow-md ring-1 ring-brand-blue/30"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-obsidian-900 hover:border-slate-300 dark:hover:border-slate-700"
+              }`}
+            >
+              <div className="flex items-center justify-between pb-3">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                    creationMode === "ai"
+                      ? "bg-brand-blue text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-obsidian-800 text-slate-700 dark:text-slate-300"
                   }`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                      allowExternalTransfers ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {allowExternalTransfers && (
-                <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300">
-                      Designated Allowed Recipient
-                    </label>
-                    {!isRecipientValid && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Recipient Required
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="external-recipient-input"
-                    name="external-recipient"
-                    type="text"
-                    value={externalRecipient}
-                    onChange={(e) => setExternalRecipient(e.target.value)}
-                    placeholder="e.g. sergeo-guard.testnet"
-                    className={`w-full px-3 py-2 bg-white dark:bg-obsidian-900 border rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none transition ${
-                      !isRecipientValid
-                        ? "border-rose-500 ring-2 ring-rose-500/30"
-                        : "border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"
-                    }`}
-                  />
-                  {!isRecipientValid && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-                      <span>Enter an authorized recipient account (e.g. alice.testnet) or turn off external transfers</span>
-                    </p>
-                  )}
+                  <Sparkles className="w-5 h-5" />
                 </div>
-              )}
-            </div>
-
-            {/* Autonomous Risk Protocol Primitives */}
-            <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-              <div>
-                <label className="font-semibold text-slate-900 dark:text-white block">
-                  Autonomous Risk Protocol Safeguards
-                </label>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Onchain circuit breakers, cross-chain allowlists, and decoy honeypots.
-                </span>
-              </div>
-
-              {/* 1. Net Drawdown Breaker */}
-              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingDown className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="font-semibold text-slate-900 dark:text-white">
-                      Net Drawdown Breaker
-                    </span>
-                  </div>
-                  <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
-                    {maxDrawdownPercent}% Max Drawdown
+                {creationMode === "ai" ? (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-blue text-white inline-flex items-center gap-1 shadow-xs">
+                    <Check className="w-3 h-3" /> Selected Mode
                   </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    step="1"
-                    value={maxDrawdownPercent}
-                    onChange={(e) => setMaxDrawdownPercent(Number(e.target.value))}
-                    className="flex-1 accent-emerald-500 cursor-pointer"
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={maxDrawdownPercent}
-                    onChange={(e) => setMaxDrawdownPercent(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
-                    className="w-16 px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-center font-bold text-slate-900 dark:text-white text-xs"
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                  Trips auto-pause immediately if vault drops more than {maxDrawdownPercent}% below its high-water mark.
-                </span>
-              </div>
-
-              {/* 2. Task Lease Expiry */}
-              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Timer className="w-3.5 h-3.5 text-brand-blue" />
-                    <div>
-                      <span className="font-semibold text-slate-900 dark:text-white block">
-                        Task Lease Expiry
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Automatically expire passkey after a designated operational window.
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEnableLeaseExpiry(!enableLeaseExpiry)}
-                    className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                      enableLeaseExpiry ? "bg-emerald-600" : "bg-slate-300 dark:bg-obsidian-800"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                        enableLeaseExpiry ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {enableLeaseExpiry && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
-                    <label htmlFor="task-lease-hours-input" className="text-slate-700 dark:text-slate-300">
-                      Lease Duration (Hours)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="task-lease-hours-input"
-                        name="task-lease-hours"
-                        type="number"
-                        min="1"
-                        max="720"
-                        value={taskLeaseHours}
-                        onChange={(e) => setTaskLeaseHours(Math.max(1, Number(e.target.value) || 1))}
-                        className="w-20 px-2 py-1 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-lg font-mono text-center font-bold text-slate-900 dark:text-white text-xs"
-                      />
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                        ({Math.round(taskLeaseHours / 24)}d {taskLeaseHours % 24}h)
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. IntentShield (Cross-Chain Recipient Allowlist) */}
-              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-brand-blue" />
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    IntentShield: Cross-Chain Destination Allowlist
-                  </span>
-                </div>
-                <input
-                  id="intent-recipients-input"
-                  name="intent-recipients"
-                  type="text"
-                  value={intentRecipientsInput}
-                  onChange={(e) => setIntentRecipientsInput(e.target.value)}
-                  placeholder="e.g. 0x71C...3972, cosmos1...8q2, solana...4k9"
-                  className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                  Comma-separated destination addresses for IntentTransfer actions. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.
-                </span>
-              </div>
-
-              {/* 4. Canary Decoy Tripwires */}
-              <div className="p-3.5 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                <div className="flex items-center gap-2">
-                  <Crosshair className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    Canary Decoy Tripwires (Honeypot Methods)
-                  </span>
-                </div>
-                <input
-                  id="canary-methods-input"
-                  name="canary-methods"
-                  type="text"
-                  value={canaryMethodsInput}
-                  onChange={(e) => setCanaryMethodsInput(e.target.value)}
-                  placeholder="drain_vault, admin_transfer, emergency_withdraw"
-                  className="w-full px-3 py-2 bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                  Honeypot method names advertised to bait rogue agents or prompt attackers. Calling these trips auto-pause immediately.
-                </span>
-              </div>
-            </div>
-
-            {/* Deploy Error Banner */}
-            {deployError && (
-              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs space-y-1">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                  <span>Registration Failed:</span>
-                </div>
-                <p className="leading-relaxed font-mono text-[11px] break-all">{deployError}</p>
-              </div>
-            )}
-
-            {/* Red Signals: Blockers Warning Card Explaining Exactly Why Button is Unclickable & What to Fix */}
-            {buttonBlockers.length > 0 && (
-              <div
-                id="preview-scope-button-blockers"
-                className="p-4 rounded-xl bg-rose-500/10 dark:bg-rose-950/50 border-2 border-rose-500/60 dark:border-rose-500/50 space-y-2.5 animate-in fade-in"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 animate-pulse" />
-                    <span>Button Unclickable: {buttonBlockers.length} Requirement{buttonBlockers.length > 1 ? "s" : ""} Missing</span>
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-300 font-bold">
-                    Action Blocked
-                  </span>
-                </div>
-                <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
-                  Fix the following requirements to enable the Preview Scope &amp; Generate Handoff button:
-                </p>
-                <ul className="space-y-1.5 text-xs text-rose-700 dark:text-rose-300">
-                  {buttonBlockers.map((b) => (
-                    <li key={b.id} className="flex items-start gap-2 bg-white/50 dark:bg-black/30 p-2.5 rounded-lg border border-rose-500/20">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1" />
-                      <div className="flex-1">
-                        <span className="font-bold text-rose-900 dark:text-rose-200">{b.field}:</span>{" "}
-                        <span className="text-rose-800 dark:text-rose-300">{b.message}</span>
-                        <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium mt-0.5 flex items-center gap-1">
-                          <span className="font-semibold text-rose-700 dark:text-rose-300">Fix:</span> {b.fix}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Register Action Button & Locked Status */}
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                disabled={!isFormValid}
-                onClick={() => handleIssueCard()}
-                title={
-                  buttonBlockers.length > 0
-                    ? `Button disabled: ${buttonBlockers.map((b) => b.message).join(" | ")}`
-                    : "Preview policy scope and issue agent passkey"
-                }
-                className={`w-full py-3 px-4 rounded-xl text-white font-semibold text-xs transition flex items-center justify-center gap-2 ${
-                  isFormValid
-                    ? "bg-brand-blue hover:bg-brand-blueHover cursor-pointer shadow-sm"
-                    : "bg-brand-blue/50 opacity-50 cursor-not-allowed border-2 border-rose-500/50"
-                }`}
-              >
-                {isDeploying ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Generating Policy Specification...</span>
-                  </>
                 ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Preview Scope &amp; Generate Handoff</span>
-                  </>
+                  <span className="text-[11px] font-medium text-slate-400">Click to select</span>
                 )}
-              </button>
-              {buttonBlockers.length > 0 && (
-                <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-center gap-1.5 pt-1">
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  <span>
-                    Button locked: Complete the {buttonBlockers.length} highlighted item{buttonBlockers.length > 1 ? "s" : ""} above to proceed.
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-        {/* Blueprint & Physical Card (Col 5: Clean Single-Layer Card) */}
-        <div className="lg:col-span-5 bg-white dark:bg-obsidian-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Digital Key Specification</h2>
-              <div className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-obsidian-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setActiveView("visual")}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
-                    activeView === "visual"
-                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Card
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveView("json")}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
-                    activeView === "json"
-                      ? "bg-white dark:bg-obsidian-700 text-slate-900 dark:text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  JSON
-                </button>
               </div>
-            </div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                Describe with AI
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Type what your agent is allowed to do in plain English. The AI configures safety limits, approved platforms, and budgets, and lets you issue your passkey in 1 click. Zero manual sliders needed.
+              </p>
+            </button>
 
-              {activeView === "visual" ? (
-                <div className="space-y-4">
-                  {/* Physical Passkey Widget */}
-                  <div className="p-6 rounded-xl bg-obsidian-900 text-white space-y-4 border border-obsidian-800">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-emerald-400" />
-                        <span className="font-semibold tracking-wider text-slate-200 text-[11px]">
-                          SCOPEGUARD PASSKEY
-                        </span>
-                      </div>
-                      <span className="font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-300">
-                        NEAR TESTNET
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                        Assigned Agent
-                      </span>
-                      <span className={`font-mono text-sm font-semibold block truncate ${
-                        !isAgentNameValid ? "text-rose-400" : "text-slate-100"
-                      }`}>
-                        {agentName.trim() || "(Agent name required)"}
-                      </span>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">Daily Limit</span>
-                        <span className={`font-mono font-bold ${
-                          isDailyCapValid ? "text-emerald-400" : "text-rose-400"
-                        }`}>
-                          {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">Platforms</span>
-                        <span className="font-mono font-semibold text-slate-200">
-                          {platforms.length} Approved
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Policy Invariants */}
-                  <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                    <span className="font-bold text-slate-900 dark:text-white block mb-1">
-                      Enforceable Invariants
-                    </span>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        Calls restricted to {platforms.length} allowlisted contract(s)
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        Daily spending strictly bounded to ${dailyCap} mUSD
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        Auto-freeze after {autoPauseAfter} rejects in {autoPauseWindowMinutes}m
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        Max {maxDrawdownPercent}% portfolio drawdown breaker
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        Task lease: {enableLeaseExpiry ? `${taskLeaseHours}h fixed duration` : "Perpetual lease"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        {canaryMethodsInput.split(',').filter((s) => s.trim().length > 0).length} armed canary decoy tripwires
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        {intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length > 0
-                          ? `${intentRecipientsInput.split(',').filter((s) => s.trim().length > 0).length} allowlisted cross-chain destination(s)`
-                          : "Cross-chain payouts restricted"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <span>
-                        {allowExternalTransfers
-                          ? `Transfers allowed only to ${externalRecipient || "designated wallet"}`
-                          : "Transfers to personal accounts are refused"}
-                      </span>
-                    </div>
-                  </div>
+            {/* Card 2: Manual Builder */}
+            <button
+              type="button"
+              onClick={() => setCreationMode("manual")}
+              className={`p-5 sm:p-6 rounded-2xl border-2 text-left transition relative cursor-pointer ${
+                creationMode === "manual"
+                  ? "border-brand-blue bg-brand-blue/5 dark:bg-brand-blue/10 shadow-md ring-1 ring-brand-blue/30"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-obsidian-900 hover:border-slate-300 dark:hover:border-slate-700"
+              }`}
+            >
+              <div className="flex items-center justify-between pb-3">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                    creationMode === "manual"
+                      ? "bg-brand-blue text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-obsidian-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <Sliders className="w-5 h-5" />
                 </div>
-              ) : (
-                <div className="p-4 rounded-2xl bg-slate-950 text-slate-200 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  <pre>{JSON.stringify(compiledPolicyJson, null, 2)}</pre>
-                </div>
-              )}
+                {creationMode === "manual" ? (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-blue text-white inline-flex items-center gap-1 shadow-xs">
+                    <Check className="w-3 h-3" /> Selected Mode
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-slate-400">Click to select</span>
+                )}
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                Build Step-by-Step
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Configure spending budgets and platform permissions yourself using clean visual buttons and preset chips. Zero typing required. Advanced safety options are tucked away in dropdowns.
+              </p>
+            </button>
           </div>
+
+          {/* Mode View: AI Assistant vs Manual Builder */}
+          {creationMode === "ai" ? (
+            <div className="space-y-6">
+              <PolicyChatAssistant
+                onApplyPolicy={handleApplyDraftPolicy}
+                onDirectGenerate={handleDirectGenerateFromDraft}
+                currentDailyCap={dailyCap}
+                currentAgentName={agentName}
+              />
+
+              {/* Optional Collapsible Dropdown for fine-tuning manual settings in AI mode */}
+              <details className="group rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-obsidian-950/40 p-4 transition">
+                <summary className="flex items-center justify-between cursor-pointer list-none select-none text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-brand-blue">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-brand-blue" />
+                    <span>View or Fine-tune Settings Manually (Optional)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <span className="text-[10px] font-mono group-open:hidden">Collapsed</span>
+                    <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
+                  </div>
+                </summary>
+                <div className="pt-5 mt-3 border-t border-slate-200/80 dark:border-slate-800">
+                  {renderManualBuilder()}
+                </div>
+              </details>
+            </div>
+          ) : (
+            renderManualBuilder()
+          )}
         </div>
-      </div>
     )}
   </div>
 );

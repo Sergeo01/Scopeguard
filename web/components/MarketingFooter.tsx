@@ -133,9 +133,10 @@ export const MarketingFooter: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://near-faucet.io"
+                  href="https://testnet.meteorwallet.app"
                   target="_blank"
                   rel="noopener noreferrer"
+                  title="Create a free testnet account with pre-funded NEAR tokens using Meteor Wallet"
                   className="hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1"
                 >
                   <Coins className="w-3.5 h-3.5 text-amber-500" />

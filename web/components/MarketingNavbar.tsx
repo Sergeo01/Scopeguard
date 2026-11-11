@@ -88,9 +88,10 @@ export const MarketingNavbar: React.FC = () => {
               <span>Docs</span>
             </Link>
             <a
-              href="https://near-faucet.io"
+              href="https://testnet.meteorwallet.app"
               target="_blank"
               rel="noopener noreferrer"
+              title="Create a free testnet account with pre-funded NEAR tokens using Meteor Wallet"
               className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-850 transition flex items-center gap-1.5"
             >
               <Coins className="w-3.5 h-3.5 text-amber-500" />
@@ -194,9 +195,10 @@ export const MarketingNavbar: React.FC = () => {
                 <span>Documentation</span>
               </Link>
               <a
-                href="https://near-faucet.io"
+                href="https://testnet.meteorwallet.app"
                 target="_blank"
                 rel="noopener noreferrer"
+                title="Create a free testnet account with pre-funded NEAR tokens using Meteor Wallet"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-obsidian-900 flex items-center justify-between"
               >

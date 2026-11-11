@@ -109,7 +109,7 @@ export const AppSidebar: React.FC<{
           badge: contractId ? "Active" : "Unconfigured",
         },
         {
-          href: "https://near-faucet.io",
+          href: "https://testnet.meteorwallet.app",
           label: "Testnet Faucet",
           icon: Coins,
           isExternal: true,
