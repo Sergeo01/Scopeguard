@@ -38,6 +38,9 @@ function unwrap(value: any): any {
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
+  const requestedAgent = url.searchParams.get("agent");
+  const validAgent = requestedAgent && ACCOUNT_RE.test(requestedAgent) ? requestedAgent : null;
+
   const requested = url.searchParams.get("owner");
   const owner =
     (requested && ACCOUNT_RE.test(requested) ? requested : null) ||
@@ -57,10 +60,75 @@ export async function GET(req: Request) {
 
   const started = Date.now();
   try {
+    let lastError: any = null;
+
+    if (validAgent) {
+      for (const rpcUrl of rpcUrls) {
+        try {
+          const near = await connect({
+            networkId,
+            nodeUrl: rpcUrl,
+            keyStore: new keyStores.InMemoryKeyStore(),
+          });
+          const viewAccount = await near.account(guardId);
+          const view = (methodName: string, args: Record<string, unknown>) =>
+            viewAccount.viewFunction({ contractId: guardId, methodName, args });
+
+          const [budget, policy, stagedPolicy, pendingActions] = await Promise.all([
+            view("get_budget", { agent_account: validAgent }).catch(() => null),
+            view("get_policy", { agent_account: validAgent }).catch(() => null),
+            view("get_staged_policy", { agent_account: validAgent }).catch(() => null),
+            view("get_pending_actions", { agent_account: validAgent }).catch(() => []),
+          ]);
+
+          const targets = policy?.targets || {};
+          const isPaused = Boolean(budget?.paused);
+          const isRevoked = Boolean(budget?.revoked);
+
+          return NextResponse.json({
+            success: true,
+            agent: validAgent,
+            guard: guardId,
+            status: isRevoked ? "REVOKED" : isPaused ? "PAUSED" : "ACTIVE",
+            summary: {
+              status: isRevoked ? "REVOKED" : isPaused ? "PAUSED" : "ACTIVE",
+              daily_cap_musd: budget ? String(unwrap(budget?.cap) ?? "0") : null,
+              spent_today_musd: budget ? String(unwrap(budget?.spent) ?? "0") : null,
+              remaining_today_musd: budget ? String(unwrap(budget?.remaining) ?? "0") : null,
+              vault_balance_musd: budget ? String(unwrap(budget?.vault_balance) ?? "0") : null,
+              allowed_platforms: Object.keys(targets),
+              allowed_methods_by_target: targets,
+              can_execute_trades: !isPaused && !isRevoked,
+              can_modify_own_policy: false,
+              policy_owner: owner,
+              execution_rule: `All calls must be routed via ${guardId}::execute using your scoped function-call passkey.`,
+            },
+            budget: budget
+              ? {
+                  cap: String(unwrap(budget?.cap) ?? "0"),
+                  spent: String(unwrap(budget?.spent) ?? "0"),
+                  remaining: String(unwrap(budget?.remaining) ?? "0"),
+                  vaultBalance: String(unwrap(budget?.vault_balance) ?? "0"),
+                  actionsInWindow: Number(budget?.actions_in_window ?? 0),
+                  paused: isPaused,
+                  revoked: isRevoked,
+                }
+              : null,
+            policy: policy || null,
+            stagedPolicy: stagedPolicy || null,
+            pendingActions: Array.isArray(pendingActions) ? pendingActions : [],
+            rpc: rpcUrl,
+          });
+        } catch (err: any) {
+          lastError = err;
+        }
+      }
+      return NextResponse.json({ error: lastError?.message || "Failed to query agent rules" }, { status: 502 });
+    }
+
     let accounts: string[] | null = null;
     let viewAccount: any = null;
     let usedRpcUrl = rpcUrls[0] || "https://test.rpc.fastnear.com";
-    let lastError: any = null;
 
     for (const rpcUrl of rpcUrls) {
       try {
