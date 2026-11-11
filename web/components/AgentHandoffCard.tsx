@@ -57,7 +57,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   registrationCommand,
 }) => {
   const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("cli");
-  const [cliFlavor, setCliFlavor] = useState<"universal" | "repo" | "env">("universal");
+  const [cliFlavor, setCliFlavor] = useState<"universal" | "powershell" | "env">("universal");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [revealKey, setRevealKey] = useState(false);
 
@@ -71,20 +71,20 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const universalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${actualPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current directory!');"`
+    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${actualPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
     : `node -e "console.log('No passkey provided.');"`;
 
   const displayUniversalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${revealKey ? actualPasskey : maskedPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current directory!');"`
+    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${revealKey ? actualPasskey : maskedPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
     : `node -e "console.log('No passkey provided.');"`;
 
-  const repoCliCommand = actualPasskey
-    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${actualPasskey} --guard ${cliGuardArg}`
-    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${cliGuardArg}`;
+  const powershellCommand = actualPasskey
+    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${actualPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
+    : `Write-Host "No passkey provided."`;
 
-  const displayRepoCliCommand = actualPasskey
-    ? `node sdk/bin/cli.js connect --account ${agentName} --key ${revealKey ? actualPasskey : maskedPasskey} --guard ${cliGuardArg}`
-    : `node sdk/bin/cli.js connect --account ${agentName} --key <YOUR_ED25519_PASSKEY> --guard ${cliGuardArg}`;
+  const displayPowershellCommand = actualPasskey
+    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${revealKey ? actualPasskey : maskedPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
+    : `Write-Host "No passkey provided."`;
 
   const envVarCommand = actualPasskey
     ? `export SCOPEGUARD_AGENT_ACCOUNT="${agentName}"\nexport SCOPEGUARD_AGENT_PRIVATE_KEY="${actualPasskey}"\nexport SCOPEGUARD_POLICY_CONTRACT="${cliGuardArg}"\nexport NEAR_NETWORK="testnet"`
@@ -97,15 +97,15 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const activeCliCommand =
     cliFlavor === "universal"
       ? universalCommand
-      : cliFlavor === "repo"
-      ? repoCliCommand
+      : cliFlavor === "powershell"
+      ? powershellCommand
       : envVarCommand;
 
   const displayActiveCliCommand =
     cliFlavor === "universal"
       ? displayUniversalCommand
-      : cliFlavor === "repo"
-      ? displayRepoCliCommand
+      : cliFlavor === "powershell"
+      ? displayPowershellCommand
       : displayEnvVarCommand;
 
   const defaultPolicy = {
@@ -129,15 +129,22 @@ near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractI
 
   const agentPromptText = `You are my autonomous trading agent on NEAR Testnet protected by ScopeGuard.
 
-AGENT CREDENTIALS & ONCHAIN GUARD:
-- Account ID: ${agentName}
-- Scoped Function-Call Passkey: ${actualPasskey || "<PASSKEY>"}
-- Public Key: ${actualPublicKey || "<PUBLIC_KEY>"}
-- Guard Contract: ${guardContractDisplay}
-- Network: NEAR Testnet (RPC: https://test.rpc.fastnear.com)
+INTEGRATION INSTRUCTIONS FOR AI AGENTS:
+- Do not search your local filesystem for any SDK or CLI tools. All necessary credentials, endpoints, and constraints are provided directly in this prompt.
+- If you need a local credential file, save this configuration to ./agent.json:
+{
+  "agentAccountId": "${agentName}",
+  "policyContractId": "${guardContractDisplay}",
+  "publicKey": "${actualPublicKey}",
+  "privateKey": "${actualPasskey}",
+  "networkId": "testnet",
+  "nodeUrl": "https://test.rpc.fastnear.com",
+  "dailyCap": ${dailyCap},
+  "query_live_rules_url": "https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"
+}
 
-LIVE RULES & PERMISSION DISCOVERY:
-To inspect your exact allowed actions, approved platforms, daily spending limits, and remaining balance at any time, run a simple HTTP GET request:
+HOW TO QUERY YOUR ACTIVE CONSTRAINTS & RULES:
+To verify your exact allowed actions, approved platforms, daily spending limit, and remaining balance at any time, run a simple HTTP GET request:
 curl https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}
 
 Or inspect onchain directly via NEAR RPC:
@@ -153,7 +160,7 @@ ACTIVE CONSTRAINTS & LIMITS:
   4. When asked "What can you do with this key?", query your rules and explain your allowed platforms and spending caps to the user.`;
 
   const displayAgentPromptText = actualPasskey && !revealKey
-    ? agentPromptText.replace(actualPasskey, maskedPasskey)
+    ? agentPromptText.split(actualPasskey).join(maskedPasskey)
     : agentPromptText;
 
   const credentialJson = {
@@ -459,7 +466,18 @@ ACTIVE CONSTRAINTS & LIMITS:
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  Universal (Works in Any Folder / OpenCode)
+                  Node.js (Cross-Platform)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCliFlavor("powershell")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                    cliFlavor === "powershell"
+                      ? "bg-white dark:bg-obsidian-850 text-emerald-600 dark:text-emerald-400 shadow-xs border border-slate-200 dark:border-slate-700"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  PowerShell (Windows)
                 </button>
                 <button
                   type="button"
@@ -471,17 +489,6 @@ ACTIVE CONSTRAINTS & LIMITS:
                   }`}
                 >
                   Environment Variables
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCliFlavor("repo")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    cliFlavor === "repo"
-                      ? "bg-white dark:bg-obsidian-850 text-emerald-600 dark:text-emerald-400 shadow-xs border border-slate-200 dark:border-slate-700"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Inside ScopeGuard Repo
                 </button>
               </div>
 
@@ -525,10 +532,10 @@ ACTIVE CONSTRAINTS & LIMITS:
                 <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>
                   {cliFlavor === "universal"
-                    ? "Writes agent.json directly in whatever folder your agent is running in, with zero dependencies."
-                    : cliFlavor === "env"
-                    ? "Configures session environment variables for the agent runtime."
-                    : "Runs the native CLI script located in the ScopeGuard repository."}
+                    ? "Writes agent.json directly in your current directory with zero external dependencies."
+                    : cliFlavor === "powershell"
+                    ? "Windows native PowerShell command to save agent.json directly without downloading any tools."
+                    : "Configures session environment variables for the agent runtime."}
                 </span>
               </div>
             </div>
