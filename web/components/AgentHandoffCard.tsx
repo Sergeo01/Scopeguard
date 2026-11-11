@@ -63,9 +63,10 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const actualPasskey = passkey || "";
   const actualPublicKey = publicKey || "";
   const maskedPasskey = actualPasskey ? "ed25519:••••••••••••••••••••••••••••••••••••••••••••" : "";
-  const guardContract = tryGetPolicyContractId() || "scopeguard.testnet";
-  const guardContractDisplay = guardContract || "scopeguard.testnet";
-  const cliGuardArg = guardContract || "<POLICY_CONTRACT_ID>";
+  const rawGuard = tryGetPolicyContractId();
+  const guardContract = rawGuard && !rawGuard.includes("guard2") ? rawGuard : "scopeguard.testnet";
+  const guardContractDisplay = guardContract;
+  const cliGuardArg = guardContract;
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   const cliCommand = actualPasskey

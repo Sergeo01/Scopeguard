@@ -12,13 +12,21 @@ export function tryGetPolicyContractId(): string | null {
   // Static property access required for Next.js bundler inlining
   const publicId = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID;
   if (typeof publicId === "string" && publicId.trim().length > 0 && publicId !== "undefined") {
-    return publicId.trim();
+    const trimmed = publicId.trim();
+    if (trimmed.includes("guard2")) {
+      return "scopeguard.testnet";
+    }
+    return trimmed;
   }
 
   // Server-side / script access
   const serverId = process.env.SCOPEGUARD_POLICY_CONTRACT;
   if (typeof serverId === "string" && serverId.trim().length > 0 && serverId !== "undefined") {
-    return serverId.trim();
+    const trimmed = serverId.trim();
+    if (trimmed.includes("guard2")) {
+      return "scopeguard.testnet";
+    }
+    return trimmed;
   }
 
   return null;
