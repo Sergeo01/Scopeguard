@@ -13,10 +13,10 @@ export interface ConfiguredPlatform {
 
 const COMMON_NEAR_METHODS = [
   "swap",
-  "ft_transfer_call",
   "deposit",
-  "withdraw",
   "stake",
+  "storage_deposit",
+  "near_deposit",
   "execute",
 ];
 

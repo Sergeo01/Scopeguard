@@ -22,12 +22,12 @@ export const PRESET_PLATFORMS: PresetPlatform[] = [
     category: "DEX",
   },
   {
-    id: "preset-sergeo-token",
-    name: "ScopeGuard Custody Token",
-    contract: "sergeo-guard-token.testnet",
-    methods: "ft_transfer",
-    description: "Verified NEAR testnet NEP-141 token custody contract",
-    category: "Token",
+    id: "preset-ref-finance",
+    name: "Ref Finance DEX",
+    contract: "ref-finance-101.testnet",
+    methods: "swap",
+    description: "Primary decentralized exchange on NEAR Testnet",
+    category: "DEX",
   },
 ];
 

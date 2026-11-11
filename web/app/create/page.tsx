@@ -368,11 +368,14 @@ export default function CreateAgentPage() {
   policyLintWarnings
     .filter((w) => w.severity === "danger")
     .forEach((w, idx) => {
+      const isValueMoving = w.message.includes("forbidden value-moving method");
       buttonBlockers.push({
         id: `lint-danger-${idx}`,
         field: "Security Policy Lint",
         message: w.message,
-        fix: "Remove dangerous administrative methods or wildcard '*' to satisfy security invariants.",
+        fix: isValueMoving
+          ? "Click the platform card or remove the transfer method from the list. To allow your agent to send money, use the 'Direct Cash Transfers' toggle below instead."
+          : "Remove dangerous administrative methods or wildcard '*' to satisfy security invariants.",
       });
     });
 
