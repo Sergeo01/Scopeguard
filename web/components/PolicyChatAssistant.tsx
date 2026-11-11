@@ -13,6 +13,7 @@ import {
   Terminal,
   Code2,
   Shield,
+  ShieldCheck,
   ArrowRight,
   ExternalLink,
   RefreshCw,
@@ -23,6 +24,7 @@ import { DrafterPolicy, draftPolicyFromText } from "@/lib/drafter";
 
 export interface PolicyChatAssistantProps {
   onApplyPolicy: (policy: DrafterPolicy) => void;
+  onDirectGenerate?: (policy: DrafterPolicy) => void;
   currentDailyCap: number;
   currentAgentName: string;
 }
@@ -59,6 +61,7 @@ const PRESET_PROMPTS = [
 
 export function PolicyChatAssistant({
   onApplyPolicy,
+  onDirectGenerate,
   currentDailyCap,
   currentAgentName,
 }: PolicyChatAssistantProps) {
@@ -364,33 +367,47 @@ export const defaultCharacter: Character = {
                         </div>
                       </div>
 
-                      {/* Apply Button */}
-                      <div className="pt-2 flex items-center justify-between">
+                      {/* Action Buttons */}
+                      <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800/80">
                         <span className="text-[10px] text-slate-500">
-                          Click to push these settings into the form below:
+                          {onDirectGenerate
+                            ? "Generate key directly from this draft, or push to settings below:"
+                            : "Click to push these settings into the form below:"}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleApply(m.id, m.policy!)}
-                          disabled={m.applied}
-                          className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                            m.applied
-                              ? "bg-emerald-600 text-white cursor-default"
-                              : "bg-brand-blue hover:bg-brand-blueHover text-white shadow-xs"
-                          }`}
-                        >
-                          {m.applied ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Applied to Policy Form</span>
-                            </>
-                          ) : (
-                            <>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                              <span>Apply to Policy Form</span>
-                            </>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApply(m.id, m.policy!)}
+                            disabled={m.applied}
+                            className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                              m.applied
+                                ? "bg-slate-200 dark:bg-obsidian-800 text-slate-700 dark:text-slate-300 cursor-default"
+                                : "bg-white dark:bg-obsidian-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 shadow-xs"
+                            }`}
+                          >
+                            {m.applied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>Applied to Form</span>
+                              </>
+                            ) : (
+                              <>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                                <span>Apply to Form</span>
+                              </>
+                            )}
+                          </button>
+                          {onDirectGenerate && (
+                            <button
+                              type="button"
+                              onClick={() => onDirectGenerate(m.policy!)}
+                              className="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Generate Passkey Directly</span>
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -435,10 +452,14 @@ export const defaultCharacter: Character = {
                   <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
                   <span>Agent Intent or Permission Prompt</span>
                 </label>
-                {!promptInput.trim() && (
+                {promptValidationError ? (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     Draft Description Required
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-obsidian-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    Optional AI Input
                   </span>
                 )}
               </div>
@@ -461,7 +482,7 @@ export const defaultCharacter: Character = {
                   rows={2}
                   maxLength={2000}
                   className={`w-full p-3 rounded-xl bg-slate-50 dark:bg-obsidian-950 border text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none transition resize-none ${
-                    promptValidationError || (!promptInput.trim() && promptInput.length > 0)
+                    promptValidationError
                       ? "border-rose-500 ring-2 ring-rose-500/30"
                       : "border-slate-200 dark:border-slate-800 focus:border-brand-blue"
                   }`}
@@ -474,14 +495,14 @@ export const defaultCharacter: Character = {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <div className="flex-1">
-                {!promptInput.trim() ? (
+                {promptValidationError ? (
                   <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <span>Button unclickable: Enter a prompt description above or click a preset template to draft.</span>
                   </div>
                 ) : (
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    Press Enter to draft, or click the button. You can apply the drafted policy directly into your scoped key.
+                    Describe what your agent should do, or click a preset template above. (Typing is optional)
                   </span>
                 )}
               </div>

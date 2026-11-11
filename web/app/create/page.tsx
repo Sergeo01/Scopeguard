@@ -26,6 +26,8 @@ import {
   Shield,
   AlertTriangle,
   AlertCircle,
+  Sliders,
+  Sparkles,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
@@ -44,6 +46,7 @@ export default function CreateAgentPage() {
   const [dailyCap, setDailyCap] = useState<number>(500);
   const [dailyCapInput, setDailyCapInput] = useState<string>("500");
   const [guardContractId, setGuardContractId] = useState<string | null>(tryGetPolicyContractId);
+  const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
 
   useEffect(() => {
     setGuardContractId(tryGetPolicyContractId());
@@ -374,10 +377,13 @@ export default function CreateAgentPage() {
 
   const isFormValid = buttonBlockers.length === 0 && !isDeploying;
 
-  const handleIssueCard = async () => {
+  const handleIssueCard = async (override?: { agentAccountId?: string; policy?: any }) => {
     setIsDeploying(true);
     setDeployError(null);
     setRegistrationStatus("broadcasting");
+    const targetAgent = override?.agentAccountId || agentName;
+    const targetPolicy = override?.policy || compiledPolicyJson;
+
     try {
       const keyPair = KeyPair.fromRandom("ed25519");
       const pubKey = keyPair.getPublicKey().toString();
@@ -400,8 +406,8 @@ export default function CreateAgentPage() {
         const registerAction = transactions.functionCall(
           "register_agent",
           Buffer.from(JSON.stringify({
-            agent_account: agentName,
-            policy: compiledPolicyJson,
+            agent_account: targetAgent,
+            policy: targetPolicy,
           })),
           BigInt("100000000000000"), // 100 TGas
           BigInt(0)
@@ -428,7 +434,7 @@ export default function CreateAgentPage() {
               params: {
                 request_type: "view_account",
                 finality: "final",
-                account_id: agentName,
+                account_id: targetAgent,
               },
             }),
           });
@@ -448,16 +454,16 @@ export default function CreateAgentPage() {
         );
 
         // If sub-account does not exist yet under connected owner, create and attach passkey
-        if (!accountExists && agentName.endsWith(`.${connectedWalletId}`)) {
+        if (!accountExists && targetAgent.endsWith(`.${connectedWalletId}`)) {
           txList.push({
-            receiverId: agentName,
+            receiverId: targetAgent,
             actions: [
               transactions.createAccount(),
               transactions.transfer(BigInt("100000000000000000000000")), // 0.1 NEAR for storage
               keyAction,
             ],
           });
-        } else if (accountExists && agentName === connectedWalletId) {
+        } else if (accountExists && targetAgent === connectedWalletId) {
           txList.push({
             receiverId: connectedWalletId,
             actions: [keyAction],
@@ -499,8 +505,8 @@ export default function CreateAgentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentAccountId: agentName,
-          policy: compiledPolicyJson,
+          agentAccountId: targetAgent,
+          policy: targetPolicy,
           publicKey: pubKey,
         }),
       });
@@ -536,6 +542,34 @@ export default function CreateAgentPage() {
       setIsDeploying(false);
       setDeployError(e.message || "Failed to generate passkey or register agent");
     }
+  };
+
+  const handleDirectGenerateFromDraft = async (draft: DrafterPolicy) => {
+    handleApplyDraftPolicy(draft);
+    const targetAgent =
+      agentName.trim().length >= 2
+        ? agentName.trim()
+        : isWalletConnected && connectedWalletId
+        ? `agent.${connectedWalletId}`
+        : "agent.sergeo-guard.testnet";
+    if (!agentName.trim()) {
+      setAgentName(targetAgent);
+    }
+    const policyToUse = {
+      daily_cap: (draft.daily_cap || 500).toString(),
+      remaining_daily_budget: (draft.daily_cap || 500).toString(),
+      high_value_threshold: (draft.high_value_threshold || Math.max(1, Math.floor((draft.daily_cap || 500) / 2))).toString(),
+      max_drawdown_bps: draft.max_drawdown_bps || 2000,
+      auto_pause_rejects: draft.auto_pause_rejects || 3,
+      auto_pause_window_minutes: draft.auto_pause_window_minutes || 10,
+      max_actions_per_10min: draft.max_actions_per_10min || 10,
+      targets: draft.targets && Object.keys(draft.targets).length > 0 ? draft.targets : { "sergeo-guard-dex.testnet": ["swap"] },
+      recipients: draft.recipients || [],
+      canary_methods: draft.canary_methods || [],
+      task_lease_duration_ms: (draft as any).task_lease_duration_ms || 3600000,
+      intent_recipients: draft.intent_recipients || [],
+    };
+    await handleIssueCard({ agentAccountId: targetAgent, policy: policyToUse });
   };
 
   return (
@@ -718,12 +752,66 @@ export default function CreateAgentPage() {
         />
       ) : (
         <div className="space-y-6">
-          {/* Conversational Policy Assistant & Autonomous Agent Studio */}
-          <PolicyChatAssistant
-            onApplyPolicy={handleApplyDraftPolicy}
-            currentDailyCap={dailyCap}
-            currentAgentName={agentName}
-          />
+          {/* Mode Switcher: AI Assistant vs Manual Form */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                Configuration Mode
+              </span>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                {creationMode === "ai"
+                  ? "AI Prompt Mode: Type your instructions in plain English. The AI configures everything and can generate your key directly."
+                  : "Manual Builder Mode: Configure rules using the visual controls, preset chips, and sliders below. Zero typing required."}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-obsidian-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => setCreationMode("ai")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  creationMode === "ai"
+                    ? "bg-brand-blue text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI Prompt (Type English)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreationMode("manual")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  creationMode === "manual"
+                    ? "bg-brand-blue text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Manual Builder (No Typing)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Render AI Assistant ONLY when in AI mode */}
+          {creationMode === "ai" && (
+            <PolicyChatAssistant
+              onApplyPolicy={handleApplyDraftPolicy}
+              onDirectGenerate={handleDirectGenerateFromDraft}
+              currentDailyCap={dailyCap}
+              currentAgentName={agentName}
+            />
+          )}
+
+          {/* When in AI mode, add a subtle divider indicating manual settings below are synchronized / optional */}
+          {creationMode === "ai" && (
+            <div className="flex items-center gap-3 pt-2">
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Synchronized Policy Settings (Optional to Edit Below)
+              </span>
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Form Side (Col 7: Clean Single-Layer Card) */}
@@ -1187,7 +1275,7 @@ export default function CreateAgentPage() {
               <button
                 type="button"
                 disabled={!isFormValid}
-                onClick={handleIssueCard}
+                onClick={() => handleIssueCard()}
                 title={
                   buttonBlockers.length > 0
                     ? `Button disabled: ${buttonBlockers.map((b) => b.message).join(" | ")}`
