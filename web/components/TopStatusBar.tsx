@@ -26,10 +26,10 @@ export const TopStatusBar: React.FC<{
   const { user, accountId, isAdmin } = useWallet();
   const [copied, setCopied] = useState(false);
   const [isAgentPaused, setIsAgentPaused] = useState<boolean | null>(null);
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
 
     fetch("/api/state")
       .then((res) => res.json())

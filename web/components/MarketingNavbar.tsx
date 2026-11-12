@@ -24,10 +24,10 @@ export const MarketingNavbar: React.FC = () => {
   const { user, isConnected, openAuthModal } = useWallet();
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+  const [contractId, setContractId] = useState<string>(() => tryGetPolicyContractId() || "scopeguard.testnet");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
   }, []);
 
   const copyContract = () => {
@@ -57,6 +57,9 @@ export const MarketingNavbar: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
                   Scope<span className="text-brand-blue">Guard</span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue font-semibold">
+                  v0.4.0
                 </span>
               </div>
             </Link>

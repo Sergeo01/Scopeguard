@@ -55,7 +55,7 @@ export const AppSidebar: React.FC<{
   const [contractId, setContractId] = useState("");
 
   useEffect(() => {
-    setContractId(tryGetPolicyContractId() || "guard2.sergeo-guard.testnet");
+    setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
   }, []);
 
   const operationItems: NavItem[] = [
@@ -106,7 +106,7 @@ export const AppSidebar: React.FC<{
           label: "ScopeGuard Contract",
           icon: Shield,
           isExternal: Boolean(contractId),
-          badge: contractId ? "Active" : "Unconfigured",
+          badge: contractId ? "v0.4.0" : "Unconfigured",
         },
         {
           href: "https://testnet.meteorwallet.app",

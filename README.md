@@ -16,8 +16,8 @@ Give your agents a budget, not your private keys. ScopeGuard provides onchain gu
 ## Try it in 60 seconds
 
 1. Open [https://scopeguard.blockframe.cloud/compare](https://scopeguard.blockframe.cloud/compare)
-2. Click "Run unprotected agent" and observe it drains the working balance in a simulated exploit sequence.
-3. Click "Run ScopeGuard agent" with the exact same injected adversarial prompt, and observe it blocked onchain at the policy boundary.
+2. Click "Play All" to run the side-by-side comparison between an unprotected agent and the ScopeGuard policy-enforced agent.
+3. Observe how the unprotected agent drains the working balance, while the ScopeGuard agent blocks unauthorized targets, enforces speed limits, and trips the circuit breaker on rogue canary calls.
 
 **Expected Outcome:** Identical prompt injection produces opposite outcomes. The protected run displays live onchain preflight evaluations and structured rejection reason codes (`TARGET_NOT_ALLOWED`, `METHOD_NOT_ALLOWED`, `OVER_DAILY_CAP`, `RECIPIENT_NOT_ALLOWED`).
 
@@ -40,16 +40,17 @@ near view scopeguard.testnet get_budget '{"agent_account": "agent.sergeo-guard.t
 #   "cap": "500",
 #   "spent": "0",
 #   "remaining": "500",
-#   "vault_balance": "350",
 #   "actions_in_window": 0,
 #   "paused": false,
+#   "vault_balance": "350",
 #   "revoked": false,
 #   "high_water_mark": "350",
 #   "max_drawdown_bps": 2000,
 #   "near_vault_balance": "0",
-#   "near_cap": "5000000000000000000000000",
+#   "near_high_water_mark": "0",
+#   "near_cap": null,
 #   "near_spent": "0",
-#   "near_remaining": "5000000000000000000000000"
+#   "near_remaining": null
 # }
 
 # Query registered agent policy rules

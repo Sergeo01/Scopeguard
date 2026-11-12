@@ -748,18 +748,24 @@ export default function CreateAgentPage() {
       setAgentName(targetAgent);
     }
     const policyToUse = {
-      daily_cap: (draft.daily_cap || 500).toString(),
-      remaining_daily_budget: (draft.daily_cap || 500).toString(),
-      high_value_threshold: (draft.high_value_threshold || Math.max(1, Math.floor((draft.daily_cap || 500) / 2))).toString(),
-      max_drawdown_bps: draft.max_drawdown_bps || 2000,
+      token: "sergeo-guard-token.testnet",
+      targets: draft.targets && Object.keys(draft.targets).length > 0 ? draft.targets : { "sergeo-guard-dex.testnet": ["swap"] },
+      daily_cap: draft.daily_cap || 500,
+      recipients: draft.recipients || [],
+      max_actions_per_10min: draft.max_actions_per_10min || 5,
       auto_pause_rejects: draft.auto_pause_rejects || 3,
       auto_pause_window_minutes: draft.auto_pause_window_minutes || 10,
-      max_actions_per_10min: draft.max_actions_per_10min || 10,
-      targets: draft.targets && Object.keys(draft.targets).length > 0 ? draft.targets : { "sergeo-guard-dex.testnet": ["swap"] },
-      recipients: draft.recipients || [],
-      canary_methods: draft.canary_methods || [],
-      task_lease_duration_ms: (draft as any).task_lease_duration_ms || 3600000,
+      high_value_threshold: draft.high_value_threshold || Math.max(1, Math.floor((draft.daily_cap || 500) / 2)),
+      high_value_delay_seconds: 60,
+      policy_change_delay_seconds: 60,
+      max_drawdown_bps: draft.max_drawdown_bps || 2000,
+      lease_expires_at: null,
       intent_recipients: draft.intent_recipients || [],
+      canary_methods: draft.canary_methods && draft.canary_methods.length > 0
+        ? draft.canary_methods
+        : ["drain_vault", "admin_drain", "emergency_withdraw_all"],
+      near_daily_cap: null,
+      near_high_value_threshold: null,
     };
     await handleIssueCard({ agentAccountId: targetAgent, policy: policyToUse });
   };
@@ -1251,7 +1257,7 @@ export default function CreateAgentPage() {
               <div className="flex items-center gap-2">
                 <Crosshair className="w-3.5 h-3.5 text-emerald-500" />
                 <span className="font-semibold text-slate-900 dark:text-white">
-                  Canary Decoy Tripwires (Honeypot Methods)
+                  Canary Decoy Tripwires (drain_vault, admin_drain, emergency_withdraw_all)
                 </span>
               </div>
               <input
@@ -1260,7 +1266,7 @@ export default function CreateAgentPage() {
                 type="text"
                 value={canaryMethodsInput}
                 onChange={(e) => setCanaryMethodsInput(e.target.value)}
-                placeholder="drain_vault, admin_transfer, emergency_withdraw"
+                placeholder="drain_vault, admin_drain, emergency_withdraw_all"
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <span className="text-[10px] text-slate-500 dark:text-slate-400 block">

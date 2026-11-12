@@ -65,7 +65,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const actualPublicKey = publicKey || "";
   const maskedPasskey = actualPasskey ? "ed25519:••••••••••••••••••••••••••••••••••••••••••••" : "";
   const rawGuard = tryGetPolicyContractId();
-  const guardContract = rawGuard || "guard2.sergeo-guard.testnet";
+  const guardContract = rawGuard || "scopeguard.testnet";
   const guardContractDisplay = guardContract;
   const cliGuardArg = guardContract;
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
@@ -171,7 +171,7 @@ ACTIVE CONSTRAINTS & LIMITS:
     networkId: "testnet",
     nodeUrl: "https://test.rpc.fastnear.com",
     dailyCap: dailyCap,
-    query_live_rules_url: `http://scopeguard.blockframe.cloud/api/agents?agent=${agentName}`,
+    query_live_rules_url: `https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}`,
     constraints: {
       daily_spending_cap_musd: dailyCap,
       auto_pause_strikes: autoPauseAfter,
