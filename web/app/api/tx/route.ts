@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const hash = searchParams.get("hash");
-  const accountId = searchParams.get("account") || "agent.sergeo-guard.testnet";
+  const accountId = searchParams.get("account") || "agent2.sergeo-guard.testnet";
   const ownerId = searchParams.get("owner") || "sergeo-guard.testnet";
 
   if (!hash) {

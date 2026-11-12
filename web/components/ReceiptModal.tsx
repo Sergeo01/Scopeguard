@@ -42,7 +42,7 @@ interface TxData {
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   txHash,
   onClose,
-  accountId = "agent.sergeo-guard.testnet",
+  accountId = "agent2.sergeo-guard.testnet",
   ownerId = "sergeo-guard.testnet",
 }) => {
   const [loading, setLoading] = useState(true);

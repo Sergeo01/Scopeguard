@@ -94,7 +94,7 @@ function formatNearBalance(raw: string): string {
 export default function DashboardPage() {
   const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
-  const [agentId, setAgentId] = useState("agent.sergeo-guard.testnet");
+  const [agentId, setAgentId] = useState("agent2.sergeo-guard.testnet");
   const [guardId, setGuardId] = useState<string | null>(tryGetPolicyContractId);
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
   const [queriedAgent, setQueriedAgent] = useState<string | null>(null);

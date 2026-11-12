@@ -278,7 +278,7 @@ export default function HomePage() {
   // Fetch initial onchain state from Guard on mount and poll periodically
   useEffect(() => {
     const fetchState = () => {
-      fetch("/api/state?agent=agent.sergeo-guard.testnet")
+      fetch("/api/state?agent=agent2.sergeo-guard.testnet")
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.budget) {
@@ -527,7 +527,7 @@ export default function HomePage() {
 
         // Refresh onchain budget and pause telemetry directly from contract
         try {
-          const stateRes = await fetch(`/api/state?agent=agent.sergeo-guard.testnet`);
+          const stateRes = await fetch(`/api/state?agent=agent2.sergeo-guard.testnet`);
           const stateData = await stateRes.json();
           if (stateData.success && stateData.budget) {
             if (stateData.budget.vault_balance !== undefined) {
@@ -1188,7 +1188,7 @@ export default function HomePage() {
                       type="button"
                       onClick={() => {
                         const payload = JSON.stringify({
-                          caller: "agent.sergeo-guard.testnet",
+                          caller: "agent2.sergeo-guard.testnet",
                           guard: guardContractId || "Policy contract not configured",
                           action: {
                             target: targetAccount,
@@ -1304,7 +1304,7 @@ export default function HomePage() {
                     <pre className="p-3.5 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-[11px] leading-relaxed text-slate-800 dark:text-slate-200 overflow-x-auto">
 {JSON.stringify(
   {
-    caller: "agent.sergeo-guard.testnet",
+    caller: "agent2.sergeo-guard.testnet",
     guard: guardContractId || "Policy contract not configured",
     action: {
       target: targetAccount,

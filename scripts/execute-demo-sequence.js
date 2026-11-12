@@ -8,16 +8,16 @@ try {
 } catch {
   nearApi = require("/var/www/scopeguard/web/node_modules/near-api-js");
 }
-const { connect, keyStores, KeyPair } = require;
+const { connect, keyStores, KeyPair } = nearApi;
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
 const NETWORK_ID = "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const GUARD_ID = process.env.SCOPEGUARD_POLICY_CONTRACT || "scopeguard.testnet";
 const DEX_ID = process.env.SCOPEGUARD_DEX_CONTRACT || "sergeo-guard-dex.testnet";
 const TOKEN_ID = process.env.SCOPEGUARD_TOKEN_CONTRACT || "sergeo-guard-token.testnet";
-const AGENT_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
+const AGENT_ID = process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent2.sergeo-guard.testnet";
 
 async function loadOwnerKey() {
   const credPath = path.join(os.homedir(), ".near-credentials", NETWORK_ID, `${OWNER_ID}.json`);

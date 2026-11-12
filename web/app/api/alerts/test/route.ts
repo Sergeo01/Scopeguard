@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { type, webhookUrl, botToken, chatId, agentName = "agent.sergeo-guard.testnet" } = body;
+    const { type, webhookUrl, botToken, chatId, agentName = "agent2.sergeo-guard.testnet" } = body;
 
     if (type === "discord") {
       if (!webhookUrl || typeof webhookUrl !== "string" || !webhookUrl.startsWith("https://")) {

@@ -136,7 +136,7 @@ export async function POST(req: Request) {
     }
 
     const guardContractId = getPolicyContractId();
-    const envAgentAccount = rawAgentAccount || "agent.sergeo-guard.testnet";
+    const envAgentAccount = rawAgentAccount || "agent2.sergeo-guard.testnet";
 
     // Build strongly-typed GuardAction
     const argsString = typeof args === "string" ? args : JSON.stringify(args || {});

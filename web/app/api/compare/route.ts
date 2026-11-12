@@ -46,7 +46,7 @@ export async function GET(req: Request) {
   const agentId =
     process.env.SCOPEGUARD_AGENT_ACCOUNT ||
     process.env.SCOPEGUARD_AGENT_ID ||
-    "agent.sergeo-guard.testnet";
+    "agent2.sergeo-guard.testnet";
   const tokenContract =
     process.env.SCOPEGUARD_TOKEN_CONTRACT || "sergeo-guard-token.testnet";
   const dexContract =

@@ -1,22 +1,22 @@
 [
   {
     "id": "act-1794177400000-unp",
-    "txHash": "GJcBm3Mg7NMVqfxLCFewbKhuQdqjK8zbGhGY6vWTPfLR",
+    "txHash": "21Y84wUvPbrUooodeqVUcjfvMp4m5BDqeLnE6StTU3x2",
     "type": "ALLOW",
     "timestamp": 1794177400000,
-    "agent": "agent.sergeo-guard.testnet",
-    "target": "guard2.sergeo-guard.testnet",
-    "method": "unpause",
-    "reason": "Agent unpaused by owner"
+    "agent": "agent2.sergeo-guard.testnet",
+    "target": "scopeguard.testnet",
+    "method": "register_agent",
+    "reason": "Agent registered with verbatim policy"
   },
   {
     "id": "act-1794177313894-hvav",
-    "txHash": "5Xagg5GMhts5Gu7dQDAsz5GfqtWyfxMNwWHtXuNnYwsi",
-    "type": "REJECT",
+    "txHash": "FvuDWHmWnzzHQS5GU9TARc7cfWp928Upg9ajZ39przis",
+    "type": "ALLOW",
     "timestamp": 1794177313894,
-    "agent": "agent.sergeo-guard.testnet",
-    "target": "guard2.sergeo-guard.testnet",
-    "method": "drain_vault",
-    "reason": "CANARY_TRIPPED"
+    "agent": "agent2.sergeo-guard.testnet",
+    "target": "scopeguard.testnet",
+    "method": "ft_transfer_call",
+    "reason": "Vault funded with 350 mUSD"
   }
 ]

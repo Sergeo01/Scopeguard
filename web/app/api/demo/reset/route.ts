@@ -11,7 +11,7 @@ const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 const AGENT_ID =
   process.env.SCOPEGUARD_AGENT_ACCOUNT ||
   process.env.SCOPEGUARD_AGENT_ID ||
-  "agent.sergeo-guard.testnet";
+  "agent2.sergeo-guard.testnet";
 const NETWORK_ID = process.env.NEAR_NETWORK || "testnet";
 
 /**

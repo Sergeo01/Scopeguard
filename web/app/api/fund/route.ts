@@ -20,7 +20,7 @@ const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
  */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
-  const agentId = String(body?.agentId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet");
+  const agentId = String(body?.agentId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent2.sergeo-guard.testnet");
   const amount = String(body?.amount || "100");
 
   let fallbackGuard = "<policy_contract_id>";

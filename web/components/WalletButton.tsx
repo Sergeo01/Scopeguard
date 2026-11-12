@@ -71,7 +71,7 @@ export const WalletButton: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentId: "agent.sergeo-guard.testnet",
+          agentId: "agent2.sergeo-guard.testnet",
           amount: fundAmount,
         }),
       });
