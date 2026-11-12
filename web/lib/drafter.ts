@@ -188,6 +188,10 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
         });
       }
       if (valueMovingDenylist.includes(m)) {
+        // Exception: policy token with ft_transfer is valid and required when policy has allowlisted recipients
+        if (target === policy.token && m === "ft_transfer" && Array.isArray(policy.recipients) && policy.recipients.length > 0) {
+          continue;
+        }
         warnings.push({
           field: "targets",
           message: `Target ${target} includes forbidden value-moving method: ${m}. Calldata transfers must use typed Guard actions.`,
@@ -232,7 +236,7 @@ export function generatePlainEnglish(
 
   const recipientDesc =
     policy.recipients.length > 0
-      ? `Allowed payout recipients: ${policy.recipients.join(", ")}.`
+      ? `Allowed payout recipients: ${policy.recipients.join(", ")} (via ${policy.token} ft_transfer).`
       : "Direct transfers to outside recipients are completely forbidden.";
 
   const capNote = hints?.isGuessDailyCap ? ` (conservative default, please verify)` : "";
@@ -307,9 +311,10 @@ Draft a minimal-privilege JSON policy matching this schema:
 }
 Rules:
 1. Least privilege: recipients MUST be empty unless explicitly instructed.
-2. Never propose wildcards (*). Name exact methods.
-3. Include canary_methods with decoy names to detect rogue prompt injections.
-4. Return raw JSON only with zero markdown or fences.`;
+2. When the owner describes paying, sending, or transferring funds to named accounts, include the token contract ("sergeo-guard-token.testnet") with method "ft_transfer" in targets AND those exact accounts in recipients, because the contract requires both.
+3. Never propose wildcards (*). Name exact methods.
+4. Include canary_methods with decoy names to detect rogue prompt injections.
+5. Return raw JSON only with zero markdown or fences.`;
 
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${options.apiKey}`,
@@ -461,9 +466,14 @@ Rules:
 
   // Extract external recipient if explicitly specified
   const recipients: string[] = [];
-  const recipientMatch = text.match(/(?:to|send to|recipient|pay)\s+([a-z0-9_-]+\.(?:testnet|near))/i);
+  const recipientMatch = text.match(/(?:to|send to|recipient|pay|transfer to)\s+([a-z0-9_-]+\.(?:testnet|near))/i);
   if (recipientMatch) {
     recipients.push(recipientMatch[1]);
+  }
+
+  const tokenContract = "sergeo-guard-token.testnet";
+  if (recipients.length > 0) {
+    targets[tokenContract] = ["ft_transfer"];
   }
 
   const capNum = Number(dailyCap) || 100;

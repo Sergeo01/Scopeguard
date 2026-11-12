@@ -130,3 +130,16 @@ test("parseRegistrationError: handles missing contract / network mismatch gracef
   assert.ok(parsed.message.includes("scopeguard.testnet was not found"));
   assert.ok(parsed.fixGuidance.includes("Testnet"));
 });
+
+test("parseRegistrationError: handles policy validation failure without falsely claiming duplicate", () => {
+  const rawPolicyError = "ExecutionError: 'Smart contract panicked: daily_cap must be greater than zero'";
+  const parsed = parseRegistrationError(
+    rawPolicyError,
+    "agent3.sergeo-guard.testnet",
+    "sergeo-guard.testnet"
+  );
+
+  assert.strictEqual(parsed.title, "Policy Validation Failed");
+  assert.ok(parsed.message.includes("failed onchain validation"));
+  assert.ok(parsed.fixGuidance.includes("daily spending cap is greater than zero"));
+});

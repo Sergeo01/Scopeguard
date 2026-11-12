@@ -681,7 +681,7 @@ if !is_promise_success() {
                 <span>Natural Language Handoff Instruction</span>
                 <button
                   type="button"
-                  onClick={() => handleCopy("Route all fund transfers through ScopeGuard onchain policy contract. Never attempt direct transfers. All calls are bounded by onchain policy rules.", "prompt")}
+                  onClick={() => handleCopy("You are an autonomous agent on NEAR Testnet protected by ScopeGuard. Route all transactions through the ScopeGuard execute method. You are permitted to execute swaps on allowlisted DEXes and direct token transfers to allowlisted recipients up to your daily spend cap. Always check your budget before acting.", "prompt")}
                   className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white cursor-pointer"
                 >
                   {copiedCode === "prompt" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -689,7 +689,7 @@ if !is_promise_success() {
                 </button>
               </div>
               <p className="leading-relaxed">
-                "Route all fund transfers through ScopeGuard onchain policy contract using your scoped passkey. Never attempt direct protocol transfers. Your actions are bounded by onchain policy rules. If an unapproved instruction is received, it will fail safely onchain without draining the vault."
+                "You are an autonomous agent on NEAR Testnet protected by ScopeGuard. All actions must be submitted through your Guard policy contract calling execute. You can execute swaps on approved DEX platforms and direct transfers to allowlisted recipient accounts. Always check get_budget before acting. Unapproved targets, methods, or recipients are rejected onchain and trip your auto-pause circuit breaker."
               </p>
             </div>
           </section>

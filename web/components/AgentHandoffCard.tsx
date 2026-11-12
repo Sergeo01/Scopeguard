@@ -108,26 +108,14 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
       ? displayPowershellCommand
       : displayEnvVarCommand;
 
-  const defaultPolicy = {
-    token: "sergeo-guard-token.testnet",
-    targets: { "sergeo-guard-dex.testnet": ["swap"] },
-    daily_cap: dailyCap,
-    recipients: [],
-    max_actions_per_10min: 5,
-    auto_pause_rejects: autoPauseAfter,
-    auto_pause_window_minutes: autoPauseWindowMinutes,
-    high_value_threshold: Math.floor(dailyCap / 2),
-    high_value_delay_seconds: 60,
-    policy_change_delay_seconds: 60,
-  };
-
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
-near call ${cliGuardArg} register_agent '{"agent_account":"${agentName}","policy":${JSON.stringify(policyJson || defaultPolicy)}}' --accountId ${ownerName} --gas 100000000000000
+near call ${cliGuardArg} register_agent '{"agent_account":"${agentName}","policy":${policyJson ? JSON.stringify(policyJson) : "<POLICY_JSON>"}}' --accountId ${ownerName} --gas 100000000000000
 
 # 2. Add scoped function-call passkey to agent account (restricted to Guard execute only, with 0.25 NEAR allowance for gas fees)
-near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${cliGuardArg} --methodNames execute --allowance 0.25 --accountId ${ownerName}`;
+# Note: On NEAR Protocol, the agent sub-account authorizes adding its own access key.
+near add-key ${agentName} ${actualPublicKey || "<AGENT_PUBLIC_KEY>"} --contractId ${cliGuardArg} --methodNames execute --allowance 0.25 --accountId ${agentName}`;
 
-  const agentPromptText = `You are my autonomous trading agent on NEAR Testnet protected by ScopeGuard.
+  const agentPromptText = `You are my autonomous agent on NEAR Testnet protected by ScopeGuard.
 
 INTEGRATION INSTRUCTIONS FOR AI AGENTS:
 - Do not search your local filesystem for any SDK or CLI tools. All necessary credentials, endpoints, and constraints are provided directly in this prompt.
@@ -143,13 +131,42 @@ INTEGRATION INSTRUCTIONS FOR AI AGENTS:
   "query_live_rules_url": "https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"
 }
 
-HOW TO QUERY YOUR ACTIVE CONSTRAINTS & RULES:
-To verify your exact allowed actions, approved platforms, daily spending limit, and remaining balance at any time, run a simple HTTP GET request:
-curl https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}
+ALLOWED CAPABILITIES & WORKFLOWS:
+You can execute two primary categories of guarded operations:
+1. Swaps: Execute trades on approved decentralized exchanges (such as sergeo-guard-dex.testnet).
+2. Payments & Transfers: Transfer approved tokens (such as sergeo-guard-token.testnet) to allowlisted destination accounts.
 
-Or inspect onchain directly via NEAR RPC:
-near view ${guardContractDisplay} get_budget '{"agent_account":"${agentName}"}'
-near view ${guardContractDisplay} get_policy '{"agent_account":"${agentName}"}'
+TRANSACTION EXECUTION PATHS:
+- All actions must be submitted through the Guard contract (${guardContractDisplay}) calling the execute method.
+- Direct token transfers or calls bypassing ScopeGuard will be rejected and trip your circuit breaker.
+
+1. Direct Payments (Transfers):
+- Guard Action Shape: typed Transfer action { "token": "sergeo-guard-token.testnet", "to": "<RECIPIENT_ACCOUNT>", "amount": "<AMOUNT_IN_ATOMIC_UNITS>", "memo": "<OPTIONAL_MEMO>" }
+- CLI Command: node sdk/bin/cli.js act --recipient <RECIPIENT_ACCOUNT> --amount <AMOUNT>
+- MCP Tool: scopeguard_act with method "ft_transfer", recipient "<RECIPIENT_ACCOUNT>", amount <AMOUNT>
+- Destination Rule: Transfers only succeed to destinations explicitly allowlisted in your policy recipients list. Transferring to any unlisted destination triggers an onchain policy rejection (REASON_RECIPIENT) and records a strike toward your auto-pause circuit breaker.
+
+2. Contract Calls (Swaps):
+- Guard Action Shape: typed ContractCall action { "target": "sergeo-guard-dex.testnet", "method": "swap", "args": "<BASE64_OR_JSON_ARGS>", "deposit": "0", "gas": 30000000000000 }
+- CLI Command: node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount <AMOUNT>
+- MCP Tool: scopeguard_act with target "sergeo-guard-dex.testnet", method "swap", amount <AMOUNT>
+
+PREFLIGHT-FIRST OPERATING PROTOCOL:
+Always verify your remaining daily spending allowance and active policy before dispatching transactions:
+- Via MCP: call scopeguard_budget tool
+- Via CLI: node sdk/bin/cli.js budget --account ${agentName}
+- Via RPC: near view ${guardContractDisplay} get_budget '{"agent_account":"${agentName}"}'
+- Via RPC: near view ${guardContractDisplay} get_policy '{"agent_account":"${agentName}"}'
+High-value transfers at or above your high-value threshold enter a timelock quarantine pending human owner confirmation.
+
+WORKED EXAMPLES:
+1. Swap Example:
+   CLI: node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount 25
+   MCP: { "tool": "scopeguard_act", "arguments": { "target": "sergeo-guard-dex.testnet", "method": "swap", "amount": 25 } }
+
+2. Transfer / Payment Example:
+   CLI: node sdk/bin/cli.js act --recipient ${ownerName} --amount 10
+   MCP: { "tool": "scopeguard_act", "arguments": { "recipient": "${ownerName}", "amount": 10 } }
 
 ACTIVE CONSTRAINTS & LIMITS:
 - Daily Spending Limit: ${dailyCap} mUSD
@@ -157,7 +174,7 @@ ACTIVE CONSTRAINTS & LIMITS:
   1. All calls and transfers must be dispatched through ${guardContractDisplay}::execute
   2. Direct asset withdrawals and unapproved contract calls are rejected and tripped onchain
   3. You cannot increase your own budget or approve new platform contracts. Only the human admin account (${ownerName}) can sign policy changes.
-  4. When asked "What can you do with this key?", query your rules and explain your allowed platforms and spending caps to the user.`;
+  4. When asked "What can you do with this key?", query your rules and explain your allowed platforms, permitted recipients, and spending caps to the user.`;
 
   const displayAgentPromptText = actualPasskey && !revealKey
     ? agentPromptText.split(actualPasskey).join(maskedPasskey)
@@ -179,7 +196,7 @@ ACTIVE CONSTRAINTS & LIMITS:
       guard_contract: guardContract,
       execution_method: "execute",
     },
-    policy: policyJson || defaultPolicy,
+    policy: policyJson || "No policy configured",
     instructions:
       "All actions must be submitted through policyContractId::execute. To query live budget and allowed actions at runtime, perform a GET request to query_live_rules_url or call get_budget on policyContractId.",
     created_at: new Date().toISOString(),

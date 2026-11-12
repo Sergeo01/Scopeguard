@@ -95,16 +95,21 @@ const policySchema = {
 
 const validatePolicy = ajv.compile(policySchema);
 
-export function getSafeDefaultPolicy(dailyCap: number | string = 100): DrafterPolicy {
+export function getSafeDefaultPolicy(dailyCap: number | string = 100, recipients: string[] = []): DrafterPolicy {
   const capNum = Number(dailyCap) || 100;
   const threshold = Math.floor(capNum / 2);
+  const tokenContract = "sergeo-guard-token.testnet";
+  const targets: Record<string, string[]> = {
+    "sergeo-guard-dex.testnet": ["swap"],
+  };
+  if (Array.isArray(recipients) && recipients.length > 0) {
+    targets[tokenContract] = ["ft_transfer"];
+  }
   return {
-    token: "sergeo-guard-token.testnet",
-    targets: {
-      "sergeo-guard-dex.testnet": ["swap"],
-    },
+    token: tokenContract,
+    targets,
     daily_cap: capNum,
-    recipients: [],
+    recipients,
     max_actions_per_10min: 5,
     auto_pause_rejects: 5,
     auto_pause_window_minutes: 10,
@@ -153,6 +158,9 @@ export function lintPolicy(policy: DrafterPolicy): LintWarning[] {
         });
       }
       if (valueMovingDenylist.includes(m)) {
+        if (target === policy.token && m === "ft_transfer" && Array.isArray(policy.recipients) && policy.recipients.length > 0) {
+          continue;
+        }
         warnings.push({
           field: "targets",
           message: `Target ${target} includes forbidden value-moving method: ${m}. Calldata transfers must use typed Guard actions.`,
@@ -315,8 +323,9 @@ Draft a minimal-privilege JSON policy matching this schema:
 }
 Rules:
 1. Least privilege: recipients MUST be empty unless explicitly instructed.
-2. Never propose wildcards (*). Name exact methods.
-3. Return raw JSON only with zero markdown or fences.`;
+2. When the owner describes paying, sending, or transferring funds to named accounts, include the token contract ("sergeo-guard-token.testnet") with method "ft_transfer" in targets AND those exact accounts in recipients, because the contract requires both.
+3. Never propose wildcards (*). Name exact methods.
+4. Return raw JSON only with zero markdown or fences.`;
 
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${options.apiKey}`,
@@ -391,9 +400,14 @@ Rules:
 
   // Extract external recipient if explicitly specified
   const recipients: string[] = [];
-  const recipientMatch = text.match(/(?:to|send to|recipient|pay)\s+([a-z0-9_-]+\.(?:testnet|near))/i);
+  const recipientMatch = text.match(/(?:to|send to|recipient|pay|transfer to)\s+([a-z0-9_-]+\.(?:testnet|near))/i);
   if (recipientMatch) {
     recipients.push(recipientMatch[1]);
+  }
+
+  const tokenContract = "sergeo-guard-token.testnet";
+  if (recipients.length > 0) {
+    targets[tokenContract] = ["ft_transfer"];
   }
 
   const capNum = Number(dailyCap) || 100;

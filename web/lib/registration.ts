@@ -136,13 +136,33 @@ export function parseRegistrationError(
     };
   }
 
-  // 2. WebAssembly trap or duplicate registration error onchain
+  // 2. Policy validation failure check
+  // Assertions for zero cap, threshold exceeding cap, or invalid delay parameters
   if (
-    rawStr.includes("WebAssembly trap") ||
-    rawStr.includes("unreachable") ||
+    rawStr.includes("daily_cap") ||
+    rawStr.includes("greater than zero") ||
+    rawStr.includes("cannot exceed") ||
+    rawStr.includes("auto_pause_rejects") ||
+    rawStr.includes("auto_pause_window") ||
+    rawStr.includes("high_value_delay") ||
+    rawStr.includes("policy_change_delay") ||
+    rawStr.includes("max_drawdown_bps")
+  ) {
+    return {
+      title: "Policy Validation Failed",
+      message: `The policy submitted to ScopeGuard failed onchain validation: ${rawStr}`,
+      fixGuidance: "Verify that daily spending cap is greater than zero and timelock threshold does not exceed the daily cap.",
+      targetElementId: "daily-spending-cap-input",
+      rawError: rawStr,
+    };
+  }
+
+  // 3. WebAssembly trap or duplicate registration error onchain
+  // Only label as "already registered" when the message contains "already registered" or the duplicate trap text
+  if (
     rawStr.includes("already registered") ||
-    rawStr.includes("ExecutionError") ||
-    rawStr.includes("FunctionCallError")
+    rawStr.includes("WebAssembly trap") ||
+    rawStr.includes("unreachable")
   ) {
     const nextName = suggestNextAgentName(agentAccount, ownerAccount || undefined);
     return {

@@ -107,8 +107,31 @@ async function runSetup() {
     };
   }
 
-  // Question 3: Auto-Pause Brake
-  console.log("\nQuestion 3: Should the emergency circuit breaker freeze the agent on 3 consecutive errors?");
+  // Question 3: Direct Payments / Transfers
+  console.log("\nQuestion 3: Should the agent be allowed to pay other accounts (transfers)?");
+  console.log("  [1] No, trading and swaps only (Recommended)");
+  console.log("  [2] Yes, allow payouts to designated recipient accounts");
+  const ansPayments = (await promptQuestion(rl, "Select option [1-2] (default: 1): ")).trim();
+
+  let recipients = [];
+  if (ansPayments === "2" || ansPayments.toLowerCase() === "yes" || ansPayments.toLowerCase() === "y") {
+    let valid = false;
+    while (!valid) {
+      const recInput = (await promptQuestion(rl, "Enter recipient account IDs (comma-separated, at least one): ")).trim();
+      const accounts = recInput.split(",").map((s) => s.trim().toLowerCase()).filter((s) => s.length > 0);
+      const invalid = accounts.filter((a) => a.length < 2 || a.length > 64 || !/^[a-z0-9._-]+$/.test(a));
+      if (accounts.length === 0 || invalid.length > 0) {
+        console.log("Error: Please provide at least one valid NEAR account ID (lowercase letters, numbers, '.', '-', '_').");
+      } else {
+        recipients = accounts;
+        valid = true;
+      }
+    }
+    targets[tokenContract] = ["ft_transfer"];
+  }
+
+  // Question 4: Auto-Pause Brake
+  console.log("\nQuestion 4: Should the emergency circuit breaker freeze the agent on 3 consecutive errors?");
   console.log("  [1] Yes, halt agent immediately on 3 strikes (Recommended)");
   console.log("  [2] No, do not auto-pause");
   const ans3 = (await promptQuestion(rl, "Select option [1-2] (default: 1): ")).trim();
@@ -124,7 +147,7 @@ async function runSetup() {
     token: tokenContract,
     targets,
     daily_cap: Number(dailyCap),
-    recipients: [],
+    recipients,
     max_actions_per_10min: 5,
     auto_pause_rejects: autoPauseRejects,
     auto_pause_window_minutes: 10,
@@ -146,11 +169,15 @@ async function runSetup() {
   console.log("PROPOSED POLICY CARD:");
   console.log(`- Agent Account        : ${agentAccount}`);
   console.log(`- Owner / Admin Account: ${ownerAccount}`);
-  console.log(`- Daily Spending Cap   : $${dailyCap} mUSD / 24 hours`);
+  console.log(`- Daily Spending Cap   : ${dailyCap} mUSD / 24 hours`);
   console.log(`- Allowed Targets      : ${Object.keys(targets).join(", ")}`);
   console.log(`- Speed Throttle       : 5 actions / 10 minutes`);
   console.log(`- Circuit Breaker      : Freeze after ${autoPauseRejects} strikes`);
-  console.log("- External Payouts     : Refused ($0 allowed to outside wallets)");
+  if (recipients.length > 0) {
+    console.log(`- External Payouts     : allowed to ${recipients.join(", ")}`);
+  } else {
+    console.log("- External Payouts     : refused");
+  }
   console.log(`- Agent Public Key     : ${publicKey}\n`);
 
   const confirm = (await promptQuestion(rl, "As the Admin / Owner, do you authorize and sign this policy? (yes/no): ")).trim().toLowerCase();
@@ -203,18 +230,8 @@ async function runSetup() {
       console.log(`[OK] Policy registered onchain! Tx: ${outcome.transaction.hash}`);
       console.log(`  View Receipt: https://testnet.nearblocks.io/txns/${outcome.transaction.hash}`);
 
-      // Add function-call access key for agent
-      console.log(`Adding scoped FunctionCall passkey to ${agentAccount}...`);
-      try {
-        await ownerAcc.functionCall({
-          contractId: agentAccount,
-          methodName: "add_key",
-          args: {},
-          gas: "100000000000000",
-        });
-      } catch {
-        // If owner is not agent directly, owner uses standard near add-key command or already has key
-      }
+      // Add function-call access key instruction
+      printManualOwnerCommands(guardContract, agentAccount, policy, ownerAccount, publicKey);
     } catch (err) {
       console.warn("Notice during direct signing:", err.message);
       printManualOwnerCommands(guardContract, agentAccount, policy, ownerAccount, publicKey);
@@ -227,19 +244,20 @@ async function runSetup() {
   console.log("  AGENT ONBOARDING COMPLETE");
   console.log("================================================================");
   console.log(`[OK] Scoped Passkey saved to: ${resolvedOut}`);
-  console.log(`[OK] Daily Spending Limit   : $${dailyCap} mUSD`);
+  console.log(`[OK] Daily Spending Limit   : ${dailyCap} mUSD`);
   console.log("[OK] Protocol Enforcement   : Native NEAR FunctionCall key");
   console.log("The agent cannot exceed these rules or increase its own limits.");
   console.log("================================================================");
 }
 
 function printManualOwnerCommands(guardContract, agentAccount, policy, ownerAccount, publicKey) {
-  console.log("\nTo finalize activation onchain, sign these commands with your owner account:");
+  console.log("\nTo finalize activation onchain, sign these commands:");
   console.log("----------------------------------------------------------------");
-  console.log(`# 1. Register policy on Guard:`);
+  console.log("# 1. Register policy on Guard (signed by owner account):");
   console.log(`near call ${guardContract} register_agent '{"agent_account":"${agentAccount}","policy":${JSON.stringify(policy)}}' --accountId ${ownerAccount} --gas 100000000000000\n`);
-  console.log(`# 2. Add scoped passkey to agent (0.25 NEAR gas allowance for transaction fees):`);
-  console.log(`near add-key ${agentAccount} ${publicKey} --contractId ${guardContract} --methodNames execute --allowance 0.25 --accountId ${ownerAccount}`);
+  console.log("# 2. Add scoped passkey to agent (signed by AGENT account):");
+  console.log(`near add-key ${agentAccount} ${publicKey} --contractId ${guardContract} --methodNames execute --allowance 0.25 --accountId ${agentAccount}`);
+  console.log("Note: Key addition must be signed with --accountId " + agentAccount + " (or its full-access key), because NEAR protocol requires an account to authorize adding keys to itself.");
   console.log("----------------------------------------------------------------");
 }
 
@@ -413,11 +431,11 @@ async function runBudget() {
     console.log("==================================================");
     console.log(`  SCOPEGUARD BUDGET: ${accountId}`);
     console.log("==================================================");
-    console.log(`Daily Spending Cap : $${budget.cap} mUSD`);
-    console.log(`Spent Today        : $${budget.spent} mUSD`);
-    console.log(`Remaining Budget   : $${budget.remaining} mUSD`);
+    console.log(`Daily Spending Cap : ${budget.cap} mUSD`);
+    console.log(`Spent Today        : ${budget.spent} mUSD`);
+    console.log(`Remaining Budget   : ${budget.remaining} mUSD`);
     console.log(`Speed Count        : ${budget.actions_in_window} calls in rolling 10m`);
-    console.log(`Vault Balance      : $${budget.vault_balance} mUSD`);
+    console.log(`Vault Balance      : ${budget.vault_balance} mUSD`);
     console.log(`Status             : ${budget.paused ? "PAUSED" : "ACTIVE"}`);
     console.log("==================================================");
   } catch (err) {
@@ -445,11 +463,14 @@ async function main() {
       console.log("  setup     Interactive conversational onboarding with Admin Approval Gate");
       console.log("  connect   Connect existing agent passkey to local agent.json");
       console.log("  act       Execute an action through ScopeGuard policy checks");
+      console.log("            Flags: --target <contract>, --method <method>, --amount <amount>");
+      console.log("                   --recipient <account> (transfer tokens to allowlisted recipient)");
       console.log("  budget    Query live budget and remaining allowance on NEAR");
       console.log("\nExamples:");
       console.log("  node sdk/bin/cli.js setup");
       console.log("  node sdk/bin/cli.js budget --account agent2.sergeo-guard.testnet");
       console.log("  node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount 25");
+      console.log("  node sdk/bin/cli.js act --recipient merchant.testnet --amount 10");
       process.exit(0);
   }
 }

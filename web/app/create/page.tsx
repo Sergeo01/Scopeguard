@@ -223,8 +223,20 @@ export default function CreateAgentPage() {
   });
 
   const compiledRecipients = allowExternalTransfers && externalRecipient.trim()
-    ? [externalRecipient.trim()]
+    ? externalRecipient
+        .split(",")
+        .map((r) => r.trim().toLowerCase())
+        .filter((r) => r.length > 0)
     : [];
+
+  // When external transfers are allowed to recipients, auto-add ft_transfer target on the policy token
+  if (allowExternalTransfers && compiledRecipients.length > 0) {
+    const tokenContract = "sergeo-guard-token.testnet";
+    const existingMethods = compiledTargets[tokenContract] || [];
+    if (!existingMethods.includes("ft_transfer")) {
+      compiledTargets[tokenContract] = [...existingMethods, "ft_transfer"];
+    }
+  }
 
   const numericDailyCap = Number(dailyCapInput);
   const isDailyCapValid =
@@ -292,7 +304,7 @@ export default function CreateAgentPage() {
     }
     if (draft.recipients && draft.recipients.length > 0) {
       setAllowExternalTransfers(true);
-      setExternalRecipient(draft.recipients[0]);
+      setExternalRecipient(draft.recipients.join(", "));
     } else {
       setAllowExternalTransfers(false);
       setExternalRecipient("");
@@ -312,9 +324,10 @@ export default function CreateAgentPage() {
   const hasValidPlatforms = platforms.length > 0 && Object.keys(compiledTargets).length > 0;
   const isRecipientValid =
     !allowExternalTransfers ||
-    (externalRecipient.trim().length >= 2 &&
-      externalRecipient.trim().length <= 64 &&
-      /^[a-z0-9._-]+$/.test(externalRecipient.trim()));
+    (compiledRecipients.length > 0 &&
+      compiledRecipients.every(
+        (r) => r.length >= 2 && r.length <= 64 && /^[a-z0-9._-]+$/.test(r)
+      ));
   const isAutoPauseValid = Number.isInteger(autoPauseAfter) && autoPauseAfter >= 1 && autoPauseAfter <= 50;
   const isSpeedLimitValid = Number.isInteger(speedLimit) && speedLimit >= 1 && speedLimit <= 100;
   const isAutoPauseWindowValid =
@@ -449,20 +462,28 @@ export default function CreateAgentPage() {
     });
   }
 
-  if (allowExternalTransfers && !externalRecipient.trim()) {
+  if (allowExternalTransfers && compiledRecipients.length === 0) {
     buttonBlockers.push({
       id: "missing-recipient",
       field: "Designated Recipient",
       message: "Direct cash transfers are enabled but no recipient account is specified.",
-      fix: "Enter a destination NEAR account (e.g. sergeo-guard.testnet) or turn off the external transfers toggle.",
+      fix: "Enter destination NEAR account(s) (e.g. sergeo-guard.testnet) or turn off the external transfers toggle.",
       targetElementId: "external-recipient-input",
     });
-  } else if (allowExternalTransfers && externalRecipient.trim() && (externalRecipient.trim().length < 2 || externalRecipient.trim().length > 64 || !/^[a-z0-9._-]+$/.test(externalRecipient.trim()))) {
+  } else if (
+    allowExternalTransfers &&
+    compiledRecipients.some(
+      (r) => r.length < 2 || r.length > 64 || !/^[a-z0-9._-]+$/.test(r)
+    )
+  ) {
+    const invalidRecipient = compiledRecipients.find(
+      (r) => r.length < 2 || r.length > 64 || !/^[a-z0-9._-]+$/.test(r)
+    );
     buttonBlockers.push({
       id: "invalid-recipient",
       field: "Designated Recipient",
-      message: "Recipient account address contains invalid characters or length.",
-      fix: "Enter a valid NEAR account ID between 2 and 64 characters (lowercase letters, numbers, hyphens, dots).",
+      message: `Recipient account "${invalidRecipient}" contains invalid characters or length.`,
+      fix: "Enter valid NEAR account IDs between 2 and 64 characters (lowercase letters, numbers, hyphens, dots).",
       targetElementId: "external-recipient-input",
     });
   }
@@ -792,9 +813,20 @@ export default function CreateAgentPage() {
     if (!agentName.trim()) {
       setAgentName(targetAgent);
     }
+    const targetsToUse: Record<string, string[]> =
+      draft.targets && Object.keys(draft.targets).length > 0
+        ? { ...draft.targets }
+        : { "sergeo-guard-dex.testnet": ["swap"] };
+    if (draft.recipients && draft.recipients.length > 0) {
+      const tokenContract = "sergeo-guard-token.testnet";
+      const existing = targetsToUse[tokenContract] || [];
+      if (!existing.includes("ft_transfer")) {
+        targetsToUse[tokenContract] = [...existing, "ft_transfer"];
+      }
+    }
     const policyToUse = {
       token: "sergeo-guard-token.testnet",
-      targets: draft.targets && Object.keys(draft.targets).length > 0 ? draft.targets : { "sergeo-guard-dex.testnet": ["swap"] },
+      targets: targetsToUse,
       daily_cap: draft.daily_cap || 500,
       recipients: draft.recipients || [],
       max_actions_per_10min: draft.max_actions_per_10min || 5,
@@ -1109,7 +1141,7 @@ export default function CreateAgentPage() {
               <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
                 <div className="flex items-center justify-between">
                   <label htmlFor="external-recipient-input" className="text-slate-700 dark:text-slate-300 font-medium">
-                    Designated Allowed Recipient
+                    Designated Allowed Recipients (comma-separated)
                   </label>
                   {!isRecipientValid && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
@@ -1124,7 +1156,7 @@ export default function CreateAgentPage() {
                   type="text"
                   value={externalRecipient}
                   onChange={(e) => setExternalRecipient(e.target.value)}
-                  placeholder="e.g. sergeo-guard.testnet"
+                  placeholder="e.g. sergeo-guard.testnet, treasury.testnet"
                   className={`w-full px-3 py-2 bg-white dark:bg-obsidian-900 border rounded-xl font-mono text-slate-900 dark:text-white focus:outline-none transition ${
                     !isRecipientValid
                       ? "border-rose-500 ring-2 ring-rose-500/30"
@@ -1583,13 +1615,13 @@ export default function CreateAgentPage() {
                   <span className={`font-mono font-bold ${
                     isDailyCapValid ? "text-emerald-400" : "text-rose-400"
                   }`}>
-                    {isDailyCapValid ? `$${dailyCapInput} mUSD` : "Invalid Cap"}
+                    {isDailyCapValid ? `${dailyCapInput} mUSD` : "Invalid Cap"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 block">Platforms</span>
                   <span className="font-mono font-semibold text-slate-200">
-                    {platforms.length} Approved
+                    {Object.keys(compiledTargets).length} Approved
                   </span>
                 </div>
               </div>
@@ -1603,13 +1635,13 @@ export default function CreateAgentPage() {
               <div className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <span>
-                  Calls restricted to {platforms.length} allowlisted contract(s)
+                  Calls restricted to {Object.keys(compiledTargets).length} allowlisted contract(s)
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <span>
-                  Daily spending strictly bounded to ${dailyCap} mUSD
+                  Daily spending strictly bounded to {dailyCap} mUSD
                 </span>
               </div>
               <div className="flex items-start gap-2">
@@ -1647,9 +1679,9 @@ export default function CreateAgentPage() {
               <div className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <span>
-                  {allowExternalTransfers
-                    ? `Transfers allowed only to ${externalRecipient || "designated wallet"}`
-                    : "Transfers to personal accounts are refused"}
+                  {allowExternalTransfers && compiledRecipients.length > 0
+                    ? `Transfers allowed to ${compiledRecipients.join(", ")} (via ${compiledPolicyJson.token} ft_transfer)`
+                    : "Transfers to outside accounts are refused"}
                 </span>
               </div>
             </div>
@@ -1681,7 +1713,7 @@ export default function CreateAgentPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
-              Create a restricted NEAR FunctionCall access key scoped strictly to Guard2. The agent machine never holds a master key, bounding its spend to rules you sign.
+              Create a restricted NEAR FunctionCall access key scoped strictly to ScopeGuard. The agent machine never holds a master key, bounding its spend to rules you sign.
             </p>
           </div>
 
@@ -1784,7 +1816,7 @@ export default function CreateAgentPage() {
             </div>
             <div className="flex items-baseline gap-2 pt-1">
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                ${dailyCap} mUSD
+                {dailyCap} mUSD
               </span>
               <span className="bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                 <ArrowUpRight className="w-3 h-3" />
