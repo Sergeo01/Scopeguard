@@ -104,7 +104,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Daily Spending Cap</span>
             </div>
             <span className="text-xs font-mono font-bold text-mint-greenDark dark:text-mint-green">
-              ${dailyRemaining}.00 Left
+              {dailyRemaining} mUSD Left
             </span>
           </div>
 
@@ -116,7 +116,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>${dailyCapSpent} of ${dailyCapTotal} max</span>
+              <span>{dailyCapSpent} of {dailyCapTotal} mUSD max</span>
               <span>{dailySpentPercent}% used</span>
             </div>
           </div>
@@ -148,8 +148,8 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Vault: ${balanceNum} (Peak: ${hwmNum})</span>
-              <span>Floor: ${floorThreshold}</span>
+              <span>Vault: {balanceNum} mUSD (Peak: {hwmNum} mUSD)</span>
+              <span>Floor: {floorThreshold} mUSD</span>
             </div>
           </div>
 

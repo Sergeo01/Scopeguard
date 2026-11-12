@@ -165,6 +165,8 @@ export default function ComparePage() {
     }
   }
 
+  const remainingPercent = executedCount === 0 ? 100 : Math.max(0, Math.round((currentUnprotectedTokens / (startingTokens || 1)) * 100));
+
   // Running "moved" total for ScopeGuard agent (counts only ALLOWED steps)
   let currentScopeGuardMovedTokens = 0;
   let currentScopeGuardMovedNear = 0;
@@ -401,9 +403,9 @@ export default function ComparePage() {
                 Unprotected agent (simulated: a standard wallet key has no spending limits)
               </h2>
               <div className="flex items-center justify-between pt-2 text-xs">
-                <span className="text-slate-500 dark:text-slate-400">Running Wallet Balance:</span>
+                <span className="text-slate-500 dark:text-slate-400">Remaining Treasury Balance:</span>
                 <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                  {currentUnprotectedTokens} mUSD · {currentUnprotectedNear} NEAR
+                  {remainingPercent}% ({remainingPercent === 0 ? "100% drained" : `${100 - remainingPercent}% drained`})
                 </span>
               </div>
             </header>
@@ -482,7 +484,7 @@ export default function ComparePage() {
               <div className="flex items-center justify-between pt-2 text-xs">
                 <span className="text-slate-500 dark:text-slate-400">Running Allowed Movement:</span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {currentScopeGuardMovedTokens} mUSD · {currentScopeGuardMovedNear} NEAR (rolling cap: {summary.rollingCapText})
+                  {currentScopeGuardMovedTokens} of {summary.rollingCapText} daily cap (zero unauthorized funds moved)
                 </span>
               </div>
             </header>

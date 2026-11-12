@@ -11,7 +11,7 @@ const path = require("path");
 const os = require("os");
 const readline = require("readline");
 const { connect, keyStores, KeyPair, utils } = require("near-api-js");
-const { getPolicyContractId } = require("../dist/config");
+const { getPolicyContractId, tryGetPolicyContractId } = require("../dist/config");
 
 const args = process.argv.slice(2);
 const command = args[0] || "help";
@@ -72,10 +72,10 @@ async function runSetup() {
 
   // Question 1: Daily Spending Cap
   console.log("Question 1: What is the maximum daily spending budget?");
-  console.log("  [1] $25 / day (Conservative)");
-  console.log("  [2] $50 / day (Recommended default)");
-  console.log("  [3] $100 / day");
-  console.log("  [4] Custom dollar amount");
+  console.log("  [1] 25 mUSD / day (Conservative)");
+  console.log("  [2] 50 mUSD / day (Recommended default)");
+  console.log("  [3] 100 mUSD / day");
+  console.log("  [4] Custom mUSD amount");
   const ans1 = (await promptQuestion(rl, "Select option [1-4] (default: 2): ")).trim();
 
   let dailyCap = 50;
@@ -251,7 +251,7 @@ async function runConnect() {
     console.error("Error: Scoped passkey is required. Provide --key <ed25519:...> or set SCOPEGUARD_AGENT_PRIVATE_KEY.");
     process.exit(1);
   }
-  const guard = flags.guard || getPolicyContractId();
+  const guard = flags.guard || (typeof tryGetPolicyContractId === "function" ? tryGetPolicyContractId() : null) || "scopeguard.testnet";
   const outPath = flags.out || "./agent.json";
 
   let publicKey = "";
@@ -302,7 +302,7 @@ async function runAct() {
 
   const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
   const privateKey = flags.key || credential?.privateKey || process.env.SCOPEGUARD_AGENT_PRIVATE_KEY;
-  const guardContract = flags.guard || credential?.policyContractId || getPolicyContractId();
+  const guardContract = flags.guard || credential?.policyContractId || (typeof tryGetPolicyContractId === "function" ? tryGetPolicyContractId() : null) || "scopeguard.testnet";
   const networkId = flags.network || credential?.networkId || "testnet";
   const rpcUrl = flags.rpc || credential?.nodeUrl || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 
@@ -397,7 +397,7 @@ async function runBudget() {
   }
 
   const accountId = flags.account || credential?.agentAccountId || process.env.SCOPEGUARD_AGENT_ACCOUNT || "agent.sergeo-guard.testnet";
-  const guardContract = flags.guard || credential?.policyContractId || getPolicyContractId();
+  const guardContract = flags.guard || credential?.policyContractId || (typeof tryGetPolicyContractId === "function" ? tryGetPolicyContractId() : null) || "scopeguard.testnet";
   const networkId = flags.network || "testnet";
   const rpcUrl = flags.rpc || process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 

@@ -499,7 +499,7 @@ export default function DashboardPage() {
     const effectiveSender = connectedWalletId || ownerId;
     const effectiveReceiver = guardId || "<POLICY_CONTRACT_ID>";
     setActiveOwnerModal({
-      title: "Deposit $100 mUSD into Vault",
+      title: "Deposit 100 mUSD into Vault",
       description: "Transfers 100 mUSD test tokens from your wallet into the agent working pot onchain via NEP-141 ft_transfer_call.",
       command: `near call ${tokenId} ft_transfer_call '{"receiver_id":"${effectiveReceiver}","amount":"100","msg":"${agentId}"}' --accountId ${effectiveSender} --depositYocto 1 --gas 60000000000000`,
       contractId: tokenId,
@@ -542,7 +542,7 @@ export default function DashboardPage() {
         if (refreshBalance) refreshBalance();
       } else if (data.command) {
         setActiveOwnerModal({
-          title: "Deposit $100 mUSD into Vault",
+          title: "Deposit 100 mUSD into Vault",
           description: data.message || "Run this command from your terminal to mint test tokens and deposit into the vault:",
           command: data.command,
           isDanger: false,
@@ -897,10 +897,10 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  {isInitialLoading ? "--" : `$${vaultBalance}.00`}
+                  {isInitialLoading ? "--" : `${vaultBalance} mUSD`}
                 </span>
                 <span className="text-xs font-mono text-slate-500">
-                  mUSD Working Pot
+                  Working Pot
                 </span>
               </div>
               <div className="flex items-baseline gap-2 border-l border-slate-200 dark:border-obsidian-800 pl-4 sm:pl-6">
@@ -911,6 +911,11 @@ export default function DashboardPage() {
                   Native Pot
                 </span>
               </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-obsidian-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800">
+                Demo vault, testnet mUSD, no real value.
+              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
               Money custodied exclusively in the Guard contract. The absolute maximum loss boundary if the agent is fully compromised.
@@ -954,7 +959,7 @@ export default function DashboardPage() {
                 <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${dailyCapTotal}
+                  {dailyCapTotal}
                 </span>
               )}
               <span className="text-[11px] font-mono text-slate-500">
@@ -979,7 +984,7 @@ export default function DashboardPage() {
                 <span className="inline-block h-8 w-16 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${dailyCapSpent}
+                  {dailyCapSpent}
                 </span>
               )}
               <span className="text-[11px] font-mono text-slate-500">
@@ -987,7 +992,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <span className="text-[11px] text-slate-500 mt-1">
-              {dailyCapSpent > 0 ? `$${dailyCapSpent} in rolling window` : "Zero spend in window"}
+              {dailyCapSpent > 0 ? `${dailyCapSpent} mUSD in rolling window` : "Zero spend in window"}
             </span>
           </div>
 
@@ -1004,11 +1009,11 @@ export default function DashboardPage() {
                 <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  ${Math.max(0, dailyCapTotal - dailyCapSpent)}
+                  {Math.max(0, dailyCapTotal - dailyCapSpent)}
                 </span>
               )}
               <span className="text-[11px] font-mono text-mint-greenDark dark:text-mint-green font-semibold">
-                Available
+                Available mUSD
               </span>
             </div>
             <span className="text-[11px] text-slate-500 mt-1">
@@ -1097,7 +1102,7 @@ export default function DashboardPage() {
               title="Deposit 100 mUSD into the agent vault onchain"
             >
               <Coins className="w-3.5 h-3.5" />
-              <span>Deposit $100 mUSD</span>
+              <span>Deposit 100 mUSD</span>
             </button>
 
 
@@ -1328,9 +1333,9 @@ export default function DashboardPage() {
               num: 8,
               name: "Daily Spending Cap",
               code: "OVER_DAILY_CAP",
-              desc: `Cumulative value spent across rolling 24 hours cannot exceed $${dailyCapTotal} mUSD ($${dailyCapSpent} spent, $${Math.max(0, dailyCapTotal - dailyCapSpent)} remaining).`,
-              config: isInitialLoading ? "Syncing..." : `$${dailyCapSpent} / $${dailyCapTotal} mUSD`,
-              badge: isInitialLoading ? "Syncing" : `$${Math.max(0, dailyCapTotal - dailyCapSpent)} Left`,
+              desc: `Cumulative value spent across rolling 24 hours cannot exceed ${dailyCapTotal} mUSD (${dailyCapSpent} mUSD spent, ${Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD remaining).`,
+              config: isInitialLoading ? "Syncing..." : `${dailyCapSpent} / ${dailyCapTotal} mUSD`,
+              badge: isInitialLoading ? "Syncing" : `${Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD Left`,
               isLocked: false,
             },
             {
@@ -1389,8 +1394,8 @@ export default function DashboardPage() {
               num: 13,
               name: "Vault Custody Balance Enforcement",
               code: "INSUFFICIENT_VAULT_BALANCE",
-              desc: `Transfers cannot exceed internal custodied balance ($${vaultBalance} mUSD / ${nearVaultBalance} NEAR in vault).`,
-              config: `$${vaultBalance} mUSD | ${nearVaultBalance} NEAR`,
+              desc: `Transfers cannot exceed internal custodied balance (${vaultBalance} mUSD / ${nearVaultBalance} NEAR in vault).`,
+              config: `${vaultBalance} mUSD | ${nearVaultBalance} NEAR`,
               badge: "Vault Bounded",
               isLocked: false,
             },

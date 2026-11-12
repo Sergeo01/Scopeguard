@@ -106,7 +106,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     label: "Limit Breach",
     badge: "Daily Cap Breach",
     title: "Exceeding Daily Spend Cap",
-    description: "The agent attempts a $1,200 swap, completely blowing past the approved $500 daily limit.",
+    description: "The agent attempts a 1,200 mUSD swap, completely blowing past the approved 500 mUSD daily limit.",
     prompt: "Aggressive market buy: Execute 1,200 mUSD token swap immediately across all available liquidity.",
     target: "sergeo-guard-dex.testnet",
     method: "swap",
@@ -133,7 +133,7 @@ const ATTACK_SCENARIOS: AttackScenario[] = [
     id: "high-value-quarantine",
     label: "High-Value Veto",
     badge: "Timelock Quarantine",
-    title: "Quarantine Large Swap ($300)",
+    title: "Quarantine Large Swap (300 mUSD)",
     description: "A large swap triggers a 60-second owner review window before funds can execute.",
     prompt: "Portfolio rebalance: Swap 300 mUSD on DEX. Triggers 60s owner veto window.",
     target: "sergeo-guard-dex.testnet",
@@ -223,12 +223,12 @@ const ONCHAIN_RULES = [
   { num: 5, name: "Velocity Anti-Spam", code: "OVER_VELOCITY_CAP", group: "Rate Limit", checkDesc: "Actions in 10min window within speed limit (max 5)" },
   { num: 6, name: "Target Allowlist", code: "TARGET_NOT_ALLOWED", group: "Contract Scope", checkDesc: "Destination contract explicitly approved" },
   { num: 7, name: "Method Allowlist", code: "METHOD_NOT_ALLOWED", group: "Method Scope", checkDesc: "Function name explicitly permitted on target" },
-  { num: 8, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", group: "Financial Bound", checkDesc: "Rolling 24h expenditure within budget cap ($500)" },
+  { num: 8, name: "Daily Spending Cap", code: "OVER_DAILY_CAP", group: "Financial Bound", checkDesc: "Rolling 24h expenditure within budget cap (500 mUSD)" },
   { num: 9, name: "Recipient Allowlist", code: "RECIPIENT_NOT_ALLOWED", group: "Payout Scope", checkDesc: "External payout wallet on approved list" },
   { num: 10, name: "Cross-Chain Intent Shield", code: "INTENT_RECIPIENT_NOT_ALLOWED", group: "Intent Shield", checkDesc: "Cross-chain destination addresses must match approved IntentShield allowlist. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain." },
   { num: 11, name: "Max Portfolio Drawdown", code: "DRAWDOWN_EXCEEDED", group: "Drawdown Floor", checkDesc: "Cumulative trade losses cannot breach maximum allowed drawdown from high-water mark" },
-  { num: 12, name: "Timelock Quarantine", code: "PENDING", group: "Owner Veto", checkDesc: "Actions at or above $250 held in 60s timelock" },
-  { num: 13, name: "Vault Balance Bound", code: "INSUFFICIENT_VAULT_BALANCE", group: "Vault Solvency", checkDesc: "Spend cannot exceed agent vault pot ($350)" },
+  { num: 12, name: "Timelock Quarantine", code: "PENDING", group: "Owner Veto", checkDesc: "Actions at or above 250 mUSD held in 60s timelock" },
+  { num: 13, name: "Vault Balance Bound", code: "INSUFFICIENT_VAULT_BALANCE", group: "Vault Solvency", checkDesc: "Spend cannot exceed allocated agent vault custody balance" },
   { num: 14, name: "Pending Queue Cap", code: "PENDING_QUEUE_FULL", group: "Queue Bound", checkDesc: "Quarantine queue bounded to max 8 items" },
 ];
 
@@ -247,7 +247,7 @@ export default function HomePage() {
   const { user, openAuthModal } = useWallet();
 
   // State
-  const [vaultBalance, setVaultBalance] = useState("350.00");
+  const [vaultBalance, setVaultBalance] = useState<string | null>(null);
   const [isAgentPaused, setIsAgentPaused] = useState(false);
   const [isResettingDemo, setIsResettingDemo] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -780,7 +780,7 @@ export default function HomePage() {
                         </span>
                         <div className="space-y-2">
                           <div className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">
-                            $0.00 Remaining
+                            0 mUSD Remaining
                           </div>
                           <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                             The attacker sweeps 100% of the owner main treasury in a single transaction. Permanent and irreversible loss.
@@ -821,7 +821,7 @@ export default function HomePage() {
                         <div className="space-y-1 text-xs font-mono text-slate-700 dark:text-slate-300">
                           <div className="flex items-center justify-between">
                             <span>Daily Spend:</span>
-                            <span className="text-mint-green font-bold">Max $500</span>
+                            <span className="text-mint-green font-bold">Max 500 mUSD</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Contract Scope:</span>
@@ -844,7 +844,7 @@ export default function HomePage() {
                         </span>
                         <div className="space-y-2">
                           <div className="text-2xl font-bold font-mono text-mint-greenDark dark:text-mint-green">
-                            $350.00 Protected
+                            100% Protected
                           </div>
                           <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                             Zero unapproved transfers leave the vault. The owner treasury remains completely isolated. One tap pauses or revokes.
@@ -1424,12 +1424,12 @@ export default function HomePage() {
 
                     <div className="pt-3 border-t border-slate-200 dark:border-obsidian-800 space-y-2 text-xs font-mono">
                       <div className="flex items-center justify-between text-slate-500">
-                        <span>Working Vault Pot:</span>
-                        <span className="text-slate-900 dark:text-white font-bold">${vaultBalance} mUSD</span>
+                        <span>Enforced Policy Cap:</span>
+                        <span className="text-slate-900 dark:text-white font-bold">500 mUSD / day (14 rules)</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-500">
                         <span>Loss Incurred:</span>
-                        <span className="text-mint-greenDark dark:text-mint-green font-bold">$0.00 (Protected)</span>
+                        <span className="text-mint-greenDark dark:text-mint-green font-bold">0 mUSD (Protected)</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-500">
                         <span>Transaction Hash:</span>

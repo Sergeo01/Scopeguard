@@ -152,7 +152,7 @@ near view ${guardContractDisplay} get_budget '{"agent_account":"${agentName}"}'
 near view ${guardContractDisplay} get_policy '{"agent_account":"${agentName}"}'
 
 ACTIVE CONSTRAINTS & LIMITS:
-- Daily Spending Limit: $${dailyCap} mUSD
+- Daily Spending Limit: ${dailyCap} mUSD
 - Enforced Rules:
   1. All calls and transfers must be dispatched through ${guardContractDisplay}::execute
   2. Direct asset withdrawals and unapproved contract calls are rejected and tripped onchain
@@ -322,7 +322,7 @@ ACTIVE CONSTRAINTS & LIMITS:
               Daily Limit
             </span>
             <span className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">
-              ${dailyCap} mUSD
+              {dailyCap} mUSD
             </span>
           </div>
 

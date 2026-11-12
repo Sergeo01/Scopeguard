@@ -205,17 +205,17 @@ export function computeComparisonSummary(
   rollingCapText: string;
   bannerText: string;
 } {
-  let lostTokens = 0;
-  let lostNear = 0;
+  let attemptedTokens = 0;
+  let attemptedNear = 0;
   let movedTokens = 0;
   let movedNear = 0;
 
   for (const step of steps) {
     if (step.isAttack) {
       if (step.asset === "NEAR") {
-        lostNear += step.amount;
+        attemptedNear += step.amount;
       } else {
-        lostTokens += step.amount;
+        attemptedTokens += step.amount;
       }
     }
     if (step.verdict === "ALLOWED") {
@@ -227,41 +227,16 @@ export function computeComparisonSummary(
     }
   }
 
-  const initialTokens = budget?.vault_balance !== undefined ? Number(budget.vault_balance) : 100;
-  const initialNear = budget?.near_vault_balance
-    ? Math.round((Number(BigInt(budget.near_vault_balance) / BigInt(10 ** 22)) / 100) * 10) / 10
-    : 2;
-
-  const actualLostTokens = Math.min(lostTokens, initialTokens);
-  const actualLostNear = Math.min(lostNear, initialNear);
-
-  const totalParts: string[] = [];
-  if (initialTokens > 0) totalParts.push(`${initialTokens} mUSD`);
-  if (initialNear > 0) totalParts.push(`${initialNear} NEAR`);
-  const unprotectedTotalText = totalParts.join(" and ") || "all funds";
-
-  const lostParts: string[] = [];
-  if (actualLostTokens > 0) {
-    lostParts.push(
-      actualLostTokens === initialTokens && lostTokens > actualLostTokens
-        ? `${actualLostTokens} mUSD (100% drained; ${lostTokens} mUSD attempted)`
-        : `${actualLostTokens} mUSD`
-    );
-  }
-  if (actualLostNear > 0) lostParts.push(`${actualLostNear} NEAR`);
-  const unprotectedLostText = lostParts.join(" and ") || "0 funds";
-
-  const movedParts: string[] = [];
-  if (movedTokens > 0) movedParts.push(`${movedTokens} mUSD`);
-  if (movedNear > 0) movedParts.push(`${movedNear} NEAR`);
-  const scopeGuardMovedText = movedParts.join(" and ") || "0 mUSD";
-
   const capVal = budget?.cap !== undefined ? Number(budget.cap) : 500;
   const rollingCapText = `${capVal} mUSD`;
 
+  const unprotectedLostText = `100% drained, ${attemptedTokens} mUSD attempted`;
+  const unprotectedTotalText = `${attemptedTokens} mUSD attempted`;
+
+  const scopeGuardMovedText = `moved ${movedTokens} of its ${rollingCapText} daily cap, zero unauthorized funds moved`;
+
   const bannerText =
-    `Unprotected agent: lost ${unprotectedLostText} of ${unprotectedTotalText}. ` +
-    `ScopeGuard agent: moved ${scopeGuardMovedText} (rolling 24h cap: ${rollingCapText}). Zero unauthorized funds moved.`;
+    `Unprotected agent: ${unprotectedLostText}. ScopeGuard agent: ${scopeGuardMovedText}.`;
 
   return {
     unprotectedLostText,

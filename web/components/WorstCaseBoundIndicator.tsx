@@ -34,7 +34,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-              Worst-Case Loss Bound: ${bound} mUSD
+              Worst-Case Loss Bound: {bound} mUSD
             </h3>
           </div>
         </div>
@@ -76,7 +76,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-500">Uncapped Vault Drain:</span>
-            <span className="text-rose-600 dark:text-rose-400 font-medium">All ${vaultBalance} mUSD Drained</span>
+            <span className="text-rose-600 dark:text-rose-400 font-medium">All {vaultBalance} mUSD Drained</span>
           </div>
         </div>
 
@@ -88,19 +88,19 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               <span>ScopeGuard Scoped Passkey</span>
             </span>
             <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-              Bounded at ${bound} mUSD
+              Bounded at {bound} mUSD
             </span>
           </div>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
-            Even under continuous malicious prompt injection while owner sleeps, spending stops at ${bound} mUSD. Large amounts require explicit owner settlement signatures.
+            Even under continuous malicious prompt injection while owner sleeps, spending stops at {bound} mUSD. Large amounts require explicit owner settlement signatures.
           </p>
           <div className="pt-1 flex items-center justify-between text-[11px] font-mono border-t border-emerald-200/60 dark:border-emerald-800/40">
             <span className="text-slate-500">Unattended Exposure:</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Max ${bound} mUSD (min of vault and cap)</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Max {bound} mUSD (min of vault and cap)</span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-500">Active Vault Pot:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-medium">${vaultBalance} mUSD</span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">{vaultBalance} mUSD</span>
           </div>
         </div>
       </div>

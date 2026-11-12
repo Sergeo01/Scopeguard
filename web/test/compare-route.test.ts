@@ -136,8 +136,10 @@ test("compare-route: runs 6 preflight view calls with mocked RPC (1 ALLOWED, 5 R
 
     // Verify summary is computed from data
     const summary = computeComparisonSummary(body.steps, body.budget);
-    assert.ok(summary.bannerText.includes("100 mUSD (100% drained; 1150 mUSD attempted)"));
-    assert.ok(summary.bannerText.includes("ScopeGuard agent: moved 10 mUSD (rolling 24h cap: 500 mUSD)."));
+    assert.strictEqual(
+      summary.bannerText,
+      "Unprotected agent: 100% drained, 1150 mUSD attempted. ScopeGuard agent: moved 10 of its 500 mUSD daily cap, zero unauthorized funds moved."
+    );
   } finally {
     setNearConnectForTest(null);
     if (origPublic !== undefined) process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID = origPublic;

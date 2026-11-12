@@ -419,10 +419,10 @@ export default function CreateAgentPage() {
     buttonBlockers.push({
       id: "invalid-daily-cap",
       field: "Daily Spending Cap",
-      message: "Daily Spending Cap must be a positive whole number greater than $0.",
-      fix: "Type an integer dollar figure greater than 0 (e.g. 100) or click one of the quick preset chips.",
+      message: "Daily Spending Cap must be a positive whole number greater than 0 mUSD.",
+      fix: "Type an integer amount greater than 0 (e.g. 100) or click one of the quick preset chips.",
       targetElementId: "daily-spending-cap-input",
-      quickFixLabel: "⚡ Set to $100",
+      quickFixLabel: "⚡ Set to 100 mUSD",
       quickFix: () => {
         setDailyCap(100);
         setDailyCapInput("100");
@@ -866,12 +866,12 @@ export default function CreateAgentPage() {
                 {!isDailyCapValid && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
-                    Must be &gt; $0
+                    Must be &gt; 0 mUSD
                   </span>
                 )}
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Type any figure manually. Can be $1 or any custom budget.
+                Type any figure manually. Can be 1 mUSD or any custom budget.
               </span>
             </div>
             <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg ${
@@ -922,7 +922,7 @@ export default function CreateAgentPage() {
           {!isDailyCapValid && (
             <p className="text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
               <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
-              <span>Enter a positive spending cap greater than $0</span>
+              <span>Enter a positive spending cap greater than 0 mUSD</span>
             </p>
           )}
         </div>
@@ -1747,7 +1747,7 @@ export default function CreateAgentPage() {
               </span>
             </div>
             <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Manual $1 to any budget
+              Manual 1 mUSD to any budget
             </span>
           </div>
 

@@ -158,8 +158,11 @@ test("compare-scenario: computeComparisonSummary calculates metrics directly fro
   };
 
   const summary = computeComparisonSummary(steps, budget);
-  assert.strictEqual(summary.scopeGuardMovedText, "10 mUSD");
+  assert.strictEqual(summary.scopeGuardMovedText, "moved 10 of its 500 mUSD daily cap, zero unauthorized funds moved");
   assert.strictEqual(summary.rollingCapText, "500 mUSD");
-  assert.ok(summary.bannerText.includes("100 mUSD (100% drained; 1150 mUSD attempted)"));
-  assert.ok(summary.bannerText.includes("ScopeGuard agent: moved 10 mUSD (rolling 24h cap: 500 mUSD)."));
+  assert.strictEqual(summary.unprotectedLostText, "100% drained, 1150 mUSD attempted");
+  assert.strictEqual(
+    summary.bannerText,
+    "Unprotected agent: 100% drained, 1150 mUSD attempted. ScopeGuard agent: moved 10 of its 500 mUSD daily cap, zero unauthorized funds moved."
+  );
 });
