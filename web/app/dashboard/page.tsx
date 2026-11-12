@@ -156,7 +156,7 @@ export default function DashboardPage() {
   const [highWaterMark, setHighWaterMark] = useState<string>("350");
   const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(2000);
   const [leaseExpiresAt, setLeaseExpiresAt] = useState<number | string | null>(null);
-  const [canaryMethods, setCanaryMethods] = useState<string[]>(["drain_vault", "admin_transfer"]);
+  const [canaryMethods, setCanaryMethods] = useState<string[]>([]);
   const [intentRecipients, setIntentRecipients] = useState<string[]>([]);
   const [dailyCapTotal, setDailyCapTotal] = useState(500);
   const [dailyCapSpent, setDailyCapSpent] = useState(0);
@@ -911,8 +911,8 @@ export default function DashboardPage() {
 
 
       {/* 6-Tab Navigation Bar */}
-      <div className="border-b border-slate-200 dark:border-obsidian-800">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+      <div className="border-b border-slate-200 dark:border-obsidian-800 pb-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -930,10 +930,16 @@ export default function DashboardPage() {
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
-                {tab.id === "approvals" && pendingCount > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                    isActive ? "bg-white/20 text-white" : "bg-brand-blue text-white"
-                  }`}>
+                {tab.id === "approvals" && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold transition ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : pendingCount > 0
+                        ? "bg-amber-500 text-white"
+                        : "bg-slate-200 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400"
+                    }`}
+                  >
                     {pendingCount}
                   </span>
                 )}
@@ -941,6 +947,15 @@ export default function DashboardPage() {
             );
           })}
         </div>
+        {/* Tab Description Line */}
+        <p className="text-xs text-slate-500 dark:text-slate-400 pt-2 font-medium">
+          {activeTab === "overview" && "Live financial custody pot, 24h rolling velocity counters, and worst-case mathematical bounds."}
+          {activeTab === "policy" && "14 immutable guardrail rules, target platform allowlists, IntentShield, and canary decoys."}
+          {activeTab === "approvals" && "Quarantined high-value transactions and staged policy modifications awaiting owner approval."}
+          {activeTab === "activity" && "Chronological onchain audit log of allowed, rejected, and quarantined agent transactions."}
+          {activeTab === "emergency" && "One-click manual pauses, auto-drawdown circuit breakers, and emergency vault recovery."}
+          {activeTab === "alerts" && "Real-time webhook alert configuration for Discord and Telegram notification feeds."}
+        </p>
       </div>
 
 

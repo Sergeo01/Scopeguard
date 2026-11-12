@@ -274,6 +274,7 @@ export default function HomePage() {
   const [inspectHash, setInspectHash] = useState<string | null>(null);
   const [arenaInputMode, setArenaInputMode] = useState<"form" | "json">("form");
   const [copiedPayload, setCopiedPayload] = useState(false);
+  const [isScopedKeyConfigured, setIsScopedKeyConfigured] = useState<boolean | null>(null);
 
   // Fetch initial onchain state from Guard on mount and poll periodically
   useEffect(() => {
@@ -281,11 +282,16 @@ export default function HomePage() {
       fetch("/api/state?agent=agent2.sergeo-guard.testnet")
         .then((res) => res.json())
         .then((data) => {
-          if (data.success && data.budget) {
-            if (data.budget.vault_balance !== undefined && data.budget.vault_balance !== null) {
-              setVaultBalance(`${data.budget.vault_balance}.00`);
+          if (data.success) {
+            if (data.budget) {
+              if (data.budget.vault_balance !== undefined && data.budget.vault_balance !== null) {
+                setVaultBalance(`${data.budget.vault_balance}.00`);
+              }
+              setIsAgentPaused(Boolean(data.budget.paused));
             }
-            setIsAgentPaused(Boolean(data.budget.paused));
+            if (typeof data.isScopedKeyConfigured === "boolean") {
+              setIsScopedKeyConfigured(data.isScopedKeyConfigured);
+            }
           }
         })
         .catch(() => {});
@@ -1089,6 +1095,8 @@ export default function HomePage() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     {isAgentPaused
                       ? "The automated circuit breaker halted actions onchain to prevent fund loss. Reset below to replay."
+                      : isScopedKeyConfigured === false
+                      ? "Warning: No scoped function-call key found on NEAR Testnet."
                       : "Operating key is verified on NEAR Testnet and ready for evaluation."}
                   </p>
                 </div>

@@ -117,3 +117,16 @@ test("parseRegistrationError: handles user cancellations gracefully", () => {
   assert.strictEqual(parsed.title, "Transaction Cancelled");
   assert.ok(parsed.message.includes("cancelled in your NEAR wallet"));
 });
+
+test("parseRegistrationError: handles missing contract / network mismatch gracefully", () => {
+  const rawMissingContract = "Can't complete the action because account scopeguard.testnet doesn't exist";
+  const parsed = parseRegistrationError(
+    rawMissingContract,
+    "agent3.sergeo-guard.testnet",
+    "sergeo-guard.testnet"
+  );
+
+  assert.strictEqual(parsed.title, "Contract Not Found on Selected Network");
+  assert.ok(parsed.message.includes("scopeguard.testnet was not found"));
+  assert.ok(parsed.fixGuidance.includes("Testnet"));
+});

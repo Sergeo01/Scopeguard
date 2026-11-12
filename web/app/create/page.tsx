@@ -52,7 +52,7 @@ interface TargetPlatform extends ConfiguredPlatform {}
 
 export default function CreateAgentPage() {
   const { accountId: connectedWalletId, isConnected: isWalletConnected } = useWallet();
-  const [agentName, setAgentName] = useState("agent2.sergeo-guard.testnet");
+  const [agentName, setAgentName] = useState("agent3.sergeo-guard.testnet");
   const [dailyCap, setDailyCap] = useState<number>(500);
   const [dailyCapInput, setDailyCapInput] = useState<string>("500");
   const [guardContractId, setGuardContractId] = useState<string | null>(tryGetPolicyContractId);
@@ -68,13 +68,17 @@ export default function CreateAgentPage() {
   // When a wallet connects, automatically set the agent subaccount to match the connected owner
   useEffect(() => {
     if (isWalletConnected && connectedWalletId) {
-      if (
-        agentName === "agent.sergeo-guard.testnet" ||
-        agentName === "agent2.sergeo-guard.testnet" ||
-        !agentName.endsWith(`.${connectedWalletId}`)
-      ) {
-        setAgentName(`agent.${connectedWalletId}`);
-      }
+      setAgentName((prev) => {
+        if (
+          prev === "agent.sergeo-guard.testnet" ||
+          prev === "agent2.sergeo-guard.testnet" ||
+          prev === "agent3.sergeo-guard.testnet" ||
+          !prev.endsWith(`.${connectedWalletId}`)
+        ) {
+          return `agent.${connectedWalletId}`;
+        }
+        return prev;
+      });
     }
   }, [isWalletConnected, connectedWalletId]);
 

@@ -156,12 +156,17 @@ export function parseRegistrationError(
     };
   }
 
-  // 3. Non-existent account error
+  // 3. Non-existent account or network error
   if (rawStr.includes("doesn't exist") || rawStr.includes("does not exist")) {
+    const isGuard = rawStr.includes("scopeguard.testnet") || rawStr.includes("guard");
     return {
-      title: "Account Does Not Exist",
-      message: `Cannot complete registration because the target account does not exist on NEAR testnet.`,
-      fixGuidance: "Verify the account identifier or connect an active NEAR testnet wallet.",
+      title: isGuard ? "Contract Not Found on Selected Network" : "Account Does Not Exist",
+      message: isGuard
+        ? "The Guard contract scopeguard.testnet was not found on your wallet's current network. ScopeGuard operates on NEAR Testnet."
+        : `Cannot complete registration because the target account does not exist on NEAR testnet.`,
+      fixGuidance: isGuard
+        ? "Switch your wallet network from Mainnet to NEAR Testnet and reconnect."
+        : "Verify the account identifier or connect an active NEAR testnet wallet.",
       targetElementId: "agent-subaccount-input",
       rawError: rawStr,
     };

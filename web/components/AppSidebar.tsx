@@ -135,6 +135,12 @@ export const AppSidebar: React.FC<{
       label: "Community",
       items: [
         {
+          href: "/docs",
+          label: "Docs & Guides",
+          icon: BookOpen,
+          badge: "Guides",
+        },
+        {
           href: "https://github.com/Sergeo01/Scopeguard",
           label: "GitHub Repository",
           icon: Github,

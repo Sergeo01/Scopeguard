@@ -68,4 +68,63 @@ test("dashboard: 6-tab navigation structure, URL sync, and safe display invarian
   const bannerPos = content.indexOf("<CircuitBreakerBanner");
   const tabBarPos = content.indexOf("{/* 6-Tab Navigation Bar */}");
   assert.ok(bannerPos !== -1 && tabBarPos !== -1 && bannerPos < tabBarPos, "CircuitBreakerBanner must be above tab bar");
+
+  // 9. Tab description line present below the tab row
+  assert.ok(
+    content.includes("{/* Tab Description Line */}"),
+    "Dashboard must contain a tab description line under the tab row"
+  );
+
+  // 10. Approvals tab count badge
+  assert.ok(
+    content.includes("tab.id === \"approvals\"") && content.includes("{pendingCount}"),
+    "Approvals tab must display pendingCount count badge"
+  );
+});
+
+test("sidebar: Community group contains Docs & Guides link", () => {
+  const sidebarPath = path.resolve(__dirname, "../components/AppSidebar.tsx");
+  const content = fs.readFileSync(sidebarPath, "utf8");
+  assert.ok(
+    content.includes('href: "/docs"') && content.includes('label: "Docs & Guides"'),
+    "AppSidebar must include a Docs & Guides link in the Community group"
+  );
+});
+
+test("cli: help examples use local node runner, not unpublished npx", () => {
+  const cliPath = path.resolve(__dirname, "../../sdk/bin/cli.js");
+  const content = fs.readFileSync(cliPath, "utf8");
+  assert.ok(
+    content.includes("node sdk/bin/cli.js setup"),
+    "CLI help must use 'node sdk/bin/cli.js setup'"
+  );
+  assert.ok(
+    !content.includes("npx @scopeguard/sdk"),
+    "CLI help must not reference unpublished 'npx @scopeguard/sdk'"
+  );
+});
+
+test("policy-editor: uses mUSD without dollar sign and displays invariants", () => {
+  const modalPath = path.resolve(__dirname, "../components/PolicyEditorModal.tsx");
+  const content = fs.readFileSync(modalPath, "utf8");
+  assert.ok(
+    content.includes("Token Daily Spending Cap (mUSD)"),
+    "PolicyEditorModal must label cap as '(mUSD)' without dollar sign"
+  );
+  assert.ok(
+    content.includes("{editDailyCap} mUSD Max"),
+    "PolicyEditorModal must format max as '{editDailyCap} mUSD Max'"
+  );
+  assert.ok(
+    content.includes("High-Value Threshold"),
+    "PolicyEditorModal must display High-Value Threshold"
+  );
+  assert.ok(
+    content.includes("Timelock Delay"),
+    "PolicyEditorModal must display Timelock Delay"
+  );
+  assert.ok(
+    content.includes("ft_transfer") && content.includes("swap") && content.includes("execute_intent"),
+    "PolicyEditorModal must list allowed methods"
+  );
 });

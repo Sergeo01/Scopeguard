@@ -100,9 +100,9 @@ export function PolicyEditorModal({
         {/* Daily Cap (mUSD Tokens) */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-            <span>Token Daily Spending Cap ($ mUSD)</span>
+            <span>Token Daily Spending Cap (mUSD)</span>
             <span className="text-[11px] font-mono text-mint-greenDark dark:text-mint-green font-bold">
-              ${editDailyCap} Max
+              {editDailyCap} mUSD Max
             </span>
           </label>
           <div className="flex items-center gap-2">
@@ -126,9 +126,33 @@ export function PolicyEditorModal({
                     : "bg-slate-100 dark:bg-obsidian-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-obsidian-700 hover:border-brand-blue"
                 }`}
               >
-                ${amt}
+                {amt} mUSD
               </button>
             ))}
+          </div>
+
+          {/* Onchain Invariant Parameters */}
+          <div className="p-3 mt-2 rounded-xl bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 space-y-2">
+            <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>Onchain Settlement Rules</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-blue/10 text-brand-blue">Active Invariants</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div className="p-2 rounded-lg bg-white dark:bg-obsidian-900 border border-slate-200/80 dark:border-obsidian-800">
+                <span className="text-[10px] text-slate-400 block font-sans">High-Value Threshold</span>
+                <span className="font-bold text-slate-900 dark:text-white">{policy?.high_value_threshold || 250} mUSD</span>
+              </div>
+              <div className="p-2 rounded-lg bg-white dark:bg-obsidian-900 border border-slate-200/80 dark:border-obsidian-800">
+                <span className="text-[10px] text-slate-400 block font-sans">Timelock Delay</span>
+                <span className="font-bold text-slate-900 dark:text-white">{policy?.high_value_delay_seconds || 60}s quarantine</span>
+              </div>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 font-sans">Allowed Methods: </span>
+              <code className="text-[10px] font-mono text-brand-blue bg-brand-blue/5 px-1 py-0.5 rounded">ft_transfer</code>,{" "}
+              <code className="text-[10px] font-mono text-brand-blue bg-brand-blue/5 px-1 py-0.5 rounded">swap</code>,{" "}
+              <code className="text-[10px] font-mono text-brand-blue bg-brand-blue/5 px-1 py-0.5 rounded">execute_intent</code>
+            </div>
           </div>
         </div>
 
@@ -356,8 +380,8 @@ export function PolicyEditorModal({
           if (!isCapValid) {
             editorBlockers.push({
               field: "Daily Spending Cap",
-              message: "Token daily spending cap must be greater than $0.",
-              fix: "Enter a positive dollar figure (e.g. 100) or select one of the preset chips.",
+              message: "Token daily spending cap must be greater than 0 mUSD.",
+              fix: "Enter a positive mUSD amount (e.g. 100) or select one of the preset chips.",
             });
           }
           if (!isTargetsValid) {
