@@ -73,7 +73,7 @@ test("api-guard: serverSigningEnabled and agentSigningEnabled reflect environmen
 });
 
 test("api-guard: guardSigningRequest blocks cross-origin and disables signing safely", async () => {
-  const fallbackCommand = "near call guard2 register_agent ...";
+  const fallbackCommand = "near call scopeguard.testnet register_agent ...";
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
 
   try {
@@ -164,7 +164,7 @@ test("api-guard: refuses owner-signing requests with 500 when server signing is 
 });
 
 test("api-guard: requires shared secret for non-browser callers when configured", async () => {
-  const fallbackCommand = "near call guard2 register_agent ...";
+  const fallbackCommand = "near call scopeguard.testnet register_agent ...";
   const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
 
@@ -217,7 +217,7 @@ test("api-guard: requires shared secret for non-browser callers when configured"
 });
 
 test("api-guard: rate limiting rejects burst requests with 429", () => {
-  const fallbackCommand = "near call guard2 register_agent ...";
+  const fallbackCommand = "near call scopeguard.testnet register_agent ...";
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
   const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
 
@@ -252,7 +252,7 @@ test("api-guard: rate limiting rejects burst requests with 429", () => {
 });
 
 test("api-guard: requires shared secret even with valid or forged Origin header", () => {
-  const fallbackCommand = "near call guard2 register_agent ...";
+  const fallbackCommand = "near call scopeguard.testnet register_agent ...";
   const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
 
@@ -300,7 +300,7 @@ test("api-guard: requires shared secret even with valid or forged Origin header"
 });
 
 test("api-guard: rate limits on last proxy hop, ignoring forged rotating first hops", () => {
-  const fallbackCommand = "near call guard2 register_agent ...";
+  const fallbackCommand = "near call scopeguard.testnet register_agent ...";
   const origServerFlag = process.env.SCOPEGUARD_ALLOW_SERVER_SIGNING;
   const origSecret = process.env.SCOPEGUARD_SHARED_SECRET;
   resetRateLimits();

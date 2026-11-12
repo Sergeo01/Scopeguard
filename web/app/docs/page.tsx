@@ -596,16 +596,16 @@ if !is_promise_success() {
             </h2>
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
-                <div className="text-slate-400"># Connect agent with scoped credentials</div>
-                <div className="text-emerald-400 font-bold">node sdk/dist/bin/scopeguard.js connect --account &lt;agent_id&gt; --key &lt;private_key&gt; --guard &lt;guard_contract_id&gt;</div>
+                <div className="text-slate-400"># Query live rules and remaining budget</div>
+                <div className="text-emerald-400 font-bold">curl https://scopeguard.blockframe.cloud/api/agents?agent=agent2.sergeo-guard.testnet</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
-                <div className="text-slate-400"># Inspect active onchain budget and velocity</div>
-                <div className="text-blue-400 font-bold">node sdk/dist/bin/scopeguard.js status --agent agent.sergeo-guard.testnet</div>
+                <div className="text-slate-400"># Inspect active onchain budget via NEAR CLI</div>
+                <div className="text-blue-400 font-bold">near view scopeguard.testnet get_budget '{`{"agent_account": "agent2.sergeo-guard.testnet"}`}'</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 space-y-1">
                 <div className="text-slate-400"># Trigger emergency owner pause</div>
-                <div className="text-amber-400 font-bold">node sdk/dist/bin/scopeguard.js panic pause --guard &lt;guard_contract_id&gt;</div>
+                <div className="text-amber-400 font-bold">near call scopeguard.testnet pause '{`{"agent_account": "<agent_id>"}`}' --accountId &lt;owner_id&gt;</div>
               </div>
             </div>
           </section>

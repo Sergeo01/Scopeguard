@@ -38,7 +38,19 @@ import {
   Terminal,
   Sliders,
   Settings2,
+  LayoutDashboard,
+  Bell,
+  AlertOctagon,
 } from "lucide-react";
+
+const TABS = [
+  { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
+  { id: "policy" as const, label: "Policy & Rules", icon: Shield },
+  { id: "approvals" as const, label: "Approvals", icon: Clock },
+  { id: "activity" as const, label: "Audit Ledger", icon: Activity },
+  { id: "emergency" as const, label: "Emergency Controls", icon: ShieldAlert },
+  { id: "alerts" as const, label: "Alerts", icon: Bell },
+];
 import { CircuitBreakerBanner, RejectionEvent } from "@/components/CircuitBreakerBanner";
 import { StagedPolicyBanner, StagedPolicyItem } from "@/components/StagedPolicyBanner";
 import { useWallet } from "@/context/WalletContext";
@@ -99,6 +111,9 @@ export default function DashboardPage() {
   const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
   const [queriedAgent, setQueriedAgent] = useState<string | null>(null);
   const [queriedOwner, setQueriedOwner] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "policy" | "approvals" | "activity" | "emergency" | "alerts">("overview");
+  const [gasAllowanceNear, setGasAllowanceNear] = useState<number | null>(null);
+  const [isScopedKeyConfigured, setIsScopedKeyConfigured] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -106,6 +121,7 @@ export default function DashboardPage() {
       const qAgent = sp.get("agent");
       const qOwner = sp.get("owner");
       const qGuard = sp.get("guard");
+      const qTab = sp.get("tab");
       if (qAgent) {
         setAgentId(qAgent);
         setQueriedAgent(qAgent);
@@ -116,6 +132,9 @@ export default function DashboardPage() {
       }
       if (qGuard) {
         setGuardId(qGuard);
+      }
+      if (qTab && ["overview", "policy", "approvals", "activity", "emergency", "alerts"].includes(qTab)) {
+        setActiveTab(qTab as any);
       }
     }
   }, []);
@@ -270,6 +289,13 @@ export default function DashboardPage() {
           setOwnerId(data.ownerId);
         }
         if (data.agentPublicKey) setAgentPublicKey(data.agentPublicKey);
+        if (data.isScopedKeyConfigured && data.gasAllowanceNear !== undefined && data.gasAllowanceNear !== null) {
+          setGasAllowanceNear(parseFloat(data.gasAllowanceNear));
+          setIsScopedKeyConfigured(true);
+        } else {
+          setGasAllowanceNear(null);
+          setIsScopedKeyConfigured(Boolean(data.isScopedKeyConfigured));
+        }
         if (data.policy) {
           setPolicy(data.policy);
           if (data.policy.max_actions_per_10min) {
@@ -756,6 +782,15 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTabChange = (tab: "overview" | "policy" | "approvals" | "activity" | "emergency" | "alerts") => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      sp.set("tab", tab);
+      window.history.replaceState({}, "", `/dashboard?${sp.toString()}`);
+    }
+  };
+
   const copyAgentId = () => {
     navigator.clipboard.writeText(agentId);
     setCopiedAgent(true);
@@ -874,14 +909,45 @@ export default function DashboardPage() {
         isOwner={Boolean(user && connectedWalletId === ownerId)}
       />
 
-      {/* Staged Policy Timelock Banner */}
-      <StagedPolicyBanner
-        stagedPolicy={stagedPolicy}
-        onCancelPolicyChange={handleCancelPolicyChange}
-        isOwner={Boolean(user && connectedWalletId === ownerId)}
-      />
 
-      {/* Hero Financial Vault Card */}
+      {/* 6-Tab Navigation Bar */}
+      <div className="border-b border-slate-200 dark:border-obsidian-800">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const pendingCount = pendingActions.length + (stagedPolicy ? 1 : 0);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  isActive
+                    ? "bg-brand-blue text-white shadow-xs"
+                    : "bg-slate-100 dark:bg-obsidian-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-obsidian-850"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+                {tab.id === "approvals" && pendingCount > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                    isActive ? "bg-white/20 text-white" : "bg-brand-blue text-white"
+                  }`}>
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Hero Financial Vault Card */}
       <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-obsidian-800 space-y-6">
         {/* Top Header Row with Score Box */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-obsidian-800">
@@ -1110,10 +1176,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Spending Limits, Speed Throttles & Autonomous Risk Gauges */}
+          {/* Spending Limits, Speed Throttles & Autonomous Risk Gauges */}
       <BudgetVelocityGauge
         gasBudgetNearTotal={0.25}
-        gasBudgetNearRemaining={0.23}
+        gasBudgetNearRemaining={gasAllowanceNear}
         dailyCapTotal={dailyCapTotal}
         dailyCapSpent={dailyCapSpent}
         velocityUsed={velocityUsed}
@@ -1126,96 +1192,16 @@ export default function DashboardPage() {
         intentRecipientsCount={intentRecipients.length}
       />
 
-      {/* Worst-Case Loss Bound Indicator */}
+          {/* Worst-Case Loss Bound Indicator */}
       <WorstCaseBoundIndicator dailyCap={dailyCapTotal} vaultBalance={vaultBalance} />
-
-      {/* Autonomous Risk Panels: IntentShield & Canary Decoys */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* IntentShield Card */}
-        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-brand-blue" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                IntentShield: Cross-Chain Allowlist (targets intents.near)
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
-              {intentRecipients.length > 0 ? `${intentRecipients.length} Recipient(s)` : "Strict Mode"}
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.
-          </p>
-
-          <div className="space-y-1.5 pt-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-              Allowlisted Destinations:
-            </span>
-            {intentRecipients.length > 0 ? (
-              <div className="space-y-1">
-                {intentRecipients.map((rec, i) => (
-                  <div
-                    key={i}
-                    className="p-2 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
-                  >
-                    <span className="truncate">{rec}</span>
-                    <span className="text-[10px] font-semibold text-mint-greenDark dark:text-mint-green px-1.5 py-0.5 rounded bg-mint-green/10">
-                      Permitted
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-xs font-mono text-slate-500">
-                No external recipients allowlisted. All cross-chain withdrawals are blocked onchain.
-              </div>
-            )}
-          </div>
         </div>
+      )}
 
-        {/* Canary Decoy Honeypot Card */}
-        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
-            <div className="flex items-center gap-2">
-              <Crosshair className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Canary Decoy Tripwires
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              {canaryMethods.length} Armed
-            </span>
-          </div>
 
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Honeypot functions deliberately advertised to catch prompt injection attacks. If an agent tries calling any of these methods, the contract triggers immediate auto-pause.
-          </p>
-
-          <div className="space-y-1.5 pt-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-              Active Decoy Methods:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {canaryMethods.map((m, i) => (
-                <span
-                  key={i}
-                  className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                  <span>{m}()</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Real-Time Emergency Alerts: Telegram & Discord Webhooks */}
-      <WebhookAlertSettings agentId={agentId} />
-
-      {/* Enforced Policy Rules and Controls */}
+      {/* TAB 2: POLICY & RULES */}
+      {activeTab === "policy" && (
+        <div className="space-y-6">
+          {/* Enforced Policy Rules and Controls */}
       <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-obsidian-800 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-obsidian-800">
           <div>
@@ -1264,7 +1250,7 @@ export default function DashboardPage() {
             {
               num: 2,
               name: "Execution State & Circuit Breaker",
-              code: "PAUSED",
+              code: isPaused ? "PAUSED (TRIPPED)" : "ACTIVE (UNPAUSED)",
               desc: "Refuses execution when paused by owner or tripped by consecutive rejects in configured window.",
               config: isInitialLoading ? "Syncing..." : isPaused ? "Paused by Owner" : "Active (Unpaused)",
               badge: isInitialLoading ? "Syncing" : isPaused ? "Paused" : "Active",
@@ -1428,7 +1414,9 @@ export default function DashboardPage() {
                       <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
                         {rule.name}
                       </h4>
-                      <span className="font-mono text-[10px] text-slate-400">
+                      <span className={`font-mono text-[10px] font-semibold ${
+                        rule.num === 2 && !isPaused ? "text-mint-greenDark dark:text-mint-green" : "text-slate-400"
+                      }`}>
                         {rule.code}
                       </span>
                     </div>
@@ -1475,9 +1463,9 @@ export default function DashboardPage() {
                   {rule.desc}
                 </p>
 
-                <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-obsidian-800 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-slate-400 text-[10px]">Config:</span>
-                  <span className="text-slate-800 dark:text-slate-200 font-medium truncate max-w-[200px]">
+                <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-obsidian-800 flex flex-col sm:flex-row sm:items-start justify-between gap-1 text-[11px] font-mono">
+                  <span className="text-slate-400 text-[10px] shrink-0">Config:</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-medium break-words text-left sm:text-right sm:max-w-[75%]">
                     {rule.config}
                   </span>
                 </div>
@@ -1487,72 +1475,265 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quarantined Actions in Timelock */}
-      {pendingActions.length > 0 && (
-        <div className="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-brand-blue font-semibold text-xs">
-              <Clock className="w-3.5 h-3.5 animate-spin" />
-              <span>Quarantined High-Value Actions ({pendingActions.length})</span>
+          {/* Autonomous Risk Panels: IntentShield & Canary Decoys */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* IntentShield Card */}
+        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-brand-blue" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                IntentShield: Cross-Chain Allowlist (targets intents.near)
+              </h3>
             </div>
-            <span className="text-[11px] text-slate-500 font-mono">
-              Threshold: ${policy?.high_value_threshold || 250} mUSD
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
+              {intentRecipients.length > 0 ? `${intentRecipients.length} Recipient(s)` : "Strict Mode"}
             </span>
           </div>
 
-          <div className="space-y-2">
-            {pendingActions.map((item) => {
-              const isReady = !item.secondsRemaining || item.secondsRemaining <= 0;
-              return (
-                <div
-                  key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800"
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
-                        Action #{item.id}: {item.method}() on {item.target}
-                      </span>
-                      <span className="font-mono font-bold text-xs text-mint-greenDark dark:text-mint-green">
-                        ${item.amount} mUSD
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      {isReady
-                        ? "Quarantine window ended. Ready for owner settlement."
-                        : `Owner review delay: ${item.secondsRemaining}s remaining`}
-                    </p>
-                  </div>
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Restricts IntentTransfer actions to pre-approved destination addresses across EVM, Cosmos, and Solana chains. Live contract checks recipient allowlist and deposit address target; does not verify 1Click quotes onchain.
+          </p>
 
-                  <div className="flex items-center gap-2 self-start sm:self-center">
-                    {isReady && (
-                      <button
-                        type="button"
-                        onClick={() => handleSettlePending(item.id)}
-                        className="px-3 py-1.5 rounded-lg bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition"
-                      >
-                        Settle & Execute
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleCancelPending(item.id)}
-                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition"
-                    >
-                      Veto & Cancel
-                    </button>
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Allowlisted Destinations:
+            </span>
+            {intentRecipients.length > 0 ? (
+              <div className="space-y-1">
+                {intentRecipients.map((rec, i) => (
+                  <div
+                    key={i}
+                    className="p-2 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                  >
+                    <span className="truncate">{rec}</span>
+                    <span className="text-[10px] font-semibold text-mint-greenDark dark:text-mint-green px-1.5 py-0.5 rounded bg-mint-green/10">
+                      Permitted
+                    </span>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 text-xs font-mono text-slate-500">
+                No external recipients allowlisted. All cross-chain withdrawals are blocked onchain.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Canary Decoy Honeypot Card */}
+        <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Canary Decoy Tripwires
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              {canaryMethods.length} Armed
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Honeypot functions deliberately advertised to catch prompt injection attacks. If an agent tries calling any of these methods, the contract triggers immediate auto-pause.
+          </p>
+
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Active Decoy Methods:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {canaryMethods.map((m, i) => (
+                <span
+                  key={i}
+                  className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 font-mono text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>{m}()</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+          {/* Mini-Cards Metric Grid */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 border border-slate-200 dark:border-obsidian-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Enforcement Thresholds & Scope Summary
+            </h4>
+            {/* Metric Grid */}
+          <div className="pt-3 border-t border-slate-100 dark:border-obsidian-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
+              <span className="text-[10px] text-slate-400 font-medium block">
+                Brake
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">3 strikes</span>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
+              <span className="text-[10px] text-slate-400 font-medium block">
+                Window
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">10 min</span>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
+              <span className="text-[10px] text-slate-400 font-medium block">
+                Targets
+              </span>
+              <span className="font-mono text-xs font-bold text-mint-greenDark dark:text-mint-green">{policy?.targets ? `${Object.keys(policy.targets).length} Targets` : "3 Targets"}</span>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
+              <span className="text-[10px] text-slate-400 font-medium block">
+                External
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">Blocked</span>
+            </div>
+          </div>
           </div>
         </div>
       )}
 
-      {/* Asymmetric Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (Col 7): Activity Ledger Card */}
-        <div className="lg:col-span-7 bg-white dark:bg-obsidian-900 rounded-xl p-5 border border-slate-200 dark:border-obsidian-800 space-y-4">
+
+      {/* TAB 3: APPROVALS */}
+      {activeTab === "approvals" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-obsidian-800">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Quarantined Actions & Staged Policies
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                High-value transfers and proposed policy changes held in timelock quarantine for owner authorization.
+              </p>
+            </div>
+            <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-obsidian-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-obsidian-800">
+              Threshold: {policy?.high_value_threshold || 250} mUSD
+            </span>
+          </div>
+
+          {/* Quarantined Actions in Timelock */}
+          {pendingActions.length > 0 ? (
+            <div className="rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-brand-blue font-semibold text-xs">
+                  <Clock className="w-3.5 h-3.5 animate-spin" />
+                  <span>Quarantined High-Value Actions ({pendingActions.length})</span>
+                </div>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Threshold: {policy?.high_value_threshold || 250} mUSD
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {pendingActions.map((item) => {
+                  const isReady = !item.secondsRemaining || item.secondsRemaining <= 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-obsidian-800"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                            Action #{item.id}: {item.method}() on {item.target}
+                          </span>
+                          <span className="font-mono font-bold text-xs text-mint-greenDark dark:text-mint-green">
+                            {item.amount} mUSD
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-mono">
+                          {isReady
+                            ? "Quarantine window ended. Ready for owner settlement."
+                            : `Owner review delay: ${item.secondsRemaining}s remaining`}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-center">
+                        {isReady && (
+                          <button
+                            type="button"
+                            onClick={() => handleSettlePending(item.id)}
+                            className="px-3 py-1.5 rounded-lg bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition cursor-pointer"
+                          >
+                            Settle & Execute
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleCancelPending(item.id)}
+                          className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition cursor-pointer"
+                        >
+                          Veto & Cancel
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 dark:border-obsidian-800 bg-slate-50 dark:bg-obsidian-950 p-8 text-center space-y-2">
+              <Clock className="w-8 h-8 text-slate-400 mx-auto opacity-60" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                Nothing waiting. High-value actions will appear here for your decision.
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                Transfers at or above the high-value threshold ({policy?.high_value_threshold || 250} mUSD) enter this quarantine queue for owner review before execution.
+              </p>
+            </div>
+          )}
+
+          {/* Staged Policy Timelock Section */}
+          <div className="rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 p-5 space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-obsidian-800">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-brand-blue" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Staged Policy Modifications
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
+                {stagedPolicy ? "Pending Timelock" : "None Pending"}
+              </span>
+            </div>
+
+            {stagedPolicy ? (
+              <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white block">
+                    New Policy Staged onchain
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono block">
+                    Takes effect after 60-second owner review delay.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelPolicyChange}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancel Staged Policy
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 font-mono">
+                No staged policy changes pending timelock.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+
+      {/* TAB 4: AUDIT LEDGER */}
+      {activeTab === "activity" && (
+        <div className="space-y-6">
+          {/* Left Column (Col 7): Activity Ledger Card */}
+        <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 border border-slate-200 dark:border-obsidian-800 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-obsidian-800">
             <div>
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block">
@@ -1693,7 +1874,7 @@ export default function DashboardPage() {
 
                           {act.amount && (
                             <span className="font-mono text-xs text-mint-greenDark dark:text-mint-green font-bold">
-                              ${act.amount}
+                              {act.amount} mUSD
                             </span>
                           )}
                         </div>
@@ -1737,109 +1918,150 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        </div>
+      )}
 
-        {/* Right Column (Col 5): Policy Status & Controls */}
-        <div className="lg:col-span-5 bg-white dark:bg-obsidian-900 rounded-xl p-5 border border-slate-200 dark:border-obsidian-800 space-y-5">
-          <div className="space-y-1">
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block">
-              Policy Status
+
+      {/* TAB 5: EMERGENCY CONTROLS */}
+      {activeTab === "emergency" && (
+        <div className="space-y-6">
+          {/* Status Banner */}
+          <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
+            isPaused
+              ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+              : "bg-mint-green/10 border-mint-green/30 text-slate-800 dark:text-slate-200"
+          }`}>
+            <div className="flex items-center gap-3">
+              {isPaused ? (
+                <ShieldAlert className="w-6 h-6 text-rose-500 shrink-0" />
+              ) : (
+                <ShieldCheck className="w-6 h-6 text-mint-green shrink-0" />
+              )}
+              <div>
+                <h4 className="text-sm font-bold">
+                  {isPaused ? "Execution Frozen (Agent Paused)" : "Agent Active & Guarded"}
+                </h4>
+                <p className="text-xs opacity-90 mt-0.5">
+                  {isPaused
+                    ? "The agent passkey is paused on NEAR Testnet. All transaction attempts through scopeguard.testnet::execute will be rejected with reason PAUSED."
+                    : "The agent is executing normally within allowed targets, limits, and daily budgets. In an emergency, trigger Pause to immediately freeze all transactions."}
+                </p>
+              </div>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold shrink-0 ${
+              isPaused ? "bg-rose-500 text-white" : "bg-mint-green/20 text-mint-greenDark dark:text-mint-green"
+            }`}>
+              {isPaused ? "PAUSED" : "ACTIVE"}
             </span>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Active Protection
+          </div>
+
+          {/* Action Buttons Grid */}
+          <div className="bg-white dark:bg-obsidian-900 rounded-xl p-5 border border-slate-200 dark:border-obsidian-800 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Owner Emergency Response Controls
               </h3>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-mint-green/10 text-mint-greenDark dark:text-mint-green text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-mint-green" />
-                <span>Verified</span>
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Every attempted transaction is intercepted by ScopeGuard. Even if the agent is prompt-injected or stolen, loss is bounded to approved limits.
-            </p>
-          </div>
-
-          {/* Metric Grid */}
-          <div className="pt-3 border-t border-slate-100 dark:border-obsidian-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">
-                Brake
-              </span>
-              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">3 strikes</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                These functions require cryptographic owner authorization and execute directly on NEAR Testnet.
+              </p>
             </div>
 
-            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">
-                Window
-              </span>
-              <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">10 min</span>
-            </div>
-
-            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">
-                Targets
-              </span>
-              <span className="font-mono text-xs font-bold text-mint-greenDark dark:text-mint-green">{policy?.targets ? `${Object.keys(policy.targets).length} Targets` : "3 Targets"}</span>
-            </div>
-
-            <div className="p-2.5 bg-slate-50 dark:bg-obsidian-950 rounded-lg border border-slate-200 dark:border-obsidian-800 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">
-                External
-              </span>
-              <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">Blocked</span>
-            </div>
-          </div>
-
-          {/* Owner Emergency Controls */}
-          <div className="pt-3 border-t border-slate-100 dark:border-obsidian-800 space-y-2">
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 block">
-              Owner Controls
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {isPaused ? (
                 <button
                   type="button"
                   onClick={handleUnpause}
-                  className="py-2 px-2.5 rounded-lg bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-mint-greenDark dark:bg-mint-green text-white dark:text-slate-950 text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:opacity-95"
                 >
-                  <PlayCircle className="w-3.5 h-3.5" />
-                  <span>Unpause</span>
+                  <PlayCircle className="w-4 h-4" />
+                  <span>Unpause Agent</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handlePause}
-                  className="py-2 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-900 dark:text-white text-xs font-semibold border border-slate-200 dark:border-obsidian-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-white text-xs font-semibold border border-slate-800 dark:border-obsidian-700 transition flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <PauseCircle className="w-3.5 h-3.5" />
-                  <span>Pause</span>
+                  <PauseCircle className="w-4 h-4 text-amber-400" />
+                  <span>Pause Agent Immediately</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={handleRevoke}
-                className="py-2 px-2.5 rounded-lg bg-amber-600/90 hover:bg-amber-600 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
                 title="Permanently revoke all target and recipient permissions onchain"
               >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span>Revoke</span>
+                <ShieldAlert className="w-4 h-4" />
+                <span>Revoke Permissions</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleWithdrawVault}
-                className="py-2 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
                 title="Withdraw custodied mUSD vault back to owner"
               >
-                <DownloadCloud className="w-3.5 h-3.5" />
-                <span>Drain mUSD</span>
+                <DownloadCloud className="w-4 h-4" />
+                <span>Drain mUSD Vault</span>
               </button>
 
+              <button
+                type="button"
+                onClick={handleWithdrawNear}
+                className="py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
+                title="Withdraw custodied NEAR vault back to owner"
+              >
+                <Coins className="w-4 h-4" />
+                <span>Drain NEAR Vault</span>
+              </button>
+            </div>
+          </div>
 
+          {/* Emergency Architecture & Invariants */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 space-y-1.5">
+              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-brand-blue" />
+                <span>Scoped Key Containment</span>
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                The agent holds exclusively a FunctionCall access key restricted to scopeguard.testnet::execute with 0.25 NEAR gas allowance. It cannot access master keys or transfer native NEAR directly.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 space-y-1.5">
+              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span>Zero-Delay Auto-Pause</span>
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                3 consecutive policy rejections or calling any honeypot canary decoy method immediately trips auto-pause in the same onchain transaction, freezing further calls.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-obsidian-800 bg-white dark:bg-obsidian-900 space-y-1.5">
+              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-mint-green" />
+                <span>Non-Custodial Recovery</span>
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Vault funds are custodied inside the Guard smart contract. The owner account can drain remaining tokens or native NEAR back to their wallet at any time.
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+
+      {/* TAB 6: ALERTS */}
+      {activeTab === "alerts" && (
+        <div className="space-y-6">
+          <WebhookAlertSettings agentId={agentId} />
+        </div>
+      )}
+
 
       {/* Owner Command Modal */}
       {activeOwnerModal && (

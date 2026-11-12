@@ -5,7 +5,7 @@ import { CreditCard, Fuel, Gauge, Clock, ShieldCheck, TrendingDown, Timer, Cross
 
 export interface BudgetVelocityGaugeProps {
   gasBudgetNearTotal: number;
-  gasBudgetNearRemaining: number;
+  gasBudgetNearRemaining?: number | null;
   dailyCapTotal: number;
   dailyCapSpent: number;
   velocityUsed: number;
@@ -40,10 +40,10 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
     Math.round((dailyCapSpent / (dailyCapTotal || 1)) * 100)
   );
 
-  const gasRemainingPercent = Math.min(
-    100,
-    Math.round((gasBudgetNearRemaining / (gasBudgetNearTotal || 1)) * 100)
-  );
+  const hasScopedGasKey = gasBudgetNearRemaining !== null && gasBudgetNearRemaining !== undefined;
+  const gasRemainingPercent = hasScopedGasKey
+    ? Math.min(100, Math.round((gasBudgetNearRemaining / (gasBudgetNearTotal || 1)) * 100))
+    : 0;
 
   const velocityPercent = Math.min(
     100,
@@ -202,7 +202,9 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Network Gas Fuel</span>
             </div>
             <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
-              {gasBudgetNearRemaining.toFixed(2)} NEAR
+              {hasScopedGasKey
+                ? `${gasBudgetNearRemaining!.toFixed(3)} NEAR`
+                : "No Scoped Key"}
             </span>
           </div>
 
@@ -214,8 +216,17 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>{gasBudgetNearRemaining.toFixed(2)} of {gasBudgetNearTotal.toFixed(2)} NEAR</span>
-              <span>Gas only</span>
+              {hasScopedGasKey ? (
+                <>
+                  <span>{gasBudgetNearRemaining!.toFixed(3)} of {gasBudgetNearTotal.toFixed(2)} NEAR</span>
+                  <span>Gas only</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-amber-500 font-medium">No scoped key configured onchain</span>
+                  <span>0 NEAR</span>
+                </>
+              )}
             </div>
           </div>
 

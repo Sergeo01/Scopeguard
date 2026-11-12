@@ -14,7 +14,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
 }) => {
   const capNum = Number(dailyCap) || 0;
   const vaultNum = Number(vaultBalance) || 0;
-  const bound = (vaultNum > 0 && capNum > 0) ? Math.min(vaultNum, capNum) : (vaultNum || capNum || 350);
+  const bound = Math.min(vaultNum, capNum);
 
   return (
     <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-obsidian-900 p-5 sm:p-6 shadow-xs space-y-4">

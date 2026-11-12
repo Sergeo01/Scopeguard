@@ -447,9 +447,9 @@ async function main() {
       console.log("  act       Execute an action through ScopeGuard policy checks");
       console.log("  budget    Query live budget and remaining allowance on NEAR");
       console.log("\nExamples:");
-      console.log("  node sdk/bin/cli.js setup");
-      console.log("  node sdk/bin/cli.js budget --account agent.sergeo-guard.testnet");
-      console.log("  node sdk/bin/cli.js act --target sergeo-guard-dex.testnet --method swap --amount 25");
+      console.log("  npx @scopeguard/sdk setup");
+      console.log("  npx @scopeguard/sdk budget --account agent2.sergeo-guard.testnet");
+      console.log("  npx @scopeguard/sdk act --target sergeo-guard-dex.testnet --method swap --amount 25");
       process.exit(0);
   }
 }

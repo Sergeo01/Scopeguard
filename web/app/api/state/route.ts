@@ -3,7 +3,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 import { NextResponse } from "next/server";
-import { connect, keyStores } from "near-api-js";
+import { connect, keyStores, utils } from "near-api-js";
 import { getRecentActivities } from "@/lib/ledger";
 import { getPolicyContractId } from "@/lib/config";
 import { getVerifiedRpcEndpoints } from "@/lib/rpc";
@@ -119,8 +119,10 @@ export async function GET(req: Request) {
     // Derived from chain first. The env override exists for tests, and there is
     // deliberately no hardcoded key here: after a rotation a stale literal would
     // display a key that no longer controls anything.
-    let agentPublicKey: string | null =
-      process.env.SCOPEGUARD_AGENT_PUBLIC_KEY || process.env.AGENT_PUBLIC_KEY || null;
+    let agentPublicKey: string | null = null;
+    let gasAllowanceNear: string | null = null;
+    let isScopedKeyConfigured = false;
+
     try {
       if (activeNear) {
         const agentAccount = await activeNear.account(effectiveAgentId);
@@ -130,14 +132,27 @@ export async function GET(req: Request) {
             const perm = k.access_key?.permission;
             return (
               typeof perm === "object" &&
-              perm?.FunctionCall?.receiver_id === guardId
+              perm?.FunctionCall?.receiver_id === guardId &&
+              Array.isArray(perm?.FunctionCall?.method_names) &&
+              perm.FunctionCall.method_names.includes("execute")
             );
           });
-          agentPublicKey = scopedKey ? scopedKey.public_key : accessKeys[0].public_key;
+          if (scopedKey) {
+            agentPublicKey = scopedKey.public_key;
+            isScopedKeyConfigured = true;
+            if (scopedKey.access_key?.permission?.FunctionCall?.allowance) {
+              gasAllowanceNear = utils.format.formatNearAmount(
+                scopedKey.access_key.permission.FunctionCall.allowance
+              );
+            }
+          } else {
+            agentPublicKey = null;
+            isScopedKeyConfigured = false;
+          }
         }
       }
     } catch {
-      // Leave the configured key (or null) in place
+      // Leave null if lookup fails
     }
 
     const statePayload = {
@@ -150,6 +165,8 @@ export async function GET(req: Request) {
       agentId: effectiveAgentId,
       ownerId,
       agentPublicKey,
+      gasAllowanceNear,
+      isScopedKeyConfigured,
       activities: getRecentActivities(),
     };
 

@@ -590,6 +590,47 @@ export default function CreateAgentPage() {
           throw new Error("Policy contract not configured. Set NEXT_PUBLIC_POLICY_CONTRACT_ID to register onchain.");
         }
 
+        // Preflight 1: Validate subaccount ownership against connected wallet
+        if (!isAgentSubaccountOwnerValid(targetAgent, connectedWalletId)) {
+          const suggested = `agent.${connectedWalletId}`;
+          const parsed: ParsedRegistrationError = {
+            title: "Sub-Account Owner Mismatch",
+            message: `Account "${targetAgent}" must be a sub-account of your connected wallet (${connectedWalletId}) or match it directly.`,
+            fixGuidance: `Change the sub-account name so it ends with .${connectedWalletId}.`,
+            quickFixLabel: `⚡ Set to ${suggested}`,
+            suggestedAccount: suggested,
+            targetElementId: "agent-subaccount-input",
+          };
+          setParsedDeployError(parsed);
+          setDeployError(parsed.message);
+          setIsDeploying(false);
+          setRegistrationStatus("idle");
+          return;
+        }
+
+        // Preflight 2: Check if agent is already registered onchain before calling wallet
+        try {
+          const isRegistered = await checkAgentRegisteredOnchain(guardId, targetAgent);
+          if (isRegistered) {
+            const nextName = suggestNextAgentName(targetAgent, connectedWalletId);
+            const parsed: ParsedRegistrationError = {
+              title: "Agent Sub-Account Already In Use",
+              message: `The agent sub-account "${targetAgent}" is already registered on ScopeGuard. Each agent requires a unique sub-account name.`,
+              fixGuidance: `Select a new sub-account name (for example, ${nextName}) or click the 1-click fix below.`,
+              quickFixLabel: `⚡ Switch to ${nextName} (1-Click Fix)`,
+              suggestedAccount: nextName,
+              targetElementId: "agent-subaccount-input",
+            };
+            setParsedDeployError(parsed);
+            setDeployError(parsed.message);
+            setIsDeploying(false);
+            setRegistrationStatus("idle");
+            return;
+          }
+        } catch {
+          // Non-blocking if preflight view fails
+        }
+
         const registerAction = transactions.functionCall(
           "register_agent",
           Buffer.from(JSON.stringify({
@@ -710,7 +751,7 @@ export default function CreateAgentPage() {
         } else {
           const parsed = regData.parsedError || parseRegistrationError(errorMsg, targetAgent, connectedWalletId || effectiveOwner);
           setParsedDeployError(parsed);
-          setDeployError(parsed.message || errorMsg);
+          setDeployError(parsed.message);
           setRegistrationStatus("idle");
           setIsDeploying(false);
           return;
@@ -732,7 +773,7 @@ export default function CreateAgentPage() {
       setRegistrationStatus("idle");
       const parsed = parseRegistrationError(e, targetAgent, connectedWalletId || effectiveOwner);
       setParsedDeployError(parsed);
-      setDeployError(parsed.message || e.message || "Failed to generate passkey or register agent");
+      setDeployError(parsed.message);
     }
   };
 

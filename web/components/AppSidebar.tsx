@@ -248,20 +248,6 @@ export const AppSidebar: React.FC<{
 
       {/* Bottom Pinned User Card & Theme Switcher */}
       <div className="p-4 border-t border-slate-200 dark:border-obsidian-800 space-y-3">
-        {/* Direct Docs Link (Semantic Next.js Link) */}
-        <Link
-          href="/docs"
-          onClick={onClose}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 dark:bg-obsidian-900 hover:bg-slate-100 dark:hover:bg-obsidian-850 border border-slate-200 dark:border-obsidian-800 text-xs font-medium text-slate-700 dark:text-slate-300 transition group"
-          title="Open ScopeGuard documentation, rule codes, and integration guides"
-        >
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-brand-blue" />
-            <span>Docs & Guides</span>
-          </div>
-          <ExternalLink className="w-3 h-3 text-slate-400" />
-        </Link>
-
         <div className="flex items-center justify-between px-1">
           <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
             Theme
