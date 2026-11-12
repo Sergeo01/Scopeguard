@@ -31,12 +31,17 @@ export async function GET(req: Request) {
 
     const cacheKey = `${guardId}:${effectiveAgentId}:${ownerId}`;
     const now = Date.now();
+    const hasCacheBuster = searchParams.has("v") || searchParams.has("fresh") || searchParams.has("t");
     const cached = cacheMap.get(cacheKey);
-    if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    if (!hasCacheBuster && cached && now - cached.timestamp < CACHE_TTL_MS) {
       return NextResponse.json({
         ...cached.state,
         cached: true,
         activities: getRecentActivities(),
+      }, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
       });
     }
 
@@ -172,7 +177,11 @@ export async function GET(req: Request) {
 
     cacheMap.set(cacheKey, { state: statePayload, timestamp: now });
 
-    return NextResponse.json(statePayload);
+    return NextResponse.json(statePayload, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   } catch (err: any) {
     return NextResponse.json({
       success: false,
