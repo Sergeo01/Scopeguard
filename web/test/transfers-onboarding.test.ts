@@ -74,6 +74,8 @@ test("drafter: permits ft_transfer on policy token when recipients are defined",
     auto_pause_rejects: 3,
     auto_pause_window_minutes: 10,
     high_value_threshold: 250,
+    high_value_delay_seconds: 60,
+    policy_change_delay_seconds: 60,
   };
 
   const lints = lintPolicy(policyWithTransfers);

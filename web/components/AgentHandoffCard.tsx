@@ -102,7 +102,7 @@ TRANSACTION EXECUTION PATHS:
 - Direct token transfers or calls bypassing ScopeGuard will be rejected and trip your circuit breaker.
 
 1. Direct Payments (Transfers):
-- Guard Action Shape: typed Transfer action { "token": "sergeo-guard-token.testnet", "to": "<RECIPIENT_ACCOUNT>", "amount": "<AMOUNT_IN_ATOMIC_UNITS>", "memo": "<OPTIONAL_MEMO>" }
+- Guard Action Shape: typed Transfer action { "token": "sergeo-guard-token.testnet", "to": "<RECIPIENT_ACCOUNT>", "amount": "<AMOUNT_IN_MUSD>", "memo": "<OPTIONAL_MEMO>" } (amounts in this system are whole numbers: 25 means 25 mUSD)
 - CLI Command: node sdk/bin/cli.js act --recipient <RECIPIENT_ACCOUNT> --amount <AMOUNT>
 - MCP Tool: scopeguard_act with method "ft_transfer", recipient "<RECIPIENT_ACCOUNT>", amount <AMOUNT>
 - Destination Rule: Transfers only succeed to destinations explicitly allowlisted in your policy recipients list. Transferring to any unlisted destination triggers an onchain policy rejection (REASON_RECIPIENT) and records a strike toward your auto-pause circuit breaker.
