@@ -2,7 +2,7 @@
   {
     "step": 1,
     "name": "Legit Swap 25 mUSD on sergeo-guard-dex.testnet",
-    "hash": "7YB4eKtCbjRMjYHuW57on2VNGLGQPFGgbd79XkBuqGgB",
+    "hash": "9tvq8xDNaDJuvjztgCeXZwexe6ycDdEPBaXPC4d1RMxH",
     "status": "ALLOWED",
     "reason": "None (ALLOWED)",
     "spent": "25",
@@ -12,7 +12,7 @@
   {
     "step": 2,
     "name": "Blocked Recipient (transfer 100 mUSD to attacker.testnet)",
-    "hash": "GD5f8vUWoQ2JfPC4CRphREz2asynGqx6fLWcsbU2pfPB",
+    "hash": "EH9eRN38MKpdJUF9wug54ZHx1kCHH863WBFZXhAtSgNb",
     "status": "REJECTED",
     "reason": "RECIPIENT_NOT_ALLOWED",
     "spent": "25",
@@ -22,7 +22,7 @@
   {
     "step": 3,
     "name": "Blocked Target (call phish-vault.testnet deposit)",
-    "hash": "4wnc7NTUvm2hLZzWxCfsYTarJzF1tD5jfmcHsEmtMhF5",
+    "hash": "2jh4jGUaSABQzMmdw1J6VT2w36zAxEUJvuDs2vo3zFHo",
     "status": "REJECTED",
     "reason": "TARGET_NOT_ALLOWED",
     "spent": "25",
@@ -32,7 +32,7 @@
   {
     "step": 4,
     "name": "Over Daily Cap (swap 600 mUSD, 3rd reject trips AUTO_PAUSE)",
-    "hash": "Gx8DuBcb447sotQqDN6ZnaqhUQfnbso7EEu6tWkGSn74",
+    "hash": "4ZFMu1MupnScsWqxr2CSX7vQtFAT1RW9gZ2LhU6Hi5Co",
     "status": "REJECTED",
     "reason": "OVER_DAILY_CAP (Tripped AUTO_PAUSE)",
     "spent": "25",
@@ -41,10 +41,10 @@
   },
   {
     "step": 5,
-    "name": "High-Value Quarantine (Swap 300 mUSD, Pending #2)",
-    "hash": "HbT3ZredusSEzB2dBXKZu1qnEW4QrNpAtDsarawBJ64k",
+    "name": "High-Value Quarantine (Swap 300 mUSD, Pending #3)",
+    "hash": "AzSs8fri3cUhEpiq7B7BL8Hto1rhWxq8XqoqJxKXCMeR",
     "status": "PENDING",
-    "reason": "Pending Timelock #2",
+    "reason": "Pending Timelock #3",
     "spent": "25",
     "remaining": "475",
     "paused": false
@@ -52,7 +52,7 @@
   {
     "step": 6,
     "name": "Settle Pending Action & Reset Windows",
-    "hash": "eKcgxpsWYWCieSFwJibUB3VBXBoU3eEfES1qHhhuzbY (settle) / 7h2M2XFYUgWBRHscEFQgcoE1xEmj1U8zy1pQdvkyyMMB (reset)",
+    "hash": "8WB62dxzGfxUhCWnKFEbxvZMPuKJBZDkCPCF1RtY6ni9 (settle) / F9kYVvHkGWoZQyLjCS6Kk3RCsFJXALti2qkzokVXTahj (reset)",
     "status": "CONFIRMED",
     "reason": "Settled on DEX & clean state restored",
     "spent": "0",

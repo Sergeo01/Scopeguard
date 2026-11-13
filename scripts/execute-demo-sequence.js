@@ -1,6 +1,26 @@
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const dns = require("dns");
+
+// Static DNS fallback for environments with split DNS
+const origLookup = dns.lookup;
+const STATIC_HOSTS = {
+  "test.rpc.fastnear.com": "104.18.31.232",
+  "archival-rpc.testnet.near.org": "34.68.239.227"
+};
+dns.lookup = function(hostname, options, callback) {
+  if (typeof options === "function") {
+    callback = options;
+    options = {};
+  }
+  if (STATIC_HOSTS[hostname]) {
+    const ip = STATIC_HOSTS[hostname];
+    if (options && options.all) return callback(null, [{ address: ip, family: 4 }]);
+    return callback(null, ip, 4);
+  }
+  return origLookup.call(dns, hostname, options, callback);
+};
 
 let nearApi;
 try {
@@ -10,7 +30,7 @@ try {
 }
 const { connect, keyStores, KeyPair } = nearApi;
 
-const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://rpc.testnet.near.org";
+const RPC_URL = process.env.NEAR_TESTNET_RPC || "https://test.rpc.fastnear.com";
 const NETWORK_ID = "testnet";
 
 const OWNER_ID = process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
