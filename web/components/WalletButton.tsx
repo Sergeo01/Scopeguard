@@ -77,10 +77,46 @@ export const WalletButton: React.FC = () => {
       const ws = await getNearWalletSelector();
       if (ws && ws.selector.isSignedIn()) {
         const wallet = await ws.selector.wallet();
+        const selectedAccounts = await wallet.getAccounts();
+        const signerAccountId = selectedAccounts[0]?.accountId || accountId || "";
         const { transactions } = await import("near-api-js");
         const targetGuard = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "scopeguard.testnet";
         const targetToken = process.env.NEXT_PUBLIC_TOKEN_CONTRACT || "sergeo-guard-token.testnet";
-        const targetAgent = "agent2.sergeo-guard.testnet";
+
+        // Dynamically resolve target agent for this signer
+        let targetAgent = "agent2.sergeo-guard.testnet";
+        if (signerAccountId) {
+          try {
+            const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+            const urlAgent = urlParams?.get("agent");
+            if (urlAgent && (urlAgent.endsWith(`.${signerAccountId}`) || urlAgent.includes(signerAccountId))) {
+              targetAgent = urlAgent;
+            } else {
+              const res = await fetch(`/api/agents?owner=${encodeURIComponent(signerAccountId)}`);
+              const data = await res.json();
+              if (data.success && Array.isArray(data.agents) && data.agents.length > 0) {
+                targetAgent = data.agents[0].account;
+              } else {
+                targetAgent = signerAccountId.startsWith("agent.") ? signerAccountId : `agent.${signerAccountId}`;
+              }
+            }
+          } catch {
+            targetAgent = signerAccountId.startsWith("agent.") ? signerAccountId : `agent.${signerAccountId}`;
+          }
+        }
+
+        // Action 0: Storage deposit for signer so token contract allows minting (refunded if already paid)
+        const storageAction = transactions.functionCall(
+          "storage_deposit",
+          Buffer.from(
+            JSON.stringify({
+              account_id: signerAccountId,
+              registration_only: true,
+            })
+          ),
+          BigInt("30000000000000"),
+          BigInt("1250000000000000000000") // 0.00125 NEAR
+        );
 
         const mintAction = transactions.functionCall(
           "mint_faucet",
@@ -103,7 +139,7 @@ export const WalletButton: React.FC = () => {
 
         const res = await wallet.signAndSendTransaction({
           receiverId: targetToken,
-          actions: [mintAction as any, transferAction as any],
+          actions: [storageAction as any, mintAction as any, transferAction as any],
         });
 
         const hash =
@@ -113,7 +149,7 @@ export const WalletButton: React.FC = () => {
 
         setFundStatus({
           success: true,
-          message: `Funded agent vault with ${fundAmount} mUSD tokens via connected wallet!`,
+          message: `Funded agent vault (${targetAgent}) with ${fundAmount} mUSD tokens via connected wallet!`,
           txHash: typeof hash === "string" && hash !== "Confirmed onchain" ? hash : undefined,
         });
         await refreshBalance();
@@ -132,7 +168,12 @@ export const WalletButton: React.FC = () => {
         setIsFunding(false);
         return;
       }
-      // If wallet signing failed or wasn't available, fall through to server route
+      setFundStatus({
+        success: false,
+        message: walletErr?.message || "Wallet transaction failed. Check connected account balances.",
+      });
+      setIsFunding(false);
+      return;
     }
 
     // 2. Fall back to /api/fund route

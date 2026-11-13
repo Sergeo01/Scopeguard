@@ -61,12 +61,24 @@ export async function POST(req: Request) {
     const near = await connect({ networkId: NETWORK_ID, nodeUrl: RPC_URL, keyStore });
     const ownerAccount = await near.account(OWNER_ID);
 
-    // 1. Ensure storage is registered for Guard on the token contract
+    // 1. Ensure storage is registered for Owner and Guard on the token contract
     try {
       await ownerAccount.functionCall({
         contractId: TOKEN_ID,
         methodName: "storage_deposit",
-        args: { account_id: GUARD_ID },
+        args: { account_id: OWNER_ID, registration_only: true },
+        attachedDeposit: BigInt(utils.format.parseNearAmount("0.00125") || "1250000000000000000000"),
+        gas: BigInt("30000000000000"),
+      });
+    } catch {
+      // Storage already paid
+    }
+
+    try {
+      await ownerAccount.functionCall({
+        contractId: TOKEN_ID,
+        methodName: "storage_deposit",
+        args: { account_id: GUARD_ID, registration_only: true },
         attachedDeposit: BigInt(utils.format.parseNearAmount("0.00125") || "1250000000000000000000"),
         gas: BigInt("30000000000000"),
       });
