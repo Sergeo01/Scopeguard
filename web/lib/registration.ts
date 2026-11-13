@@ -122,6 +122,8 @@ export function parseRegistrationError(
     rawStr = rawError.message || JSON.stringify(rawError);
   }
 
+  const lower = rawStr.toLowerCase();
+
   // 1. Ownership mismatch check against connected owner
   if (ownerAccount && !isAgentSubaccountOwnerValid(agentAccount, ownerAccount)) {
     const suggested = `agent.${ownerAccount}`;
@@ -136,17 +138,32 @@ export function parseRegistrationError(
     };
   }
 
-  // 2. Policy validation failure check
+  // 2. Storage deposit / insufficient balance error during sub-account creation
+  if (
+    lower.includes("does not have enough balance") ||
+    lower.includes("costing") ||
+    lower.includes("lack balance")
+  ) {
+    return {
+      title: "Insufficient Storage Balance",
+      message: "Creating this sub-account requires a minimum balance of 0.25 NEAR to cover onchain account storage and access keys.",
+      fixGuidance: "Ensure your connected wallet holds at least 0.3 NEAR available to fund the sub-account storage deposit.",
+      targetElementId: "agent-subaccount-input",
+      rawError: rawStr,
+    };
+  }
+
+  // 3. Policy validation failure check
   // Assertions for zero cap, threshold exceeding cap, or invalid delay parameters
   if (
-    rawStr.includes("daily_cap") ||
-    rawStr.includes("greater than zero") ||
-    rawStr.includes("cannot exceed") ||
-    rawStr.includes("auto_pause_rejects") ||
-    rawStr.includes("auto_pause_window") ||
-    rawStr.includes("high_value_delay") ||
-    rawStr.includes("policy_change_delay") ||
-    rawStr.includes("max_drawdown_bps")
+    lower.includes("daily_cap") ||
+    lower.includes("greater than zero") ||
+    lower.includes("cannot exceed") ||
+    lower.includes("auto_pause_rejects") ||
+    lower.includes("auto_pause_window") ||
+    lower.includes("high_value_delay") ||
+    lower.includes("policy_change_delay") ||
+    lower.includes("max_drawdown_bps")
   ) {
     return {
       title: "Policy Validation Failed",
@@ -157,12 +174,15 @@ export function parseRegistrationError(
     };
   }
 
-  // 3. WebAssembly trap or duplicate registration error onchain
-  // Only label as "already registered" when the message contains "already registered" or the duplicate trap text
+  // 4. WebAssembly trap or duplicate registration error onchain
+  // Catches all variants of WebAssembly traps, unreachable opcodes, and duplicate agent records
   if (
-    rawStr.includes("already registered") ||
-    rawStr.includes("WebAssembly trap") ||
-    rawStr.includes("unreachable")
+    lower.includes("already registered") ||
+    lower.includes("webassembly trap") ||
+    lower.includes("unreachable") ||
+    lower.includes("wasmtrap") ||
+    lower.includes("functioncallerror") ||
+    lower.includes("executionerror")
   ) {
     const nextName = suggestNextAgentName(agentAccount, ownerAccount || undefined);
     return {
@@ -176,9 +196,13 @@ export function parseRegistrationError(
     };
   }
 
-  // 3. Non-existent account or network error
-  if (rawStr.includes("doesn't exist") || rawStr.includes("does not exist")) {
-    const isGuard = rawStr.includes("scopeguard.testnet") || rawStr.includes("guard");
+  // 5. Non-existent account or network error
+  if (
+    lower.includes("doesn't exist") ||
+    lower.includes("does not exist") ||
+    lower.includes("unknown_account")
+  ) {
+    const isGuard = lower.includes("scopeguard.testnet") || lower.includes("guard");
     return {
       title: isGuard ? "Contract Not Found on Selected Network" : "Account Does Not Exist",
       message: isGuard
@@ -192,11 +216,11 @@ export function parseRegistrationError(
     };
   }
 
-  // 4. User cancelled in wallet modal
+  // 6. User cancelled in wallet modal
   if (
-    rawStr.toLowerCase().includes("user rejected") ||
-    rawStr.toLowerCase().includes("cancelled") ||
-    rawStr.toLowerCase().includes("canceled")
+    lower.includes("user rejected") ||
+    lower.includes("cancelled") ||
+    lower.includes("canceled")
   ) {
     return {
       title: "Transaction Cancelled",
@@ -206,7 +230,7 @@ export function parseRegistrationError(
     };
   }
 
-  // 5. Default friendly fallback
+  // 7. Default friendly fallback
   return {
     title: "Registration Assistance",
     message: "The registration request could not be completed on NEAR testnet.",

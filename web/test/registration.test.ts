@@ -143,3 +143,72 @@ test("parseRegistrationError: handles policy validation failure without falsely 
   assert.ok(parsed.message.includes("failed onchain validation"));
   assert.ok(parsed.fixGuidance.includes("daily spending cap is greater than zero"));
 });
+
+test("parseRegistrationError: handles raw object from Wallet Selector / RPC without stringification", () => {
+  const rawObj = {
+    index: 0,
+    kind: {
+      index: 0,
+      kind: {
+        FunctionCallError: {
+          ExecutionError: "WebAssembly trap: An `unreachable` opcode was executed.",
+        },
+      },
+    },
+  };
+
+  const parsed = parseRegistrationError(
+    rawObj,
+    "agent2.sergeo-guard.testnet",
+    "sergeo-guard.testnet"
+  );
+
+  assert.strictEqual(parsed.title, "Agent Sub-Account Already In Use");
+  assert.ok(parsed.message.includes("already registered"));
+  assert.strictEqual(parsed.suggestedAccount, "agent3.sergeo-guard.testnet");
+  assert.strictEqual(parsed.quickFixLabel, "⚡ Switch to agent3.sergeo-guard.testnet (1-Click Fix)");
+});
+
+test("parseRegistrationError: handles WasmTrap(Unreachable) RPC response", () => {
+  const rpcError = "wasm execution failed with error: WasmTrap(Unreachable)";
+  const parsed = parseRegistrationError(
+    rpcError,
+    "agent.sergeo-guard.testnet",
+    "sergeo-guard.testnet"
+  );
+
+  assert.strictEqual(parsed.title, "Agent Sub-Account Already In Use");
+  assert.ok(parsed.message.includes("already registered"));
+  assert.strictEqual(parsed.suggestedAccount, "agent2.sergeo-guard.testnet");
+});
+
+test("parseRegistrationError: handles insufficient storage balance during subaccount creation", () => {
+  const balanceError = "Sender does not have enough balance 0.1 for operation costing 0.1009 NEAR";
+  const parsed = parseRegistrationError(
+    balanceError,
+    "agent4.sergeo-guard.testnet",
+    "sergeo-guard.testnet"
+  );
+
+  assert.strictEqual(parsed.title, "Insufficient Storage Balance");
+  assert.ok(parsed.message.includes("minimum balance of 0.25 NEAR"));
+});
+
+test("handoff card: provides dedicated passkey and prompt for strict trading bot without tab clutter", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const cardPath = path.resolve(__dirname, "../components/AgentHandoffCard.tsx");
+  const content = fs.readFileSync(cardPath, "utf8");
+
+  // Must feature strict trading bot handoff title and prominent sections
+  assert.ok(content.includes("Strict Trading Bot Handoff"), "Must have Strict Trading Bot Handoff heading");
+  assert.ok(content.includes("Scoped Protocol Passkey"), "Must feature Scoped Protocol Passkey section");
+  assert.ok(content.includes("Strict Trading Bot System Prompt"), "Must feature Strict Trading Bot System Prompt section");
+  assert.ok(content.includes("Copy Bot Prompt"), "Must have Copy Bot Prompt action");
+  assert.ok(content.includes("Copy Key"), "Must have Copy Key action");
+
+  // Must avoid extraneous tab navigation buttons
+  assert.ok(!content.includes('setActiveTab("cli")'), "Must avoid CLI tab");
+  assert.ok(!content.includes('setActiveTab("json")'), "Must avoid JSON tab");
+  assert.ok(!content.includes('setActiveTab("near")'), "Must avoid NEAR tab");
+});

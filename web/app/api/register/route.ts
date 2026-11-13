@@ -118,7 +118,7 @@ export async function POST(req: Request) {
         try {
           const createActions = [
             transactions.createAccount(),
-            transactions.transfer(BigInt("100000000000000000000000")), // 0.1 NEAR for storage
+            transactions.transfer(BigInt("250000000000000000000000")), // 0.25 NEAR for storage deposit and keys
             transactions.addKey(ownerPublicKey, transactions.fullAccessKey()), // Owner recovery key
             transactions.addKey(
               utils.PublicKey.from(publicKey),
@@ -135,10 +135,12 @@ export async function POST(req: Request) {
           });
           subAccountCreated = true;
         } catch (err: any) {
+          const parsed = parseRegistrationError(err, agentAccountId, ownerId);
           return NextResponse.json(
             {
               success: false,
-              error: `Failed to provision subaccount ${agentAccountId} on NEAR consensus: ${err.message}`,
+              error: parsed.message || `Failed to provision subaccount ${agentAccountId} on NEAR consensus: ${err.message}`,
+              parsedError: parsed,
             },
             { status: 500 }
           );

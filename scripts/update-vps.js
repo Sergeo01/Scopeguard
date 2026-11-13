@@ -1,9 +1,20 @@
 const { execSync } = require("child_process");
 
 function runSsh(command) {
-  const sshCmd = `ssh -p 4443 -i "C:\\Users\\ROG ZEPHYRUS\\.ssh\\deploy_key" -o StrictHostKeyChecking=no root@76.13.255.164 "${command}"`;
+  const sshCmd = `ssh -p 4443 -i "C:\\Users\\ROG ZEPHYRUS\\.ssh\\deploy_key" -o StrictHostKeyChecking=no -o ConnectionAttempts=3 root@76.13.255.164 "${command}"`;
   console.log(`[SSH] Running: ${command}`);
-  const out = execSync(sshCmd, { stdio: "inherit" });
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      execSync(sshCmd, { stdio: "inherit" });
+      return;
+    } catch (err) {
+      retries--;
+      if (retries === 0) throw err;
+      console.log(`[SSH] Command failed, retrying in 5 seconds... (${retries} left)`);
+      execSync("powershell -Command Start-Sleep -Seconds 5");
+    }
+  }
 }
 
 function runRemotePython(code) {
@@ -13,24 +24,9 @@ function runRemotePython(code) {
 }
 
 try {
-  // 1. Update Caddyfile with HSTS
-  console.log("Adding HSTS header to Caddyfile...");
-  runRemotePython(`
-with open('/etc/caddy/Caddyfile', 'r') as f:
-    c = f.read()
-target = 'scopeguard.blockframe.cloud {'
-hsts = 'scopeguard.blockframe.cloud {\\n\\theader Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"'
-if 'Strict-Transport-Security' not in c:
-    c = c.replace(target, hsts, 1)
-    with open('/etc/caddy/Caddyfile', 'w') as f:
-        f.write(c)
-    print('HSTS header successfully added to Caddyfile')
-else:
-    print('HSTS header already present')
-`);
-
-  runSsh("caddy reload --config /etc/caddy/Caddyfile");
-  console.log("Caddy reloaded!");
+  // 1. Sync repository with latest origin/main
+  console.log("Syncing repository from origin/main on VPS...");
+  runSsh("cd /var/www/scopeguard && git fetch origin && git reset --hard origin/main && git log -n 1 --oneline");
 
   // 2. Rebuild Next.js web on VPS
   console.log("Building Next.js on VPS...");

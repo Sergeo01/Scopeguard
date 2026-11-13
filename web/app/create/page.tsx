@@ -712,7 +712,7 @@ export default function CreateAgentPage() {
             receiverId: targetAgent,
             actions: [
               transactions.createAccount(),
-              transactions.transfer(BigInt("100000000000000000000000")), // 0.1 NEAR for storage
+              transactions.transfer(BigInt("250000000000000000000000")), // 0.25 NEAR for storage deposit and keys
               keyAction,
             ],
           });
@@ -726,11 +726,17 @@ export default function CreateAgentPage() {
         let signedTxHash = "";
         if (txList.length > 1 && typeof wallet.signAndSendTransactions === "function") {
           const res = await wallet.signAndSendTransactions({ transactions: txList });
+          if (Array.isArray(res) && res[0]?.status && (res[0].status as any).Failure) {
+            throw (res[0].status as any).Failure;
+          }
           if (Array.isArray(res) && res[0]?.transaction?.hash) {
             signedTxHash = res[0].transaction.hash;
           }
         } else {
           const res = await wallet.signAndSendTransaction(txList[0]);
+          if (res && typeof res === "object" && (res as any).status?.Failure) {
+            throw (res as any).status.Failure;
+          }
           if (res && typeof res === "object" && "transaction" in res) {
             signedTxHash = (res as any).transaction.hash;
           }

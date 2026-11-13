@@ -6,10 +6,8 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  Terminal,
   Key,
   MessageSquareCode,
-  Download,
   ExternalLink,
   Shield,
   ArrowRight,
@@ -18,6 +16,8 @@ import {
   EyeOff,
   Lock,
   AlertTriangle,
+  Code2,
+  ShieldCheck,
 } from "lucide-react";
 import { tryGetPolicyContractId } from "@/lib/config";
 
@@ -56,8 +56,6 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   registrationStatus = "idle",
   registrationCommand,
 }) => {
-  const [activeTab, setActiveTab] = useState<"cli" | "key" | "prompt" | "json" | "near">("prompt");
-  const [cliFlavor, setCliFlavor] = useState<"universal" | "powershell" | "env">("universal");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [revealKey, setRevealKey] = useState(false);
 
@@ -70,44 +68,7 @@ export const AgentHandoffCard: React.FC<AgentHandoffCardProps> = ({
   const cliGuardArg = guardContract;
   const ownerName = ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
-  const universalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${actualPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
-    : `node -e "console.log('No passkey provided.');"`;
-
-  const displayUniversalCommand = actualPasskey
-    ? `node -e "const fs=require('fs');fs.writeFileSync('agent.json',JSON.stringify({agentAccountId:'${agentName}',policyContractId:'${cliGuardArg}',publicKey:'${actualPublicKey}',privateKey:'${revealKey ? actualPasskey : maskedPasskey}',networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',dailyCap:${dailyCap},query_live_rules_url:'https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}'},null,2));console.log('Saved agent.json successfully in current folder!');"`
-    : `node -e "console.log('No passkey provided.');"`;
-
-  const powershellCommand = actualPasskey
-    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${actualPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
-    : `Write-Host "No passkey provided."`;
-
-  const displayPowershellCommand = actualPasskey
-    ? `Set-Content -Path agent.json -Value '{"agentAccountId":"${agentName}","policyContractId":"${cliGuardArg}","publicKey":"${actualPublicKey}","privateKey":"${revealKey ? actualPasskey : maskedPasskey}","networkId":"testnet","nodeUrl":"https://test.rpc.fastnear.com","dailyCap":${dailyCap},"query_live_rules_url":"https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}"}' ; Write-Host "Saved agent.json successfully in current folder!"`
-    : `Write-Host "No passkey provided."`;
-
-  const envVarCommand = actualPasskey
-    ? `export SCOPEGUARD_AGENT_ACCOUNT="${agentName}"\nexport SCOPEGUARD_AGENT_PRIVATE_KEY="${actualPasskey}"\nexport SCOPEGUARD_POLICY_CONTRACT="${cliGuardArg}"\nexport NEAR_NETWORK="testnet"`
-    : `export SCOPEGUARD_AGENT_ACCOUNT="${agentName}"\nexport SCOPEGUARD_AGENT_PRIVATE_KEY="<YOUR_ED25519_PASSKEY>"\nexport SCOPEGUARD_POLICY_CONTRACT="${cliGuardArg}"\nexport NEAR_NETWORK="testnet"`;
-
-  const displayEnvVarCommand = actualPasskey
-    ? `export SCOPEGUARD_AGENT_ACCOUNT="${agentName}"\nexport SCOPEGUARD_AGENT_PRIVATE_KEY="${revealKey ? actualPasskey : maskedPasskey}"\nexport SCOPEGUARD_POLICY_CONTRACT="${cliGuardArg}"\nexport NEAR_NETWORK="testnet"`
-    : `export SCOPEGUARD_AGENT_ACCOUNT="${agentName}"\nexport SCOPEGUARD_AGENT_PRIVATE_KEY="<YOUR_ED25519_PASSKEY>"\nexport SCOPEGUARD_POLICY_CONTRACT="${cliGuardArg}"\nexport NEAR_NETWORK="testnet"`;
-
-  const activeCliCommand =
-    cliFlavor === "universal"
-      ? universalCommand
-      : cliFlavor === "powershell"
-      ? powershellCommand
-      : envVarCommand;
-
-  const displayActiveCliCommand =
-    cliFlavor === "universal"
-      ? displayUniversalCommand
-      : cliFlavor === "powershell"
-      ? displayPowershellCommand
-      : displayEnvVarCommand;
-
+  // Retain nearSetupCommands for compatibility and CLI reference
   const nearSetupCommands = `# 1. Register agent policy on Guard contract
 near call ${cliGuardArg} register_agent '{"agent_account":"${agentName}","policy":${policyJson ? JSON.stringify(policyJson) : "<POLICY_JSON>"}}' --accountId ${ownerName} --gas 100000000000000
 
@@ -180,51 +141,10 @@ ACTIVE CONSTRAINTS & LIMITS:
     ? agentPromptText.split(actualPasskey).join(maskedPasskey)
     : agentPromptText;
 
-  const credentialJson = {
-    agentAccountId: agentName,
-    policyContractId: guardContract,
-    publicKey: actualPublicKey,
-    privateKey: actualPasskey,
-    networkId: "testnet",
-    nodeUrl: "https://test.rpc.fastnear.com",
-    dailyCap: dailyCap,
-    query_live_rules_url: `https://scopeguard.blockframe.cloud/api/agents?agent=${agentName}`,
-    constraints: {
-      daily_spending_cap_musd: dailyCap,
-      auto_pause_strikes: autoPauseAfter,
-      auto_pause_window_minutes: autoPauseWindowMinutes,
-      guard_contract: guardContract,
-      execution_method: "execute",
-    },
-    policy: policyJson || "No policy configured",
-    instructions:
-      "All actions must be submitted through policyContractId::execute. To query live budget and allowed actions at runtime, perform a GET request to query_live_rules_url or call get_budget on policyContractId.",
-    created_at: new Date().toISOString(),
-  };
-
-  const credentialJsonPreview = {
-    ...credentialJson,
-    privateKey: revealKey ? actualPasskey : (maskedPasskey || "[No passkey in memory]"),
-  };
-
   const handleCopy = (text: string, keyName: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(keyName);
     setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleDownloadJson = () => {
-    const blob = new Blob([JSON.stringify(credentialJson, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "agent.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -295,8 +215,7 @@ ACTIVE CONSTRAINTS & LIMITS:
           </div>
         )}
 
-        {/* Manual registration: this server does not hold an owner key, so it
-            hands back the exact `near call` the owner signs themselves. */}
+        {/* Manual registration fallback */}
         {registrationStatus === "manual" && !txHash && (
           <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border border-slate-200 dark:border-obsidian-800 rounded-xl text-left space-y-2.5">
             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block">
@@ -314,11 +233,11 @@ ACTIVE CONSTRAINTS & LIMITS:
                 <button
                   type="button"
                   onClick={() => handleCopy(registrationCommand, "manual-cmd")}
-                  className="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                  className="absolute right-2 top-2 p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
                   title="Copy command"
                 >
                   {copiedKey === "manual-cmd" ? (
-                    <Check className="w-3.5 h-3.5" />
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -372,401 +291,222 @@ ACTIVE CONSTRAINTS & LIMITS:
         </div>
       </div>
 
-      {/* Instant Agent Handoff Console */}
-      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm transition-colors">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 space-y-1">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Connect Key to Your Agent
-            </h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-              Pick the format your agent supports
+      {/* Strict Trading Bot Handoff Console: Dedicated Passkey and Bot Prompt Only */}
+      <div className="bg-white dark:bg-obsidian-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm transition-colors space-y-6 p-6 sm:p-7">
+        <div className="border-b border-slate-100 dark:border-slate-800 pb-5 space-y-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Strict Trading Bot Handoff
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Scoped function-call passkey and prompt instructions tailored for strict autonomous trading bots.
+                </p>
+              </div>
+            </div>
+            <span className="self-start sm:self-center font-mono text-[11px] bg-slate-100 dark:bg-obsidian-800 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+              Allowance: 0.25 NEAR gas
             </span>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            Use a one-line command, copy the private key string, or paste the natural language prompt into your AI agent.
-          </p>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-obsidian-950 overflow-x-auto text-xs font-semibold text-slate-600 dark:text-slate-400">
-          <button
-            type="button"
-            onClick={() => setActiveTab("cli")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
-              activeTab === "cli"
-                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
-                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
-            }`}
-          >
-            <Terminal className="w-4 h-4 text-emerald-500" />
-            <span>One-Line Command</span>
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">
-              Easiest
-            </span>
-          </button>
+        {/* Section 1: Prominent Scoped Passkey Box */}
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-950 text-white border border-slate-800 space-y-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <Key className="w-4 h-4 text-emerald-400" />
+              <span className="font-semibold text-xs tracking-wider uppercase text-slate-200">
+                Scoped Protocol Passkey
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+                receiver: {guardContractDisplay}
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                method: execute
+              </span>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("key")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
-              activeTab === "key"
-                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
-                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
-            }`}
-          >
-            <Key className="w-4 h-4 text-slate-400" />
-            <span>Private Key String</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("prompt")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
-              activeTab === "prompt"
-                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
-                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
-            }`}
-          >
-            <MessageSquareCode className="w-4 h-4 text-blue-500" />
-            <span>AI Chat Prompt</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("json")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
-              activeTab === "json"
-                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
-                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
-            }`}
-          >
-            <Download className="w-4 h-4 text-slate-400" />
-            <span>Download agent.json</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("near")}
-            className={`flex items-center gap-2 px-5 py-3 border-b-2 transition whitespace-nowrap ${
-              activeTab === "near"
-                ? "border-emerald-500 text-slate-900 dark:text-white bg-white dark:bg-obsidian-900"
-                : "border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-obsidian-850"
-            }`}
-          >
-            <Shield className="w-4 h-4 text-emerald-500" />
-            <span>NEAR CLI Commands</span>
-          </button>
-        </div>
-
-        {/* Tab Body */}
-        <div className="p-6">
-          {activeTab === "cli" && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Run in Agent Terminal
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Select your terminal context. Universal Setup works in any folder (OpenCode, Cursor, Codex) with zero repository requirements.
-                </p>
-              </div>
-
-              {/* Sub-tabs for CLI flavor */}
-              <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-100 dark:bg-obsidian-950 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setCliFlavor("universal")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    cliFlavor === "universal"
-                      ? "bg-white dark:bg-obsidian-850 text-emerald-600 dark:text-emerald-400 shadow-xs border border-slate-200 dark:border-slate-700"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Node.js (Cross-Platform)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCliFlavor("powershell")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    cliFlavor === "powershell"
-                      ? "bg-white dark:bg-obsidian-850 text-emerald-600 dark:text-emerald-400 shadow-xs border border-slate-200 dark:border-slate-700"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  PowerShell (Windows)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCliFlavor("env")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    cliFlavor === "env"
-                      ? "bg-white dark:bg-obsidian-850 text-emerald-600 dark:text-emerald-400 shadow-xs border border-slate-200 dark:border-slate-700"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Environment Variables
-                </button>
-              </div>
-
-              <div className="relative group">
-                <pre className="p-4 pr-36 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap break-all">
-                  {displayActiveCliCommand}
-                </pre>
-                <div className="absolute top-3 right-3 flex items-center gap-2">
-                  {actualPasskey && (
-                    <button
-                      type="button"
-                      onClick={() => setRevealKey(!revealKey)}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
-                      title={revealKey ? "Hide passkey" : "Reveal plaintext passkey"}
-                    >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
-                      <span className="hidden sm:inline">{revealKey ? "Hide Key" : "Reveal"}</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(activeCliCommand, "cli")}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
-                  >
-                    {copiedKey === "cli" ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Copy Command</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>
-                  {cliFlavor === "universal"
-                    ? "Writes agent.json directly in your current directory with zero external dependencies."
-                    : cliFlavor === "powershell"
-                    ? "Windows native PowerShell command to save agent.json directly without downloading any tools."
-                    : "Configures session environment variables for the agent runtime."}
+          {/* Account and Protocol Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                Agent Sub-Account
+              </span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="font-mono text-xs font-semibold text-slate-100 truncate">
+                  {agentName}
                 </span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "key" && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    Direct Private Key String
-                  </h4>
-                  {actualPasskey && (
-                    <button
-                      type="button"
-                      onClick={() => setRevealKey(!revealKey)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
-                    >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
-                      <span>{revealKey ? "Mask Passkey" : "Reveal Passkey"}</span>
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Paste this string into trading bot marketplaces or API agents that require a private key.
-                </p>
-              </div>
-
-              <div className="relative group">
-                <pre className="p-4 pr-28 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                  {actualPasskey
-                    ? (revealKey ? actualPasskey : maskedPasskey)
-                    : "[No passkey in memory. Generate one or pass via SCOPEGUARD_AGENT_PRIVATE_KEY]"}
-                </pre>
-                {actualPasskey && (
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(actualPasskey, "key")}
-                    className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
-                  >
-                    {copiedKey === "key" ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Copy Key</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>Masked by default to prevent credential leakage. Scoped strictly to Guard contract execution.</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "prompt" && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    Conversational Agent Instructions
-                  </h4>
-                  {actualPasskey && (
-                    <button
-                      type="button"
-                      onClick={() => setRevealKey(!revealKey)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
-                    >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
-                      <span>{revealKey ? "Mask Passkey" : "Reveal Passkey"}</span>
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Paste this prompt into your LLM agent chat (Cursor, Claude, Codex, OpenCode). The agent can query its own live permissions via HTTP.
-                </p>
-              </div>
-
-              <div className="relative group">
-                <pre className="p-4 pr-36 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">
-                  {displayAgentPromptText}
-                </pre>
                 <button
                   type="button"
-                  onClick={() => handleCopy(agentPromptText, "prompt")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  onClick={() => handleCopy(agentName, "agent-acct")}
+                  className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                  title="Copy Agent Account"
                 >
-                  {copiedKey === "prompt" ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied Prompt</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Prompt</span>
-                    </>
-                  )}
+                  {copiedKey === "agent-acct" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
             </div>
-          )}
 
-          {activeTab === "json" && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                    Traditional JSON File for Developer Workflows
-                  </h4>
-                  {actualPasskey && (
-                    <button
-                      type="button"
-                      onClick={() => setRevealKey(!revealKey)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition"
-                    >
-                      {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
-                      <span>{revealKey ? "Mask in Preview" : "Reveal in Preview"}</span>
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Save as <code className="font-mono text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-obsidian-800 px-1 py-0.5 rounded">agent.json</code> in your local project directory.
-                </p>
-              </div>
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                Locked Receiver
+              </span>
+              <span className="font-mono text-xs font-semibold text-emerald-400 block truncate">
+                {guardContractDisplay}
+              </span>
+            </div>
 
-              <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
-                {JSON.stringify(credentialJsonPreview, null, 2)}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                Execution Method
+              </span>
+              <span className="font-mono text-xs font-semibold text-slate-200 block">
+                execute (single entrypoint)
+              </span>
+            </div>
+          </div>
+
+          {/* Scoped Private Key Row */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Scoped Private Key (Passkey)</span>
+              </span>
+              {actualPasskey && (
+                <button
+                  type="button"
+                  onClick={() => setRevealKey(!revealKey)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition cursor-pointer"
+                >
+                  {revealKey ? <EyeOff className="w-3.5 h-3.5 text-sky-400" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
+                  <span>{revealKey ? "Mask Passkey" : "Reveal Passkey"}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="relative group">
+              <pre className="p-3.5 pr-28 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800">
+                {actualPasskey
+                  ? (revealKey ? actualPasskey : maskedPasskey)
+                  : "[No passkey in memory. Provide SCOPEGUARD_AGENT_PRIVATE_KEY]"}
               </pre>
-
-              <div className="flex items-center gap-3">
+              {actualPasskey && (
                 <button
                   type="button"
-                  onClick={handleDownloadJson}
-                  className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 transition shadow-xs"
+                  onClick={() => handleCopy(actualPasskey, "passkey-btn")}
+                  className="absolute top-2.5 right-2.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download agent.json</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(JSON.stringify(credentialJson, null, 2), "json")}
-                  className="px-4 py-2 rounded-xl bg-white dark:bg-obsidian-800 hover:bg-slate-50 dark:hover:bg-obsidian-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold flex items-center gap-2 transition shadow-xs"
-                >
-                  {copiedKey === "json" ? (
+                  {copiedKey === "passkey-btn" ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Copied JSON</span>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy JSON (with Key)</span>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Key</span>
                     </>
                   )}
                 </button>
-              </div>
+              )}
+            </div>
+          </div>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Key preview is masked by default on screen. The downloaded file and copy action contain the complete active passkey for your agent runtime.
+          {/* Scoped Public Key Row */}
+          {actualPublicKey && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-400 block">
+                Public Key (Attached to {agentName})
+              </span>
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-300">
+                <span className="truncate">{actualPublicKey}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(actualPublicKey, "pubkey-btn")}
+                  className="p-1 hover:text-white text-slate-400 shrink-0 cursor-pointer"
+                  title="Copy Public Key"
+                >
+                  {copiedKey === "pubkey-btn" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-1">
+            <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>
+              Cryptographically restricted FunctionCall key. It can ONLY call {guardContractDisplay}::execute. It cannot transfer native NEAR, deploy contracts, or manage access keys.
+            </span>
+          </div>
+        </div>
+
+        {/* Section 2: Strict Trading Bot System Prompt */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <MessageSquareCode className="w-4 h-4 text-brand-blue dark:text-sky-400" />
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Strict Trading Bot System Prompt
+                </h4>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Paste this prompt directly into your LLM agent or trading bot runtime. All credentials, endpoints, and bounds are supplied in-prompt with zero filesystem searches.
               </p>
             </div>
-          )}
 
-          {activeTab === "near" && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Exact Signed-Ready NEAR CLI Commands
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Run these two commands from your owner terminal to register the policy and grant the scoped function-call access key directly on NEAR.
-                </p>
-              </div>
-
-              <div className="relative group">
-                <pre className="p-4 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-slate-800 whitespace-pre-wrap">
-                  {nearSetupCommands}
-                </pre>
+            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+              {actualPasskey && (
                 <button
                   type="button"
-                  onClick={() => handleCopy(nearSetupCommands, "near")}
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 border border-slate-700 shadow-sm transition"
+                  onClick={() => setRevealKey(!revealKey)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-obsidian-800 hover:bg-slate-200 dark:hover:bg-obsidian-750 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                 >
-                  {copiedKey === "near" ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied Commands</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Commands</span>
-                    </>
-                  )}
+                  {revealKey ? <EyeOff className="w-3.5 h-3.5 text-brand-blue" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
+                  <span>{revealKey ? "Mask in Prompt" : "Reveal in Prompt"}</span>
                 </button>
-              </div>
+              )}
+              <button
+                type="button"
+                onClick={() => handleCopy(agentPromptText, "prompt-btn")}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+              >
+                {copiedKey === "prompt-btn" ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Copied Prompt</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Bot Prompt</span>
+                  </>
+                )}
+              </button>
             </div>
-          )}
+          </div>
+
+          <div className="relative group">
+            <pre className="p-4 sm:p-5 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800 max-h-[440px] overflow-y-auto">
+              {displayAgentPromptText}
+            </pre>
+          </div>
         </div>
 
         {/* Footer Navigation */}
-        <div className="p-4 bg-slate-50 dark:bg-obsidian-950 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={onReset}
-            className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition"
+            className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Configure Another Key</span>
