@@ -200,12 +200,12 @@ test("handoff card: provides dedicated passkey and prompt for strict trading bot
   const cardPath = path.resolve(__dirname, "../components/AgentHandoffCard.tsx");
   const content = fs.readFileSync(cardPath, "utf8");
 
-  // Must feature strict trading bot handoff title and prominent sections
+  // Must feature strict trading bot handoff title, telegram direct private key copy, and prominent sections
   assert.ok(content.includes("Strict Trading Bot Handoff"), "Must have Strict Trading Bot Handoff heading");
   assert.ok(content.includes("Scoped Protocol Passkey"), "Must feature Scoped Protocol Passkey section");
-  assert.ok(content.includes("Strict Trading Bot System Prompt"), "Must feature Strict Trading Bot System Prompt section");
+  assert.ok(content.includes("Copy Private Key for Trading Bot (Telegram)"), "Must have direct Telegram bot private key copy action");
+  assert.ok(content.includes("AI Agent System Prompt"), "Must feature AI Agent System Prompt section");
   assert.ok(content.includes("Copy Bot Prompt"), "Must have Copy Bot Prompt action");
-  assert.ok(content.includes("Copy Key"), "Must have Copy Key action");
 
   // Must avoid extraneous tab navigation buttons
   assert.ok(!content.includes('setActiveTab("cli")'), "Must avoid CLI tab");

@@ -304,7 +304,7 @@ ACTIVE CONSTRAINTS & LIMITS:
                   Strict Trading Bot Handoff
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Scoped function-call passkey and prompt instructions tailored for strict autonomous trading bots.
+                  Import the scoped private key directly into your trading bot (e.g. Telegram bots, automated scripts).
                 </p>
               </div>
             </div>
@@ -314,13 +314,13 @@ ACTIVE CONSTRAINTS & LIMITS:
           </div>
         </div>
 
-        {/* Section 1: Prominent Scoped Passkey Box */}
+        {/* Section 1: Prominent Scoped Passkey Box (Strict Trading Bot & Telegram Bots) */}
         <div className="p-5 sm:p-6 rounded-2xl bg-slate-950 text-white border border-slate-800 space-y-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
             <div className="flex items-center gap-2">
               <Key className="w-4 h-4 text-emerald-400" />
               <span className="font-semibold text-xs tracking-wider uppercase text-slate-200">
-                Scoped Protocol Passkey
+                Scoped Protocol Passkey (For Telegram &amp; Strict Bots)
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -333,8 +333,37 @@ ACTIVE CONSTRAINTS & LIMITS:
             </div>
           </div>
 
+          <div className="space-y-1">
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Strict trading bots (such as Telegram trading bots, DEX snipers, and automated scripts) only need this private key. Copy the key below and paste it directly into your bot:
+            </p>
+          </div>
+
+          {/* Large 1-Click Copy Key Button for Telegram & Trading Bots */}
+          {actualPasskey && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => handleCopy(actualPasskey, "telegram-bot-key")}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+              >
+                {copiedKey === "telegram-bot-key" ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Private Key Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4" />
+                    <span>Copy Private Key for Trading Bot (Telegram)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Account and Protocol Metadata Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
               <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
                 Agent Sub-Account
@@ -443,23 +472,23 @@ ACTIVE CONSTRAINTS & LIMITS:
           <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-1">
             <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span>
-              Cryptographically restricted FunctionCall key. It can ONLY call {guardContractDisplay}::execute. It cannot transfer native NEAR, deploy contracts, or manage access keys.
+              Safe for Telegram bots: This is a restricted FunctionCall key. It can ONLY call {guardContractDisplay}::execute. Even if the bot is compromised, it cannot transfer native NEAR, drain your wallet, or alter keys.
             </span>
           </div>
         </div>
 
-        {/* Section 2: Strict Trading Bot System Prompt */}
-        <div className="space-y-3">
+        {/* Section 2: AI Agent System Prompt (For Conversational LLMs: Claude, Cursor, ElizaOS) */}
+        <div className="space-y-3 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <MessageSquareCode className="w-4 h-4 text-brand-blue dark:text-sky-400" />
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                  Strict Trading Bot System Prompt
+                  AI Agent System Prompt (Claude, Cursor, ElizaOS)
                 </h4>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Paste this prompt directly into your LLM agent or trading bot runtime. All credentials, endpoints, and bounds are supplied in-prompt with zero filesystem searches.
+                If using an autonomous LLM agent instead of a Telegram bot, paste this system prompt into your AI runtime:
               </p>
             </div>
 
@@ -495,7 +524,7 @@ ACTIVE CONSTRAINTS & LIMITS:
           </div>
 
           <div className="relative group">
-            <pre className="p-4 sm:p-5 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800 max-h-[440px] overflow-y-auto">
+            <pre className="p-4 sm:p-5 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800 max-h-[320px] overflow-y-auto">
               {displayAgentPromptText}
             </pre>
           </div>
