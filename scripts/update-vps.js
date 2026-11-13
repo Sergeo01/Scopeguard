@@ -3,7 +3,7 @@ const { execSync } = require("child_process");
 function runSsh(command) {
   const sshCmd = `ssh -p 4443 -i "C:\\Users\\ROG ZEPHYRUS\\.ssh\\deploy_key" -o StrictHostKeyChecking=no -o ConnectionAttempts=3 root@76.13.255.164 "${command}"`;
   console.log(`[SSH] Running: ${command}`);
-  let retries = 3;
+  let retries = 5;
   while (retries > 0) {
     try {
       execSync(sshCmd, { stdio: "inherit" });
@@ -11,8 +11,8 @@ function runSsh(command) {
     } catch (err) {
       retries--;
       if (retries === 0) throw err;
-      console.log(`[SSH] Command failed, retrying in 5 seconds... (${retries} left)`);
-      execSync("powershell -Command Start-Sleep -Seconds 5");
+      console.log(`[SSH] Command failed, retrying in 12 seconds... (${retries} left)`);
+      execSync("powershell -Command Start-Sleep -Seconds 12");
     }
   }
 }
