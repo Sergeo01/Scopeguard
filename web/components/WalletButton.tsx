@@ -35,6 +35,7 @@ export const WalletButton: React.FC = () => {
     setActiveWallet,
     isAdmin,
     openAuthModal,
+    openNearWalletModal,
     signOut,
   } = useWallet();
 
@@ -47,6 +48,9 @@ export const WalletButton: React.FC = () => {
     success: boolean;
     message: string;
     txHash?: string;
+    requiresOwnerSignature?: boolean;
+    command?: string;
+    copiedCommand?: boolean;
   } | null>(null);
 
   const handleCopy = (text: string) => {
@@ -66,6 +70,72 @@ export const WalletButton: React.FC = () => {
   const handleQuickFund = async () => {
     setIsFunding(true);
     setFundStatus(null);
+
+    // 1. If signed in with a NEAR browser wallet, attempt direct onchain signing
+    try {
+      const { getNearWalletSelector } = await import("@/lib/wallet-selector");
+      const ws = await getNearWalletSelector();
+      if (ws && ws.selector.isSignedIn()) {
+        const wallet = await ws.selector.wallet();
+        const { transactions } = await import("near-api-js");
+        const targetGuard = process.env.NEXT_PUBLIC_POLICY_CONTRACT_ID || "scopeguard.testnet";
+        const targetToken = process.env.NEXT_PUBLIC_TOKEN_CONTRACT || "sergeo-guard-token.testnet";
+        const targetAgent = "agent2.sergeo-guard.testnet";
+
+        const mintAction = transactions.functionCall(
+          "mint_faucet",
+          Buffer.from(JSON.stringify({ amount: fundAmount })),
+          BigInt("30000000000000"),
+          BigInt(0)
+        );
+        const transferAction = transactions.functionCall(
+          "ft_transfer_call",
+          Buffer.from(
+            JSON.stringify({
+              receiver_id: targetGuard,
+              amount: fundAmount,
+              msg: targetAgent,
+            })
+          ),
+          BigInt("60000000000000"),
+          BigInt(1)
+        );
+
+        const res = await wallet.signAndSendTransaction({
+          receiverId: targetToken,
+          actions: [mintAction as any, transferAction as any],
+        });
+
+        const hash =
+          res && typeof res === "object" && "transaction" in res
+            ? (res as any).transaction.hash
+            : "Confirmed onchain";
+
+        setFundStatus({
+          success: true,
+          message: `Funded agent vault with ${fundAmount} mUSD tokens via connected wallet!`,
+          txHash: typeof hash === "string" && hash !== "Confirmed onchain" ? hash : undefined,
+        });
+        await refreshBalance();
+        setIsFunding(false);
+        return;
+      }
+    } catch (walletErr: any) {
+      if (
+        walletErr?.message?.includes("User rejected") ||
+        walletErr?.message?.includes("cancelled")
+      ) {
+        setFundStatus({
+          success: false,
+          message: "Wallet transaction cancelled by user.",
+        });
+        setIsFunding(false);
+        return;
+      }
+      // If wallet signing failed or wasn't available, fall through to server route
+    }
+
+    // 2. Fall back to /api/fund route
     try {
       const res = await fetch("/api/fund", {
         method: "POST",
@@ -79,14 +149,24 @@ export const WalletButton: React.FC = () => {
       if (data.success) {
         setFundStatus({
           success: true,
-          message: `Funded agent vault with ${fundAmount} mUSD tokens.`,
+          message: data.message || `Funded agent vault with ${fundAmount} mUSD tokens.`,
           txHash: data.txHash,
         });
         await refreshBalance();
+      } else if (data.requiresOwnerSignature && data.command) {
+        try {
+          await navigator.clipboard.writeText(data.command);
+        } catch {}
+        setFundStatus({
+          success: false,
+          requiresOwnerSignature: true,
+          command: data.command,
+          message: "Owner signature required onchain. Terminal command copied to clipboard!",
+        });
       } else {
         setFundStatus({
           success: false,
-          message: data.error || "Failed to fund vault.",
+          message: data.error || data.message || "Failed to fund vault.",
         });
       }
     } catch (err: any) {
@@ -352,13 +432,76 @@ export const WalletButton: React.FC = () => {
 
               {fundStatus && (
                 <div
-                  className={`p-2.5 rounded-xl text-xs border ${
+                  className={`p-3 rounded-xl text-xs border space-y-2 ${
                     fundStatus.success
                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                      : fundStatus.requiresOwnerSignature
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-200"
                       : "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
                   }`}
                 >
-                  <p className="font-semibold">{fundStatus.message}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold leading-relaxed">{fundStatus.message}</p>
+                    {fundStatus.requiresOwnerSignature && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                        Owner Key
+                      </span>
+                    )}
+                  </div>
+
+                  {fundStatus.command && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                        Run this command from your terminal to mint and deposit:
+                      </p>
+                      <div className="p-2 rounded-lg bg-slate-900 dark:bg-black text-slate-200 font-mono text-[10px] break-all border border-slate-700/60 select-all">
+                        {fundStatus.command}
+                      </div>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (fundStatus.command) {
+                              handleCopy(fundStatus.command);
+                              setFundStatus((prev) =>
+                                prev ? { ...prev, copiedCommand: true } : null
+                              );
+                              setTimeout(() => {
+                                setFundStatus((prev) =>
+                                  prev ? { ...prev, copiedCommand: false } : null
+                                );
+                              }, 2000);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                        >
+                          {fundStatus.copiedCommand ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy CLI Command</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsOpen(false);
+                            openNearWalletModal();
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-800 dark:text-slate-200 font-semibold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <Wallet className="w-3 h-3" />
+                          <span>Sign in Browser Wallet</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {fundStatus.txHash && (
                     <a
                       href={`https://testnet.nearblocks.io/txns/${fundStatus.txHash}`}
