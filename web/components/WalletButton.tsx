@@ -608,6 +608,10 @@ export const WalletButton: React.FC = () => {
         onClose={() => setKeyModalAccount(null)}
         agentAccount={keyModalAccount || ""}
         ownerAccount={user?.activeAccountId || accountId}
+        onDeleted={(deletedAcc) => {
+          unlinkSubAccount(deletedAcc);
+          setKeyModalAccount(null);
+        }}
       />
     </div>
   );

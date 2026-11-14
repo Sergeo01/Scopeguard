@@ -64,6 +64,7 @@ import { BudgetVelocityGauge } from "@/components/BudgetVelocityGauge";
 import { WebhookAlertSettings } from "@/components/WebhookAlertSettings";
 import { PolicyEditorModal } from "@/components/PolicyEditorModal";
 import { SubWalletKeyModal } from "@/components/SubWalletKeyModal";
+import { DeleteSubAccountModal } from "@/components/DeleteSubAccountModal";
 
 interface ActivityItem {
   id: string;
@@ -230,6 +231,8 @@ export default function DashboardPage() {
   // Policy Editor state
   const [isEditPolicyOpen, setIsEditPolicyOpen] = useState(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteTargetAccount, setDeleteTargetAccount] = useState<string>("");
   const [editDailyCap, setEditDailyCap] = useState<number>(500);
   const [editVelocityMax, setEditVelocityMax] = useState<number>(5);
   const [editRecipients, setEditRecipients] = useState<string>("");
@@ -259,7 +262,15 @@ export default function DashboardPage() {
         const resp = await fetch(`/api/agents?owner=${encodeURIComponent(effectiveOwner)}`);
         const data = await resp.json();
         if (data.success && Array.isArray(data.agents)) {
-          const list = data.agents.map((a: any) => a.account);
+          let deletedList: string[] = [];
+          if (typeof window !== "undefined") {
+            try {
+              deletedList = JSON.parse(localStorage.getItem("scopeguard_deleted_agents") || "[]");
+            } catch {}
+          }
+          const list = data.agents
+            .map((a: any) => a.account)
+            .filter((acc: string) => !deletedList.includes(acc));
           setFleetAgents(list);
         }
       } catch (e) {
@@ -1170,13 +1181,29 @@ export default function DashboardPage() {
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 Your Agent Sub-Accounts ({fleetAgents.length}):
               </span>
-              <Link
-                href="/create"
-                className="text-xs font-semibold text-brand-blue hover:underline inline-flex items-center gap-1"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Issue New Passkey</span>
-              </Link>
+              <div className="flex items-center gap-3">
+                {agentId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteTargetAccount(agentId);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 inline-flex items-center gap-1 cursor-pointer transition"
+                    title={`Delete and permanently revoke ${agentId}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Sub-Account</span>
+                  </button>
+                )}
+                <Link
+                  href="/create"
+                  className="text-xs font-semibold text-brand-blue hover:underline inline-flex items-center gap-1"
+                >
+                  <PlusCircle className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Issue New Passkey</span>
+                </Link>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {fleetAgents.map((acc) => {
@@ -2084,12 +2111,15 @@ export default function DashboardPage() {
 
               <button
                 type="button"
-                onClick={handleRevoke}
-                className="py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
-                title="Permanently revoke all target and recipient permissions onchain"
+                onClick={() => {
+                  setDeleteTargetAccount(agentId);
+                  setIsDeleteModalOpen(true);
+                }}
+                className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                title="Permanently revoke permissions and retire this sub-account"
               >
-                <ShieldAlert className="w-4 h-4" />
-                <span>Revoke Permissions</span>
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Sub-Account</span>
               </button>
 
               <button
@@ -2372,6 +2402,35 @@ export default function DashboardPage() {
         ownerAccount={connectedWalletId || ownerId}
         dailyCap={dailyCapTotal}
         policyJson={policy}
+        onDeleted={(deletedAcc) => {
+          setFleetAgents((prev) => prev.filter((a) => a !== deletedAcc));
+          if (agentId === deletedAcc) {
+            const remaining = fleetAgents.filter((a) => a !== deletedAcc);
+            if (remaining.length > 0) {
+              setAgentId(remaining[0]);
+            }
+          }
+        }}
+      />
+
+      {/* Delete Sub-Account Confirmation Modal */}
+      <DeleteSubAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        agentAccount={deleteTargetAccount || agentId}
+        ownerAccount={connectedWalletId || ownerId}
+        vaultBalance={vaultBalance}
+        nearVaultBalance={nearVaultBalance}
+        isRevoked={policy?.revoked || false}
+        onDeleted={(deletedAcc) => {
+          setFleetAgents((prev) => prev.filter((a) => a !== deletedAcc));
+          if (agentId === deletedAcc) {
+            const remaining = fleetAgents.filter((a) => a !== deletedAcc);
+            if (remaining.length > 0) {
+              setAgentId(remaining[0]);
+            }
+          }
+        }}
       />
     </div>
   );

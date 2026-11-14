@@ -37,6 +37,7 @@ import {
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
 import { SubWalletKeyModal } from "../../components/SubWalletKeyModal";
+import { DeleteSubAccountModal } from "@/components/DeleteSubAccountModal";
 import { PlatformPresets, PresetPlatform, PRESET_PLATFORMS } from "../../components/PlatformPresets";
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
@@ -74,6 +75,7 @@ export default function CreateAgentPage() {
   }
   const [existingAgents, setExistingAgents] = useState<ExistingAgentInfo[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState<boolean>(false);
+  const [deleteModalAgent, setDeleteModalAgent] = useState<ExistingAgentInfo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +87,14 @@ export default function CreateAgentPage() {
         const res = await fetch(`/api/agents?owner=${encodeURIComponent(ownerToQuery)}`);
         const data = await res.json();
         if (!cancelled && data.success && Array.isArray(data.agents)) {
-          setExistingAgents(data.agents);
+          let deletedList: string[] = [];
+          if (typeof window !== "undefined") {
+            try {
+              deletedList = JSON.parse(localStorage.getItem("scopeguard_deleted_agents") || "[]");
+            } catch {}
+          }
+          const filtered = data.agents.filter((a: any) => !deletedList.includes(a.account));
+          setExistingAgents(filtered);
         }
       } catch (err) {
         console.warn("Could not load existing agents:", err);
@@ -2015,14 +2024,25 @@ export default function CreateAgentPage() {
                           <span>Console</span>
                         </Link>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setKeyModalAgent(ag.account)}
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-850 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-                      >
-                        <Key className="w-3.5 h-3.5 text-amber-500" />
-                        <span>View Passkey & Setup Commands</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setKeyModalAgent(ag.account)}
+                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-850 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                        >
+                          <Key className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Passkey</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteModalAgent(ag)}
+                          className="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-center gap-1 transition cursor-pointer"
+                          title={`Delete and permanently revoke ${ag.account}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -2043,6 +2063,22 @@ export default function CreateAgentPage() {
       ownerAccount={effectiveOwner}
       dailyCap={dailyCap}
       policyJson={compiledPolicyJson}
+      onDeleted={(deletedAcc) => {
+        setExistingAgents((prev) => prev.filter((a) => a.account !== deletedAcc));
+      }}
+    />
+
+    {/* Delete Sub-Account Confirmation Modal */}
+    <DeleteSubAccountModal
+      isOpen={!!deleteModalAgent}
+      onClose={() => setDeleteModalAgent(null)}
+      agentAccount={deleteModalAgent?.account || ""}
+      ownerAccount={effectiveOwner}
+      vaultBalance={deleteModalAgent?.vaultBalance || "0"}
+      isRevoked={deleteModalAgent?.revoked}
+      onDeleted={(deletedAcc) => {
+        setExistingAgents((prev) => prev.filter((a) => a.account !== deletedAcc));
+      }}
     />
   </div>
 );

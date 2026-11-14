@@ -18,7 +18,9 @@ import {
   ChevronDown,
   Download,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
+import { DeleteSubAccountModal } from "@/components/DeleteSubAccountModal";
 import {
   getSubWalletKey,
   saveSubWalletKey,
@@ -34,6 +36,7 @@ export interface SubWalletKeyModalProps {
   ownerAccount?: string;
   dailyCap?: number | string;
   policyJson?: any;
+  onDeleted?: (agentAccount: string) => void;
 }
 
 export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
@@ -43,6 +46,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   ownerAccount,
   dailyCap,
   policyJson,
+  onDeleted,
 }) => {
   const [keyData, setKeyData] = useState<StoredSubWalletKey | null>(null);
   const [liveDailyCap, setLiveDailyCap] = useState<number | null>(null);
@@ -54,6 +58,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   const [manualInput, setManualInput] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"prompt" | "keys" | "config">("prompt");
   const [showQuickCli, setShowQuickCli] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
   const guardId = tryGetPolicyContractId() || "scopeguard.testnet";
   const effectiveOwner =
@@ -718,20 +723,45 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-obsidian-950/40 flex items-center justify-between">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-obsidian-950/40 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Scoped for autonomous execution without full custody risk</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-800 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 hover:bg-rose-100/70 dark:bg-rose-950/20 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-semibold transition cursor-pointer"
+              title="Delete or revoke this sub-account"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Sub-Account</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-obsidian-800 dark:hover:bg-obsidian-750 text-slate-800 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Delete Sub-Account Modal */}
+      <DeleteSubAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        agentAccount={agentAccount}
+        ownerAccount={effectiveOwner}
+        vaultBalance={liveVaultBalance || "0"}
+        onDeleted={(deletedAcc) => {
+          setIsDeleteModalOpen(false);
+          onDeleted?.(deletedAcc);
+          onClose();
+        }}
+      />
     </div>
   );
 };
