@@ -87,7 +87,39 @@ interface OnchainCache {
 }
 
 const onchainCacheMap = new Map<string, OnchainCache>();
+const txOutcomeCache = new Map<string, ActivityItem>();
 const ONCHAIN_CACHE_TTL_MS = 8000; // 8 seconds
+
+const TESTNET_RPCS = [
+  "https://test.rpc.fastnear.com",
+  "https://rpc.testnet.near.org",
+];
+
+async function fetchTxFromRpc(hash: string, agentAccount: string): Promise<any> {
+  for (const rpc of TESTNET_RPCS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(rpc, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "1",
+          method: "tx",
+          params: [hash, agentAccount],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.result) return data.result;
+      }
+    } catch {}
+  }
+  return null;
+}
 
 export async function fetchOnchainActivities(agentAccount: string): Promise<ActivityItem[]> {
   if (!agentAccount) return [];
@@ -123,19 +155,14 @@ export async function fetchOnchainActivities(agentAccount: string): Promise<Acti
       if (!isExecute) continue;
       seenHashes.add(hash);
 
+      // Return cached immutable final outcome if available
+      if (txOutcomeCache.has(hash)) {
+        activities.push(txOutcomeCache.get(hash)!);
+        continue;
+      }
+
       try {
-        const rpcRes = await fetch("https://test.rpc.fastnear.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: "1",
-            method: "tx",
-            params: [hash, agentAccount],
-          }),
-        });
-        const rpcData = await rpcRes.json();
-        const outcome = rpcData.result;
+        const outcome = await fetchTxFromRpc(hash, agentAccount);
         if (!outcome) continue;
 
         let type: ActivityItem["type"] = "ALLOW";
@@ -191,7 +218,7 @@ export async function fetchOnchainActivities(agentAccount: string): Promise<Acti
           }
         } catch {}
 
-        activities.push({
+        const item: ActivityItem = {
           id: `onchain-${hash}`,
           txHash: hash,
           type,
@@ -201,7 +228,10 @@ export async function fetchOnchainActivities(agentAccount: string): Promise<Acti
           method,
           amount,
           reason,
-        });
+        };
+
+        txOutcomeCache.set(hash, item);
+        activities.push(item);
       } catch {
         // Individual RPC fetch fallback
       }
