@@ -366,8 +366,8 @@ export const WalletButton: React.FC = () => {
                             e.stopPropagation();
                             setKeyModalAccount(wallet);
                           }}
-                          className="p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
-                          title="View Passkey & Setup Commands"
+                          className="p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition cursor-pointer"
+                          title="View passkey and setup commands"
                         >
                           <Key className="w-3.5 h-3.5" />
                         </button>
@@ -603,14 +603,12 @@ export const WalletButton: React.FC = () => {
       )}
 
       {/* Sub-Wallet Key & Commands Modal */}
-      {keyModalAccount && (
-        <SubWalletKeyModal
-          isOpen={!!keyModalAccount}
-          onClose={() => setKeyModalAccount(null)}
-          agentAccount={keyModalAccount}
-          ownerAccount={user?.activeAccountId || accountId || undefined}
-        />
-      )}
+      <SubWalletKeyModal
+        isOpen={!!keyModalAccount}
+        onClose={() => setKeyModalAccount(null)}
+        agentAccount={keyModalAccount || ""}
+        ownerAccount={user?.activeAccountId || accountId}
+      />
     </div>
   );
 };
