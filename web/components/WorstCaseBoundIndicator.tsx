@@ -1,20 +1,25 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Lock, AlertTriangle, ArrowRight, Scale, Clock } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Scale, Clock } from "lucide-react";
 
 interface WorstCaseBoundIndicatorProps {
   dailyCap?: number | string;
   vaultBalance?: string;
+  isLoaded?: boolean;
+  error?: string | null;
 }
 
 export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = ({
   dailyCap = 0,
   vaultBalance = "0",
+  isLoaded = true,
+  error = null,
 }) => {
   const capNum = Number(dailyCap) || 0;
   const vaultNum = Number(vaultBalance) || 0;
-  const bound = Math.min(vaultNum, capNum);
+  const bound = isLoaded && !error ? Math.min(vaultNum, capNum) : null;
+  const displayBound = bound !== null ? `${bound} mUSD` : "-- mUSD";
 
   return (
     <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-obsidian-900 p-5 sm:p-6 shadow-xs space-y-4">
@@ -34,7 +39,7 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-              Worst-Case Loss Bound: {bound} mUSD
+              Worst-Case Loss Bound: {displayBound}
             </h3>
           </div>
         </div>
@@ -76,7 +81,9 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-500">Uncapped Vault Drain:</span>
-            <span className="text-rose-600 dark:text-rose-400 font-medium">All {vaultBalance} mUSD Drained</span>
+            <span className="text-rose-600 dark:text-rose-400 font-medium">
+              {isLoaded && !error ? `All ${vaultBalance} mUSD Drained` : "All Vault Funds Drained"}
+            </span>
           </div>
         </div>
 
@@ -88,19 +95,23 @@ export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = (
               <span>ScopeGuard Scoped Passkey</span>
             </span>
             <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-              Bounded at {bound} mUSD
+              {bound !== null ? `Bounded at ${bound} mUSD` : "Enforced Onchain Bound"}
             </span>
           </div>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
-            Even under continuous malicious prompt injection while owner sleeps, spending stops at {bound} mUSD. Large amounts require explicit owner settlement signatures.
+            Even under continuous malicious prompt injection while owner sleeps, spending stops at {bound !== null ? `${bound} mUSD` : "the safe limit"}. Large amounts require explicit owner settlement signatures.
           </p>
           <div className="pt-1 flex items-center justify-between text-[11px] font-mono border-t border-emerald-200/60 dark:border-emerald-800/40">
             <span className="text-slate-500">Unattended Exposure:</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Max {bound} mUSD (min of vault and cap)</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+              {bound !== null ? `Max ${bound} mUSD (min of vault and cap)` : "Strictly Bounded by Policy"}
+            </span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-slate-500">Active Vault Pot:</span>
-            <span className="text-slate-700 dark:text-slate-300 font-medium">{vaultBalance} mUSD</span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">
+              {isLoaded && !error ? `${vaultBalance} mUSD` : "--"}
+            </span>
           </div>
         </div>
       </div>

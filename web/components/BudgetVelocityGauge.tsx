@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CreditCard, Fuel, Gauge, Clock, ShieldCheck, TrendingDown, Timer, Crosshair, Shield } from "lucide-react";
+import { CreditCard, Fuel, Gauge, TrendingDown, Timer, Crosshair, Shield } from "lucide-react";
 
 export interface BudgetVelocityGaugeProps {
   gasBudgetNearTotal: number;
@@ -18,6 +18,7 @@ export interface BudgetVelocityGaugeProps {
   leaseExpiresAt?: number | string | null;
   canaryMethodsCount?: number;
   intentRecipientsCount?: number;
+  isLoaded?: boolean;
 }
 
 export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
@@ -35,23 +36,22 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
   leaseExpiresAt = null,
   canaryMethodsCount = 2,
   intentRecipientsCount = 0,
+  isLoaded = true,
 }) => {
   const dailyRemaining = Math.max(0, dailyCapTotal - dailyCapSpent);
-  const dailySpentPercent = Math.min(
-    100,
-    Math.round((dailyCapSpent / (dailyCapTotal || 1)) * 100)
-  );
+  const dailySpentPercent = isLoaded
+    ? Math.min(100, Math.round((dailyCapSpent / (dailyCapTotal || 1)) * 100))
+    : 0;
 
-  const hasScopedGasKey = gasBudgetNearRemaining !== null && gasBudgetNearRemaining !== undefined;
+  const hasScopedGasKey = isLoaded && gasBudgetNearRemaining !== null && gasBudgetNearRemaining !== undefined;
   const gasRemainingPercent = hasScopedGasKey
     ? Math.min(100, Math.round((gasBudgetNearRemaining / (gasBudgetNearTotal || 1)) * 100))
     : 0;
 
-  const velocityPercent = Math.min(
-    100,
-    Math.round((velocityUsed / (velocityMax || 1)) * 100)
-  );
-  const isVelocityNearCap = velocityPercent >= 80;
+  const velocityPercent = isLoaded
+    ? Math.min(100, Math.round((velocityUsed / (velocityMax || 1)) * 100))
+    : 0;
+  const isVelocityNearCap = isLoaded && velocityPercent >= 80;
 
   // Drawdown breaker calculations
   const balanceNum = typeof vaultBalance === "string" ? parseFloat(vaultBalance) || 0 : vaultBalance;
@@ -61,13 +61,15 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
   const floorThreshold = Math.floor((hwmNum * (10000 - effectiveBps)) / 10000);
   const cushionRemaining = Math.max(0, balanceNum - floorThreshold);
   const totalCushion = Math.max(1, hwmNum - floorThreshold);
-  const cushionPercent = Math.min(100, Math.max(0, Math.round((cushionRemaining / totalCushion) * 100)));
-  const isDrawdownBreached = balanceNum < floorThreshold;
+  const cushionPercent = isLoaded
+    ? Math.min(100, Math.max(0, Math.round((cushionRemaining / totalCushion) * 100)))
+    : 0;
+  const isDrawdownBreached = isLoaded && balanceNum < floorThreshold;
 
   // Lease countdown calculation
   let leaseText = "Perpetual (No Expiry)";
   let isLeaseExpired = false;
-  if (leaseExpiresAt) {
+  if (leaseExpiresAt && isLoaded) {
     const expiresSec = typeof leaseExpiresAt === "string" ? Math.floor(Number(leaseExpiresAt) / 1_000_000_000) : Math.floor(leaseExpiresAt / 1_000_000_000);
     const nowSec = Math.floor(Date.now() / 1000);
     const remainingSec = expiresSec - nowSec;
@@ -106,7 +108,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Daily Spending Cap</span>
             </div>
             <span className="text-xs font-mono font-bold text-mint-greenDark dark:text-mint-green">
-              {dailyRemaining} mUSD Left
+              {isLoaded ? `${dailyRemaining} mUSD Left` : "-- mUSD Left"}
             </span>
           </div>
 
@@ -118,8 +120,8 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>{dailyCapSpent} of {dailyCapTotal} mUSD max</span>
-              <span>{dailySpentPercent}% used</span>
+              <span>{isLoaded ? `${dailyCapSpent} of ${dailyCapTotal} mUSD max` : "-- of -- mUSD max"}</span>
+              <span>{isLoaded ? `${dailySpentPercent}% used` : "--"}</span>
             </div>
           </div>
 
@@ -150,8 +152,8 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Vault: {balanceNum} mUSD (Peak: {hwmNum} mUSD)</span>
-              <span>Floor: {floorThreshold} mUSD</span>
+              <span>Vault: {isLoaded ? `${balanceNum} mUSD` : "--"} (Peak: {isLoaded ? `${hwmNum} mUSD` : "--"})</span>
+              <span>Floor: {isLoaded ? `${floorThreshold} mUSD` : "--"}</span>
             </div>
           </div>
 
@@ -172,7 +174,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
                 isVelocityNearCap ? "text-rose-500" : "text-slate-900 dark:text-white"
               }`}
             >
-              {velocityUsed} of {velocityMax} calls
+              {isLoaded ? `${velocityUsed} of ${velocityMax} calls` : "-- calls"}
             </span>
           </div>
 
@@ -206,7 +208,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
             <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
               {hasScopedGasKey
                 ? `${gasBudgetNearRemaining!.toFixed(3)} NEAR`
-                : isScopedKeyConfigured === null
+                : !isLoaded || isScopedKeyConfigured === null
                 ? "Checking Key..."
                 : "No Scoped Key"}
             </span>
@@ -225,7 +227,7 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
                   <span>{gasBudgetNearRemaining!.toFixed(3)} of {gasBudgetNearTotal.toFixed(2)} NEAR</span>
                   <span>Gas only</span>
                 </>
-              ) : isScopedKeyConfigured === null ? (
+              ) : !isLoaded || isScopedKeyConfigured === null ? (
                 <>
                   <span className="text-slate-500 font-medium">could not verify key state</span>
                   <span>Gas unknown</span>

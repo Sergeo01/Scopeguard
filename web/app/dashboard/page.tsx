@@ -202,6 +202,8 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [hasLoadedSuccessfully, setHasLoadedSuccessfully] = useState<boolean>(false);
   const [inspectHash, setInspectHash] = useState<string | null>(null);
   const [ledgerFilter, setLedgerFilter] = useState<"all" | "approved" | "declined">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -312,8 +314,13 @@ export default function DashboardPage() {
       if (guardId) params.set("guard", guardId);
 
       const resp = await fetch(`/api/state?${params.toString()}`);
+      if (!resp.ok) {
+        throw new Error(`State API returned HTTP ${resp.status}`);
+      }
       const data = await resp.json();
       if (data.success) {
+        setFetchError(null);
+        setHasLoadedSuccessfully(true);
         if (data.agentId) {
           setAgentId(data.agentId);
         }
@@ -376,9 +383,12 @@ export default function DashboardPage() {
             window.history.replaceState({}, "", `/dashboard?${sp.toString()}`);
           }
         }
+      } else {
+        throw new Error(data.error || "Onchain state query failed");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn("Could not fetch /api/state", e);
+      setFetchError(e?.message || "Failed to load onchain agent state");
     } finally {
       setLoading(false);
       setIsInitialLoading(false);
@@ -951,6 +961,34 @@ export default function DashboardPage() {
         isOwner={Boolean(user && connectedWalletId === ownerId)}
       />
 
+      {/* Visible Error Banner with Retry on Failed State Fetch */}
+      {fetchError && !hasLoadedSuccessfully && (
+        <div className="rounded-xl border border-rose-300 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-rose-900 dark:text-rose-200">
+                Failed to load onchain agent state
+              </h4>
+              <p className="text-xs text-rose-700 dark:text-rose-400 mt-0.5">
+                {fetchError}. Metrics are safely held at placeholder values to avoid false zero readings.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => loadOnchainState()}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition cursor-pointer shrink-0 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            <span>Retry Connection</span>
+          </button>
+        </div>
+      )}
+
 
       {/* 6-Tab Navigation Bar */}
       <div className="border-b border-slate-200 dark:border-obsidian-800 pb-3">
@@ -1020,7 +1058,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  {isInitialLoading || !vaultBalance ? "--" : `${vaultBalance} mUSD`}
+                  {isInitialLoading || !hasLoadedSuccessfully || !vaultBalance ? "--" : `${vaultBalance} mUSD`}
                 </span>
                 <span className="text-xs font-mono text-slate-500">
                   Working Pot
@@ -1028,7 +1066,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-baseline gap-2 border-l border-slate-200 dark:border-obsidian-800 pl-4 sm:pl-6">
                 <span className="text-3xl sm:text-4xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400 tabular-nums">
-                  {isInitialLoading ? "--" : `${nearVaultBalance} NEAR`}
+                  {isInitialLoading || !hasLoadedSuccessfully ? "--" : `${nearVaultBalance} NEAR`}
                 </span>
                 <span className="text-xs font-mono text-slate-500">
                   Native Pot
@@ -1078,8 +1116,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              {isInitialLoading ? (
-                <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
+              {isInitialLoading || !hasLoadedSuccessfully ? (
+                <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  --
+                </span>
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   {dailyCapTotal}
@@ -1103,19 +1143,21 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              {isInitialLoading ? (
-                <span className="inline-block h-8 w-16 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
+              {isInitialLoading || !hasLoadedSuccessfully ? (
+                <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  --
+                </span>
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   {dailyCapSpent}
                 </span>
               )}
               <span className="text-[11px] font-mono text-slate-500">
-                {dailyCapTotal > 0 ? Math.round((dailyCapSpent / dailyCapTotal) * 100) : 0}% of Cap
+                {hasLoadedSuccessfully && dailyCapTotal > 0 ? Math.round((dailyCapSpent / dailyCapTotal) * 100) : "--"}% of Cap
               </span>
             </div>
             <span className="text-[11px] text-slate-500 mt-1">
-              {dailyCapSpent > 0 ? `${dailyCapSpent} mUSD in rolling window` : "Zero spend in window"}
+              {!hasLoadedSuccessfully ? "Awaiting connection" : dailyCapSpent > 0 ? `${dailyCapSpent} mUSD in rolling window` : "Zero spend in window"}
             </span>
           </div>
 
@@ -1128,8 +1170,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              {isInitialLoading ? (
-                <span className="inline-block h-8 w-20 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
+              {isInitialLoading || !hasLoadedSuccessfully ? (
+                <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  --
+                </span>
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   {Math.max(0, dailyCapTotal - dailyCapSpent)}
@@ -1153,19 +1197,23 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-2 pt-1">
-              {isInitialLoading ? (
-                <span className="inline-block h-8 w-16 bg-slate-200 dark:bg-obsidian-800 rounded animate-pulse" />
+              {isInitialLoading || !hasLoadedSuccessfully ? (
+                <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                  --
+                </span>
               ) : (
                 <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
                   {velocityUsed}/{velocityMax}
                 </span>
               )}
               <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded ${
-                velocityUsed >= velocityMax
+                !hasLoadedSuccessfully
+                  ? "text-slate-400"
+                  : velocityUsed >= velocityMax
                   ? "bg-rose-500/10 text-rose-500"
                   : "text-slate-500"
               }`}>
-                {velocityUsed >= velocityMax ? "Brake Tripped" : "Normal"}
+                {!hasLoadedSuccessfully ? "--" : velocityUsed >= velocityMax ? "Brake Tripped" : "Normal"}
               </span>
             </div>
             <span className="text-[11px] text-slate-500 mt-1">
@@ -1313,10 +1361,16 @@ export default function DashboardPage() {
         leaseExpiresAt={leaseExpiresAt}
         canaryMethodsCount={canaryMethods.length}
         intentRecipientsCount={intentRecipients.length}
+        isLoaded={hasLoadedSuccessfully}
       />
 
           {/* Worst-Case Loss Bound Indicator */}
-      <WorstCaseBoundIndicator dailyCap={dailyCapTotal} vaultBalance={vaultBalance} />
+      <WorstCaseBoundIndicator
+        dailyCap={dailyCapTotal}
+        vaultBalance={vaultBalance}
+        isLoaded={hasLoadedSuccessfully}
+        error={fetchError}
+      />
         </div>
       )}
 
@@ -1442,9 +1496,9 @@ export default function DashboardPage() {
               num: 8,
               name: "Daily Spending Cap",
               code: "OVER_DAILY_CAP",
-              desc: `Cumulative value spent across rolling 24 hours cannot exceed ${dailyCapTotal} mUSD (${dailyCapSpent} mUSD spent, ${Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD remaining).`,
-              config: isInitialLoading ? "Syncing..." : `${dailyCapSpent} / ${dailyCapTotal} mUSD`,
-              badge: isInitialLoading ? "Syncing" : `${Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD Left`,
+              desc: `Cumulative value spent across rolling 24 hours cannot exceed ${hasLoadedSuccessfully ? dailyCapTotal : "--"} mUSD (${hasLoadedSuccessfully ? dailyCapSpent : "--"} mUSD spent, ${hasLoadedSuccessfully ? Math.max(0, dailyCapTotal - dailyCapSpent) : "--"} mUSD remaining).`,
+              config: isInitialLoading || !hasLoadedSuccessfully ? "Syncing..." : `${dailyCapSpent} / ${dailyCapTotal} mUSD`,
+              badge: isInitialLoading || !hasLoadedSuccessfully ? "Syncing" : `${Math.max(0, dailyCapTotal - dailyCapSpent)} mUSD Left`,
               isLocked: false,
             },
             {
@@ -1503,8 +1557,8 @@ export default function DashboardPage() {
               num: 13,
               name: "Vault Custody Balance Enforcement",
               code: "INSUFFICIENT_VAULT_BALANCE",
-              desc: `Transfers cannot exceed internal custodied balance (${vaultBalance} mUSD / ${nearVaultBalance} NEAR in vault).`,
-              config: `${vaultBalance} mUSD | ${nearVaultBalance} NEAR`,
+              desc: `Transfers cannot exceed internal custodied balance (${hasLoadedSuccessfully ? vaultBalance : "--"} mUSD / ${hasLoadedSuccessfully ? nearVaultBalance : "--"} NEAR in vault).`,
+              config: `${hasLoadedSuccessfully ? vaultBalance : "--"} mUSD | ${hasLoadedSuccessfully ? nearVaultBalance : "--"} NEAR`,
               badge: "Vault Bounded",
               isLocked: false,
             },
