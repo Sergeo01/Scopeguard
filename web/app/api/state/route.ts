@@ -9,7 +9,7 @@ import { getPolicyContractId } from "@/lib/config";
 import { getVerifiedRpcEndpoints, markRpcFailed } from "@/lib/rpc";
 
 const cacheMap = new Map<string, { state: any; timestamp: number }>();
-const CACHE_TTL_MS = 6000;
+const CACHE_TTL_MS = 15000;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

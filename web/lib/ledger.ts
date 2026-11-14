@@ -88,12 +88,12 @@ interface OnchainCache {
 
 const onchainCacheMap = new Map<string, OnchainCache>();
 const txOutcomeCache = new Map<string, ActivityItem>();
-const ONCHAIN_CACHE_TTL_MS = 8000; // 8 seconds
+const ONCHAIN_CACHE_TTL_MS = 15000;
 
 const TESTNET_RPCS = [
+  "https://rpc.testnet.near.org",
   "https://test.rpc.fastnear.com",
   "https://rpc.testnet.fastnear.com",
-  "https://rpc.testnet.near.org",
 ];
 
 async function fetchTxFromRpc(hash: string, agentAccount: string): Promise<any> {
