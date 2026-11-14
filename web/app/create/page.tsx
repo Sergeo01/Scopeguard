@@ -749,13 +749,32 @@ export default function CreateAgentPage() {
 
         // If sub-account does not exist yet under connected owner, create and attach passkey
         if (!accountExists && targetAgent.endsWith(`.${connectedWalletId}`)) {
+          const subActions: any[] = [
+            transactions.createAccount(),
+            transactions.transfer(BigInt("250000000000000000000000")), // 0.25 NEAR for storage deposit and keys
+          ];
+
+          // Attach owner FullAccess recovery key so the owner retains key management over the subaccount
+          try {
+            const accounts = await wallet.getAccounts();
+            const activeAcc = accounts.find((a: any) => a.accountId === connectedWalletId);
+            if (activeAcc?.publicKey) {
+              subActions.push(
+                transactions.addKey(
+                  utils.PublicKey.from(activeAcc.publicKey),
+                  transactions.fullAccessKey()
+                )
+              );
+            }
+          } catch {
+            // Proceed if wallet provider does not expose public key in getAccounts
+          }
+
+          subActions.push(keyAction);
+
           txList.push({
             receiverId: targetAgent,
-            actions: [
-              transactions.createAccount(),
-              transactions.transfer(BigInt("250000000000000000000000")), // 0.25 NEAR for storage deposit and keys
-              keyAction,
-            ],
+            actions: subActions,
           });
         } else if (accountExists && targetAgent === connectedWalletId) {
           txList.push({

@@ -17,6 +17,7 @@ import {
   MessageSquareCode,
   ChevronDown,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import {
   getSubWalletKey,
@@ -47,6 +48,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   const [liveDailyCap, setLiveDailyCap] = useState<number | null>(null);
   const [liveVaultBalance, setLiveVaultBalance] = useState<string | null>(null);
   const [detectedGuardId, setDetectedGuardId] = useState<string | null>(null);
+  const [useLegacyGuard, setUseLegacyGuard] = useState<boolean>(false);
   const [revealKey, setRevealKey] = useState<boolean>(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
@@ -65,6 +67,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
       setRevealKey(false);
       setCopiedSection(null);
       setManualInput("");
+      setUseLegacyGuard(false);
     }
   }, [isOpen, agentAccount, effectiveOwner, dailyCap]);
 
@@ -75,9 +78,8 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
 
     async function fetchOnchainDetails() {
       try {
-        let activeGuard = guardId;
-
         // 1. Detect which guard contract the agent's function-call key is bound to
+        let foundReceiver: string | null = null;
         try {
           const keyRes = await fetch("https://test.rpc.fastnear.com", {
             method: "POST",
@@ -96,14 +98,15 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
           const keyData = await keyRes.json();
           const fnKey = keyData.result?.keys?.find((k: any) => k.access_key?.permission?.FunctionCall);
           if (fnKey?.access_key?.permission?.FunctionCall?.receiver_id) {
-            activeGuard = fnKey.access_key.permission.FunctionCall.receiver_id;
-            if (isMounted) setDetectedGuardId(activeGuard);
+            foundReceiver = fnKey.access_key.permission.FunctionCall.receiver_id;
+            if (isMounted) setDetectedGuardId(foundReceiver);
           }
         } catch (keyErr) {
           console.warn("Could not detect onchain access key receiver:", keyErr);
         }
 
-        // 2. Fetch live budget & vault balance on the active guard contract
+        // 2. Fetch live budget & vault balance on the target guard contract
+        const queryTarget = (useLegacyGuard && foundReceiver) ? foundReceiver : guardId;
         const res = await fetch("https://test.rpc.fastnear.com", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -114,7 +117,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
             params: {
               request_type: "call_function",
               finality: "final",
-              account_id: activeGuard,
+              account_id: queryTarget,
               method_name: "get_budget",
               args_base64: btoa(JSON.stringify({ agent_account: agentAccount })),
             },
@@ -141,11 +144,12 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, agentAccount, guardId]);
+  }, [isOpen, agentAccount, guardId, useLegacyGuard]);
 
   if (!isOpen || !agentAccount) return null;
 
-  const effectiveGuardId = detectedGuardId || guardId;
+  const isLegacyKeyBinding = Boolean(detectedGuardId && detectedGuardId !== guardId);
+  const effectiveGuardId = (useLegacyGuard && detectedGuardId) ? detectedGuardId : guardId;
   const effectiveDailyCap =
     liveDailyCap !== null
       ? liveDailyCap
@@ -395,6 +399,33 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
           {/* TAB 1: AGENT SETUP PROMPT */}
           {activeTab === "prompt" && (
             <div className="space-y-4">
+              {isLegacyKeyBinding && (
+                <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                        Legacy Key Binding Notice
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUseLegacyGuard(!useLegacyGuard)}
+                      className="text-[11px] font-semibold text-brand-blue hover:underline cursor-pointer"
+                    >
+                      {useLegacyGuard ? "Switch to Canonical (scopeguard.testnet)" : "Switch to Legacy (guard2)"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                    This sub-account on NEAR Testnet was originally created with its function-call key pointing to legacy contract <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 font-mono font-bold">{detectedGuardId}</code>.
+                    ScopeGuard platform canonical guard is <code className="px-1 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/50 font-mono font-bold text-emerald-800 dark:text-emerald-300">{guardId}</code> (where your vault balance of {liveVaultBalance || "250"} mUSD resides).
+                  </p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Active prompt target: <strong className="font-mono text-slate-900 dark:text-white">{effectiveGuardId}</strong>. To deploy a clean agent directly under canonical <strong>{guardId}</strong> with owner key recovery, create a new sub-account (e.g. <code>agent2.{agentAccount.split(".").slice(1).join(".")}</code>) from the <strong>Create Agent</strong> page.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/50">
                 <div className="space-y-0.5">
                   <h4 className="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
