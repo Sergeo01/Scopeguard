@@ -67,6 +67,16 @@ function persistLedger(): void {
 }
 
 export function getRecentActivities(): ActivityItem[] {
+  try {
+    const filePath = getLedgerFilePath();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        activityLog = parsed;
+      }
+    }
+  } catch {}
   return [...activityLog];
 }
 
