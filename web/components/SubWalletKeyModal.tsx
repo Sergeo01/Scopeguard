@@ -272,6 +272,13 @@ near call ${effectiveGuardId} execute '{"action":{"Transfer":{"token":"sergeo-gu
 3. CHECK REMAINING DAILY BUDGET:
 near view ${effectiveGuardId} get_budget '{"agent_account":"${agentAccount}"}'
 
+=== OPERATIONAL DIRECTIVES FOR USER REQUESTS ===
+- Direct Execution: When the user asks you to swap, send, or check balance, execute the command directly in 1 step. Do not crawl external repositories or pull third-party GitHub source code.
+- Testnet DEX Simulator: sergeo-guard-dex.testnet is a mock contract designed to test Guard policy guardrails, velocity limits, and daily caps. It returns calculated output and emits swap events for demonstration without requiring real mainnet liquidity.
+- Individual vs Shared Vault Balance: To check this agent's allocated vault balance and remaining daily spend, ALWAYS call:
+  near view ${effectiveGuardId} get_budget '{"agent_account":"${agentAccount}"}'
+  Do NOT query the token contract balance of ${effectiveGuardId} directly, as ${effectiveGuardId} holds the shared custody pool for all agents across the network (e.g. 700+ mUSD).
+
 === COMPLETION ===
 Perform Step 1 and Step 2 right now, then reply ONLY with: "set and ready".`;
 
