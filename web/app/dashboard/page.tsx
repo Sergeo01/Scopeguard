@@ -42,6 +42,7 @@ import {
   Bell,
   AlertOctagon,
   PlusCircle,
+  Key,
 } from "lucide-react";
 
 const TABS = [
@@ -62,6 +63,7 @@ import { IncidentExportModal } from "@/components/IncidentExportModal";
 import { BudgetVelocityGauge } from "@/components/BudgetVelocityGauge";
 import { WebhookAlertSettings } from "@/components/WebhookAlertSettings";
 import { PolicyEditorModal } from "@/components/PolicyEditorModal";
+import { SubWalletKeyModal } from "@/components/SubWalletKeyModal";
 
 interface ActivityItem {
   id: string;
@@ -221,6 +223,8 @@ export default function DashboardPage() {
   const [isSigningPolicy, setIsSigningPolicy] = useState(false);
   const [policyUpdateTxHash, setPolicyUpdateTxHash] = useState<string | null>(null);
   const [policyUpdateError, setPolicyUpdateError] = useState<string | null>(null);
+
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -1207,6 +1211,15 @@ export default function DashboardPage() {
                 {copiedAgent ? <Check className="w-3.5 h-3.5 text-mint-green" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
               </button>
             </span>
+            <button
+              type="button"
+              onClick={() => setIsKeyModalOpen(true)}
+              className="bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 rounded-lg px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="View passkey credentials, CLI setup commands, and configuration"
+            >
+              <Key className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Passkey & Commands</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
@@ -2315,6 +2328,16 @@ export default function DashboardPage() {
         dailyCapTotal={dailyCapTotal}
         dailyCapSpent={dailyCapSpent}
         activities={activities}
+      />
+
+      {/* Sub-Wallet Key & Commands Modal */}
+      <SubWalletKeyModal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+        agentAccount={agentId}
+        ownerAccount={connectedWalletId || ownerId}
+        dailyCap={dailyCapTotal}
+        policyJson={policy}
       />
 
       {/* Direct In-App Onchain Receipt Inspector */}

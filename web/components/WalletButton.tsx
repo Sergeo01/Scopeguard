@@ -18,8 +18,10 @@ import {
   User,
   Radio,
   AlertCircle,
+  Key,
 } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
+import { SubWalletKeyModal } from "./SubWalletKeyModal";
 
 export const WalletButton: React.FC = () => {
   const {
@@ -40,6 +42,7 @@ export const WalletButton: React.FC = () => {
   } = useWallet();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [keyModalAccount, setKeyModalAccount] = useState<string | null>(null);
   const [newSubAccountInput, setNewSubAccountInput] = useState("");
   const [copied, setCopied] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
@@ -361,6 +364,17 @@ export const WalletButton: React.FC = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setKeyModalAccount(wallet);
+                          }}
+                          className="p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
+                          title="View Passkey & Setup Commands"
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleCopy(wallet);
                           }}
                           className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
@@ -586,6 +600,16 @@ export const WalletButton: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Sub-Wallet Key & Commands Modal */}
+      {keyModalAccount && (
+        <SubWalletKeyModal
+          isOpen={!!keyModalAccount}
+          onClose={() => setKeyModalAccount(null)}
+          agentAccount={keyModalAccount}
+          ownerAccount={user?.activeAccountId || accountId || undefined}
+        />
       )}
     </div>
   );

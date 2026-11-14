@@ -32,14 +32,17 @@ import {
   ChevronDown,
   Info,
   ArrowRight,
+  Key,
 } from "lucide-react";
 import { KeyPair } from "near-api-js";
 import { AgentHandoffCard } from "../../components/AgentHandoffCard";
+import { SubWalletKeyModal } from "../../components/SubWalletKeyModal";
 import { PlatformPresets, PresetPlatform, PRESET_PLATFORMS } from "../../components/PlatformPresets";
 import { CustomPlatformManager, ConfiguredPlatform } from "../../components/CustomPlatformManager";
 import { useWallet } from "@/context/WalletContext";
 import { validatePolicyShape, lintPolicy, DrafterPolicy } from "@/lib/drafter";
 import { tryGetPolicyContractId } from "@/lib/config";
+import { saveSubWalletKey } from "@/lib/subwallet-keys";
 import {
   suggestNextAgentName,
   isAgentSubaccountOwnerValid,
@@ -95,6 +98,8 @@ export default function CreateAgentPage() {
       cancelled = true;
     };
   }, [connectedWalletId]);
+
+  const [keyModalAgent, setKeyModalAgent] = useState<string | null>(null);
 
   useEffect(() => {
     setGuardContractId(tryGetPolicyContractId());
@@ -630,6 +635,14 @@ export default function CreateAgentPage() {
       const privKey = keyPair.toString();
       setGeneratedPasskey(privKey);
       setGeneratedPublicKey(pubKey);
+
+      // Persist to local storage so user can view/copy anytime
+      saveSubWalletKey(targetAgent, {
+        privateKey: privKey,
+        publicKey: pubKey,
+        ownerAccount: connectedWalletId || effectiveOwner,
+        dailyCap,
+      });
 
       // When wallet is connected, sign and broadcast onchain directly via NEAR Wallet Selector
       if (isWalletConnected && connectedWalletId) {
@@ -1984,22 +1997,32 @@ export default function CreateAgentPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                      <Link
-                        href={`/dashboard?agent=${encodeURIComponent(ag.account)}&edit=true`}
-                        className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                    <div className="flex flex-col gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/dashboard?agent=${encodeURIComponent(ag.account)}&edit=true`}
+                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>Edit Policy</span>
+                        </Link>
+                        <Link
+                          href={`/dashboard?agent=${encodeURIComponent(ag.account)}`}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:border-slate-300 dark:hover:border-slate-600 transition flex items-center gap-1 cursor-pointer"
+                          title="View details in console"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Console</span>
+                        </Link>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setKeyModalAgent(ag.account)}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-obsidian-850 dark:hover:bg-obsidian-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                       >
-                        <Sliders className="w-3.5 h-3.5" />
-                        <span>Edit Policy</span>
-                      </Link>
-                      <Link
-                        href={`/dashboard?agent=${encodeURIComponent(ag.account)}`}
-                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-obsidian-900 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:border-slate-300 dark:hover:border-slate-600 transition flex items-center gap-1 cursor-pointer"
-                        title="View details in console"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Console</span>
-                      </Link>
+                        <Key className="w-3.5 h-3.5 text-amber-500" />
+                        <span>View Passkey & Setup Commands</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -2011,6 +2034,16 @@ export default function CreateAgentPage() {
           {renderManualBuilder()}
         </div>
     )}
+
+    {/* Sub-Wallet Key & Commands Modal */}
+    <SubWalletKeyModal
+      isOpen={!!keyModalAgent}
+      onClose={() => setKeyModalAgent(null)}
+      agentAccount={keyModalAgent || ""}
+      ownerAccount={effectiveOwner}
+      dailyCap={dailyCap}
+      policyJson={compiledPolicyJson}
+    />
   </div>
 );
 }
