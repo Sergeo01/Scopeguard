@@ -15,6 +15,15 @@ const STORAGE_KEY = "scopeguard_subwallet_keys";
 
 // Built-in verified keys for testnet/demo agents
 const DEFAULT_KNOWN_KEYS: Record<string, StoredSubWalletKey> = {
+  "agent.blckfme.testnet": {
+    agentAccountId: "agent.blckfme.testnet",
+    privateKey:
+      "ed25519:4cYFpiPQreZa5GtLybDSiYH8n9pjEBhdT47CQ1Gybr5fZwzDonZNQaoFykpED4jrMsesccmsPTuP33depZ3md2Cg",
+    publicKey: "ed25519:24M44drzfm6qdexJqtxLU6MuhV5ymtwfeeipGcMp36dE",
+    createdAt: 1731456000000,
+    ownerAccount: "blckfme.testnet",
+    dailyCap: 25,
+  },
   "agent2.sergeo-guard.testnet": {
     agentAccountId: "agent2.sergeo-guard.testnet",
     privateKey:
@@ -52,11 +61,20 @@ export function getAllSubWalletKeys(): Record<string, StoredSubWalletKey> {
   }
 }
 
-export function getSubWalletKey(agentAccountId: string): StoredSubWalletKey | null {
+export function getSubWalletKey(
+  agentAccountId: string,
+  ownerAccount?: string,
+  dailyCap?: number | string
+): StoredSubWalletKey | null {
   if (!agentAccountId) return null;
   const clean = agentAccountId.trim();
   const all = getAllSubWalletKeys();
-  return all[clean] || null;
+  if (all[clean] && all[clean].privateKey) {
+    return all[clean];
+  }
+
+  // Auto-generate a valid keypair immediately so placeholders never appear
+  return generateAndSaveSubWalletKey(clean, ownerAccount, dailyCap);
 }
 
 export function saveSubWalletKey(
