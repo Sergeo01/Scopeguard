@@ -6,10 +6,10 @@ import { NextResponse } from "next/server";
 import { connect, keyStores, utils } from "near-api-js";
 import { getRecentActivities, getMergedActivities } from "@/lib/ledger";
 import { getPolicyContractId } from "@/lib/config";
-import { getVerifiedRpcEndpoints } from "@/lib/rpc";
+import { getVerifiedRpcEndpoints, markRpcFailed } from "@/lib/rpc";
 
 const cacheMap = new Map<string, { state: any; timestamp: number }>();
-const CACHE_TTL_MS = 5000;
+const CACHE_TTL_MS = 6000;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -80,40 +80,40 @@ export async function GET(req: Request) {
           }
         }
 
-        budget = await account.viewFunction({
-          contractId: guardId,
-          methodName: "get_budget",
-          args: { agent_account: effectiveAgentId },
-        });
-
-        pendingActions = await account.viewFunction({
-          contractId: guardId,
-          methodName: "get_pending_actions",
-          args: { agent_account: effectiveAgentId },
-        });
-
-        stagedPolicy = await account.viewFunction({
-          contractId: guardId,
-          methodName: "get_staged_policy",
-          args: { agent_account: effectiveAgentId },
-        });
-
-        try {
-          policy = await account.viewFunction({
+        const [budgetRes, pendingRes, stagedRes, policyRes] = await Promise.all([
+          account.viewFunction({
+            contractId: guardId,
+            methodName: "get_budget",
+            args: { agent_account: effectiveAgentId },
+          }),
+          account.viewFunction({
+            contractId: guardId,
+            methodName: "get_pending_actions",
+            args: { agent_account: effectiveAgentId },
+          }).catch(() => []),
+          account.viewFunction({
+            contractId: guardId,
+            methodName: "get_staged_policy",
+            args: { agent_account: effectiveAgentId },
+          }).catch(() => null),
+          account.viewFunction({
             contractId: guardId,
             methodName: "get_policy",
             args: { agent_account: effectiveAgentId },
-          });
-        } catch {
-          // Non-blocking
-        }
+          }).catch(() => null),
+        ]);
 
-        if (budget) {
+        if (budgetRes) {
+          budget = budgetRes;
+          pendingActions = Array.isArray(pendingRes) ? pendingRes : [];
+          stagedPolicy = stagedRes;
+          policy = policyRes;
           activeNear = near;
           break;
         }
       } catch (err: any) {
         lastError = err;
+        markRpcFailed(nodeUrl);
         console.warn(`RPC ${nodeUrl} error in /api/state: ${err.message}. Retrying with alternate provider...`);
       }
     }
@@ -176,8 +176,9 @@ export async function GET(req: Request) {
       activities: await getMergedActivities(effectiveAgentId),
     };
 
-    cacheMap.set(cacheKey, { state: statePayload, timestamp: now });
-    cacheMap.set(`${guardId}:${effectiveAgentId}:${ownerId}`, { state: statePayload, timestamp: now });
+    const cacheTimestamp = Date.now();
+    cacheMap.set(cacheKey, { state: statePayload, timestamp: cacheTimestamp });
+    cacheMap.set(`${guardId}:${effectiveAgentId}:${ownerId}`, { state: statePayload, timestamp: cacheTimestamp });
 
     return NextResponse.json(statePayload, {
       headers: {
