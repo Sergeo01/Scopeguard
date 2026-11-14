@@ -16,7 +16,7 @@ import {
   ExternalLink,
   MessageSquareCode,
   ChevronDown,
-  Bot,
+  Download,
 } from "lucide-react";
 import {
   getSubWalletKey,
@@ -40,20 +40,22 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   onClose,
   agentAccount,
   ownerAccount,
-  dailyCap = 500,
+  dailyCap,
   policyJson,
 }) => {
   const [keyData, setKeyData] = useState<StoredSubWalletKey | null>(null);
+  const [liveDailyCap, setLiveDailyCap] = useState<number | null>(null);
   const [revealKey, setRevealKey] = useState<boolean>(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"keys" | "prompt" | "config">("prompt");
+  const [activeTab, setActiveTab] = useState<"prompt" | "keys" | "config">("prompt");
   const [showQuickCli, setShowQuickCli] = useState<boolean>(false);
 
   const guardId = tryGetPolicyContractId() || "scopeguard.testnet";
   const effectiveOwner =
     ownerAccount || process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
+  // Load sub-wallet key data
   useEffect(() => {
     if (isOpen && agentAccount) {
       const stored = getSubWalletKey(agentAccount, effectiveOwner, dailyCap);
@@ -64,7 +66,59 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
     }
   }, [isOpen, agentAccount, effectiveOwner, dailyCap]);
 
+  // Fetch live onchain budget directly from NEAR Testnet RPC
+  useEffect(() => {
+    if (!isOpen || !agentAccount) return;
+    let isMounted = true;
+
+    async function fetchLiveBudget() {
+      try {
+        const res = await fetch("https://test.rpc.fastnear.com", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: "1",
+            method: "query",
+            params: {
+              request_type: "call_function",
+              finality: "final",
+              account_id: guardId,
+              method_name: "get_budget",
+              args_base64: btoa(JSON.stringify({ agent_account: agentAccount })),
+            },
+          }),
+        });
+        const data = await res.json();
+        if (data.result?.result) {
+          const raw = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(data.result.result))
+          );
+          if (isMounted && raw.cap !== undefined && raw.cap !== null) {
+            setLiveDailyCap(Number(raw.cap));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not query live onchain budget for agent:", err);
+      }
+    }
+
+    fetchLiveBudget();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, agentAccount, guardId]);
+
   if (!isOpen || !agentAccount) return null;
+
+  const effectiveDailyCap =
+    liveDailyCap !== null
+      ? liveDailyCap
+      : keyData?.dailyCap
+      ? Number(keyData.dailyCap)
+      : dailyCap
+      ? Number(dailyCap)
+      : 25;
 
   const handleCopy = (text: string, section: string) => {
     navigator.clipboard.writeText(text);
@@ -75,7 +129,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   };
 
   const handleGenerateKey = () => {
-    const generated = generateAndSaveSubWalletKey(agentAccount, effectiveOwner, dailyCap);
+    const generated = generateAndSaveSubWalletKey(agentAccount, effectiveOwner, effectiveDailyCap);
     setKeyData(generated);
     setRevealKey(true);
   };
@@ -86,7 +140,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
     const saved = saveSubWalletKey(agentAccount, {
       privateKey: cleanKey,
       ownerAccount: effectiveOwner,
-      dailyCap,
+      dailyCap: effectiveDailyCap,
     });
     setKeyData(saved);
     setManualInput("");
@@ -104,42 +158,36 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   try {
     if (typeof window !== "undefined") {
       queryBase64 = btoa(JSON.stringify({ agent_account: agentAccount }));
-    } else {
-      queryBase64 = Buffer.from(JSON.stringify({ agent_account: agentAccount })).toString("base64");
     }
   } catch {}
 
   const cliCommands = `# 1. Register agent policy on Guard contract
 near call ${guardId} register_agent '{"agent_account":"${agentAccount}","policy":${
-    policyJson ? JSON.stringify(policyJson) : `{"token":"sergeo-guard-token.testnet","daily_cap":${dailyCap},"targets":{"sergeo-guard-dex.testnet":["swap"]}}`
+    policyJson
+      ? JSON.stringify(policyJson)
+      : `{"token":"sergeo-guard-token.testnet","daily_cap":${effectiveDailyCap},"targets":{"sergeo-guard-dex.testnet":["swap"]}}`
   }}' --accountId ${effectiveOwner} --gas 100000000000000
 
 # 2. Add scoped function-call passkey to agent account
 near add-key ${agentAccount} ${pubKey} --contractId ${guardId} --methodNames execute --allowance 0.25 --accountId ${agentAccount}`;
 
-  const agentSetupPrompt = `MANDATORY DIRECTIVE FOR AI CODING AGENT (Claude Code, OpenCode, Cursor, AutoGPT):
-Execute the complete ScopeGuard environment setup immediately.
-DO NOT ASK ANY QUESTIONS. DO NOT ASK FOR USER CONFIRMATION OR PRESENT MENUS.
-PERFORM ALL 3 SETUP ACTIONS AUTOMATICALLY RIGHT NOW.
+  const agentSetupPrompt = `INSTRUCTION FOR AI AGENT (Claude Code, OpenCode, Cursor, AutoGPT):
+Execute the setup steps below immediately. Do not ask questions, do not prompt the user for choices, and do not wait for confirmation.
+Once setup is complete, respond ONLY with: "set and ready".
 
-YOUR CONTEXT & CREDENTIALS:
-- Agent Sub-Account ID: ${agentAccount}
-- Human Owner / Admin: ${effectiveOwner}
-- Network: NEAR Testnet (Chain ID: testnet)
-- Fast RPC Endpoint: https://test.rpc.fastnear.com
+=== SCOPEGUARD AGENT CREDENTIALS & ONCHAIN TARGETS ===
+- Agent Account: ${agentAccount}
+- Owner Account: ${effectiveOwner}
+- Network: NEAR Testnet (Fast RPC: https://test.rpc.fastnear.com)
 - Policy Guard Contract: ${guardId}
-- Custody Token: sergeo-guard-token.testnet (mUSD)
+- Custody Token (mUSD): sergeo-guard-token.testnet
+- DEX Swap Target: sergeo-guard-dex.testnet
+- Daily Spend Limit: ${effectiveDailyCap} mUSD
 - Scoped Public Key: ${pubKey}
 - Scoped Private Key: ${privKey}
-- Daily Spending Limit: ${dailyCap} mUSD
-- Permitted DEX Target: sergeo-guard-dex.testnet (method: swap)
 
-============================================================
-EXECUTE THESE 3 ACTIONS RIGHT NOW:
-============================================================
-
-ACTION 1: WRITE CONFIGURATION FILES
-1. Write the following content to file \`./agent.json\` in the workspace root:
+=== SETUP STEP 1: WRITE CONFIGURATION FILES ===
+Write the following configuration to file \`./agent.json\`:
 {
   "agentAccountId": "${agentAccount}",
   "policyContractId": "${guardId}",
@@ -147,39 +195,51 @@ ACTION 1: WRITE CONFIGURATION FILES
   "privateKey": "${privKey}",
   "networkId": "testnet",
   "nodeUrl": "https://test.rpc.fastnear.com",
-  "dailyCap": ${Number(dailyCap) || 500},
-  "query_live_rules_url": "https://scopeguard.blockframe.cloud/api/agents?agent=${agentAccount}"
+  "dailyCap": ${effectiveDailyCap},
+  "token": "sergeo-guard-token.testnet",
+  "dex": "sergeo-guard-dex.testnet"
 }
 
-2. Write or append the following environment variables to \`./.env\`:
+Write or append the following environment variables to file \`./.env\`:
 SCOPEGUARD_AGENT_ACCOUNT="${agentAccount}"
 SCOPEGUARD_AGENT_PRIVATE_KEY="${privKey}"
 SCOPEGUARD_POLICY_CONTRACT="${guardId}"
 NEAR_NETWORK="testnet"
 NEAR_RPC_URL="https://test.rpc.fastnear.com"
 
-ACTION 2: RUN PREFLIGHT ONCHAIN CHECK
-Run this check to verify active policy connectivity against the NEAR fast RPC:
-curl -s -X POST https://test.rpc.fastnear.com -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"call_function","finality":"final","account_id":"${guardId}","method_name":"get_policy","args_base64":"${queryBase64}"}}'
+=== SETUP STEP 2: VERIFY CONNECTION ===
+Verify live budget and policy connectivity via RPC:
+curl -s -X POST https://test.rpc.fastnear.com -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"call_function","finality":"final","account_id":"${guardId}","method_name":"get_budget","args_base64":"${queryBase64}"}}'
 
-ACTION 3: CONFIRM READY STATUS
-After creating the files and running the check, output a single confirmation message stating:
-"ScopeGuard setup complete! Config files written. Agent ${agentAccount} is armed with a daily cap of ${dailyCap} mUSD and ready to execute guarded operations."
+=== HOW TO EXECUTE OPERATIONS ===
+You hold a scoped function-call key. All onchain actions MUST be dispatched through ${guardId}::execute.
 
-============================================================
-OPERATIONAL PROTOCOL & EXECUTION BLUEPRINTS:
-============================================================
-- Security Invariant: You hold a non-custodial scoped function-call key. All onchain actions MUST be dispatched through ${guardId}::execute.
-- DEX Swap Example:
-  near call ${guardId} execute '{"action":{"ContractCall":{"target":"sergeo-guard-dex.testnet","method":"swap","args":"eyJhZ2VudF9zd2FwIjogdHJ1ZX0=","deposit":"0","gas":"30000000000000"}}}' --accountId ${agentAccount} --gas 100000000000000
-- Check Remaining Daily Budget:
-  near view ${guardId} get_daily_cap_remaining '{"agent_account":"${agentAccount}"}'
-- Check Vault Balance:
-  near view ${guardId} get_vault_balance '{"agent_account":"${agentAccount}"}'
-- Rejection Handling: Never spam rapid retries if a check returns Rejected (e.g. OVER_DAILY_CAP or OVER_VELOCITY_CAP), as consecutive rejects trip the auto-pause circuit breaker.`;
+1. TRADING / SWAPPING (DEX):
+near call ${guardId} execute '{"action":{"ContractCall":{"target":"sergeo-guard-dex.testnet","method":"swap","args":"eyJhZ2VudF9zd2FwIjogdHJ1ZX0=","deposit":"0","gas":"30000000000000"}}}' --accountId ${agentAccount} --gas 100000000000000
+
+2. SENDING / PAYMENTS (Token Transfer):
+near call ${guardId} execute '{"action":{"Transfer":{"token":"sergeo-guard-token.testnet","to":"<RECIPIENT>","amount":"<AMOUNT_WHOLE_MUSD>","memo":"Payment"}}}' --accountId ${agentAccount} --gas 100000000000000
+
+3. CHECK REMAINING DAILY BUDGET:
+near view ${guardId} get_budget '{"agent_account":"${agentAccount}"}'
+
+=== COMPLETION ===
+Perform Step 1 and Step 2 right now, then reply ONLY with: "set and ready".`;
+
+  const handleDownloadPrompt = () => {
+    const blob = new Blob([agentSetupPrompt], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `agent-setup-${agentAccount}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const envExports = `export SCOPEGUARD_AGENT_ACCOUNT="${agentAccount}"
-export SCOPEGUARD_AGENT_PRIVATE_KEY="${privKey || "<AGENT_PRIVATE_KEY>"}"
+export SCOPEGUARD_AGENT_PRIVATE_KEY="${privKey}"
 export SCOPEGUARD_POLICY_CONTRACT="${guardId}"
 export NEAR_NETWORK="testnet"
 export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
@@ -189,10 +249,12 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
       agentAccountId: agentAccount,
       policyContractId: guardId,
       publicKey: pubKey,
-      privateKey: privKey || "<AGENT_PRIVATE_KEY>",
+      privateKey: privKey,
       networkId: "testnet",
       nodeUrl: "https://test.rpc.fastnear.com",
-      dailyCap: Number(dailyCap) || 500,
+      dailyCap: effectiveDailyCap,
+      token: "sergeo-guard-token.testnet",
+      dex: "sergeo-guard-dex.testnet",
       query_live_rules_url: `https://scopeguard.blockframe.cloud/api/agents?agent=${agentAccount}`,
     },
     null,
@@ -220,7 +282,7 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
                   Agent Passkey & Setup Prompt
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  FunctionCall Key
+                  Daily Cap: {effectiveDailyCap} mUSD
                 </span>
               </div>
               <p className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-md">
@@ -290,30 +352,41 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
                     <span>Instant Agent Handoff Prompt</span>
                   </h4>
                   <p className="text-[11px] text-blue-700 dark:text-blue-300">
-                    Paste this detailed specification into Claude Code, Cursor, ElizaOS, or any AI runtime to configure it with ScopeGuard.
+                    Paste into Claude Code, OpenCode, Cursor, or any agent. It writes configs, connects, and replies &quot;set and ready&quot;.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(agentSetupPrompt, "prompt")}
-                  className="px-3.5 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
-                >
-                  {copiedSection === "prompt" ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-mint-green" />
-                      <span>Copied Prompt!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Agent Setup Prompt</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPrompt}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-obsidian-900 hover:bg-slate-50 dark:hover:bg-obsidian-850 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    title="Download prompt as markdown file"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download File</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(agentSetupPrompt, "prompt")}
+                    className="px-3.5 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blueHover text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                  >
+                    {copiedSection === "prompt" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-mint-green" />
+                        <span>Copied Prompt!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Agent Setup Prompt</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="relative">
-                <pre className="p-4 rounded-xl bg-slate-900 dark:bg-black text-slate-200 font-mono text-xs overflow-x-auto border border-slate-700/60 whitespace-pre-wrap leading-relaxed select-all max-h-[460px] overflow-y-auto">
+                <pre className="p-4 rounded-xl bg-slate-900 dark:bg-black text-slate-200 font-mono text-xs overflow-x-auto border border-slate-700/60 whitespace-pre-wrap leading-relaxed select-all max-h-[440px] overflow-y-auto">
                   {agentSetupPrompt}
                 </pre>
               </div>
@@ -469,7 +542,7 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
               </div>
 
               {/* Public Key Box */}
-              {pubKey && pubKey !== "<AGENT_PUBLIC_KEY>" && (
+              {pubKey && (
                 <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-obsidian-950 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
