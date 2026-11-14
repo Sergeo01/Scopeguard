@@ -9,8 +9,8 @@ interface WorstCaseBoundIndicatorProps {
 }
 
 export const WorstCaseBoundIndicator: React.FC<WorstCaseBoundIndicatorProps> = ({
-  dailyCap = 500,
-  vaultBalance = "350",
+  dailyCap = 0,
+  vaultBalance = "0",
 }) => {
   const capNum = Number(dailyCap) || 0;
   const vaultNum = Number(vaultBalance) || 0;

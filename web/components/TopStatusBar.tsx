@@ -31,15 +31,28 @@ export const TopStatusBar: React.FC<{
   useEffect(() => {
     setContractId(tryGetPolicyContractId() || "scopeguard.testnet");
 
-    fetch("/api/state")
+    const controller = new AbortController();
+    const query = accountId ? `?owner=${encodeURIComponent(accountId)}` : "";
+
+    fetch(`/api/state${query}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.budget) {
-          setIsAgentPaused(!!data.budget.paused);
+          setIsAgentPaused(Boolean(data.budget.paused));
+        } else {
+          setIsAgentPaused(false);
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch((err) => {
+        if (err && err.name !== "AbortError") {
+          setIsAgentPaused(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [accountId]);
 
   const copyGuard = () => {
     if (contractId) {

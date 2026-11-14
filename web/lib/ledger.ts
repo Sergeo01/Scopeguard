@@ -92,6 +92,7 @@ const ONCHAIN_CACHE_TTL_MS = 8000; // 8 seconds
 
 const TESTNET_RPCS = [
   "https://test.rpc.fastnear.com",
+  "https://rpc.testnet.fastnear.com",
   "https://rpc.testnet.near.org",
 ];
 
@@ -145,96 +146,103 @@ export async function fetchOnchainActivities(agentAccount: string): Promise<Acti
     const activities: ActivityItem[] = [];
     const seenHashes = new Set<string>();
 
-    for (const t of txns) {
+    const candidateTxns = txns.filter((t: any) => {
       const hash = t.transaction_hash;
-      if (!hash || seenHashes.has(hash)) continue;
-
+      if (!hash || seenHashes.has(hash)) return false;
       const isExecute =
         t.actions?.some((a: any) => a.method === "execute") ||
         t.receiver_account_id?.includes("guard");
-      if (!isExecute) continue;
+      if (!isExecute) return false;
       seenHashes.add(hash);
+      return true;
+    }).slice(0, 15);
 
-      // Return cached immutable final outcome if available
-      if (txOutcomeCache.has(hash)) {
-        activities.push(txOutcomeCache.get(hash)!);
-        continue;
-      }
+    const fetchedItems = await Promise.all(
+      candidateTxns.map(async (t: any) => {
+        const hash = t.transaction_hash;
+        if (txOutcomeCache.has(hash)) {
+          return txOutcomeCache.get(hash)!;
+        }
 
-      try {
-        const outcome = await fetchTxFromRpc(hash, agentAccount);
-        if (!outcome) continue;
+        try {
+          const outcome = await fetchTxFromRpc(hash, agentAccount);
+          if (!outcome) return null;
 
-        let type: ActivityItem["type"] = "ALLOW";
-        let reason: string | undefined = undefined;
+          let type: ActivityItem["type"] = "ALLOW";
+          let reason: string | undefined = undefined;
 
-        const logs = outcome.receipts_outcome?.flatMap((r: any) => r.outcome?.logs || []) || [];
-        for (const log of logs) {
-          if (typeof log === "string" && log.startsWith("EVENT_JSON:")) {
+          const logs = outcome.receipts_outcome?.flatMap((r: any) => r.outcome?.logs || []) || [];
+          for (const log of logs) {
+            if (typeof log === "string" && log.startsWith("EVENT_JSON:")) {
+              try {
+                const ev = JSON.parse(log.slice(11));
+                if (ev.event === "REJECT") {
+                  type = "REJECT";
+                  reason = ev.reason;
+                } else if (ev.event === "AUTO_PAUSE") {
+                  type = "AUTO_PAUSE";
+                }
+              } catch {}
+            }
+          }
+
+          if (!reason && outcome.status?.SuccessValue) {
             try {
-              const ev = JSON.parse(log.slice(11));
-              if (ev.event === "REJECT") {
+              const val = JSON.parse(
+                Buffer.from(outcome.status.SuccessValue, "base64").toString("utf8")
+              );
+              if (val.status === "REJECTED") {
                 type = "REJECT";
-                reason = ev.reason;
-              } else if (ev.event === "AUTO_PAUSE") {
-                type = "AUTO_PAUSE";
+                reason = val.reason;
               }
             } catch {}
           }
-        }
 
-        if (!reason && outcome.status?.SuccessValue) {
+          let target = t.receiver_account_id;
+          let method = "execute";
+          let amount: string | undefined = undefined;
+
           try {
-            const val = JSON.parse(
-              Buffer.from(outcome.status.SuccessValue, "base64").toString("utf8")
-            );
-            if (val.status === "REJECTED") {
-              type = "REJECT";
-              reason = val.reason;
+            const rawArgs = outcome.transaction?.actions?.[0]?.FunctionCall?.args;
+            if (rawArgs) {
+              const parsed = JSON.parse(Buffer.from(rawArgs, "base64").toString("utf8"));
+              if (parsed.action?.ContractCall) {
+                target = parsed.action.ContractCall.target;
+                method = parsed.action.ContractCall.method;
+              } else if (parsed.action?.Transfer) {
+                target = parsed.action.Transfer.to;
+                method = "ft_transfer";
+                amount = parsed.action.Transfer.amount;
+              } else if (parsed.action?.Swap) {
+                target = parsed.action.Swap.dex;
+                method = "swap";
+                amount = parsed.action.Swap.amount_in;
+              }
             }
           } catch {}
+
+          const item: ActivityItem = {
+            id: `onchain-${hash}`,
+            txHash: hash,
+            type,
+            timestamp: Math.floor(Number(t.block_timestamp) / 1000000),
+            agent: agentAccount,
+            target,
+            method,
+            amount,
+            reason,
+          };
+
+          txOutcomeCache.set(hash, item);
+          return item;
+        } catch {
+          return null;
         }
+      })
+    );
 
-        let target = t.receiver_account_id;
-        let method = "execute";
-        let amount: string | undefined = undefined;
-
-        try {
-          const rawArgs = outcome.transaction?.actions?.[0]?.FunctionCall?.args;
-          if (rawArgs) {
-            const parsed = JSON.parse(Buffer.from(rawArgs, "base64").toString("utf8"));
-            if (parsed.action?.ContractCall) {
-              target = parsed.action.ContractCall.target;
-              method = parsed.action.ContractCall.method;
-            } else if (parsed.action?.Transfer) {
-              target = parsed.action.Transfer.to;
-              method = "ft_transfer";
-              amount = parsed.action.Transfer.amount;
-            } else if (parsed.action?.Swap) {
-              target = parsed.action.Swap.dex;
-              method = "swap";
-              amount = parsed.action.Swap.amount_in;
-            }
-          }
-        } catch {}
-
-        const item: ActivityItem = {
-          id: `onchain-${hash}`,
-          txHash: hash,
-          type,
-          timestamp: Math.floor(Number(t.block_timestamp) / 1000000),
-          agent: agentAccount,
-          target,
-          method,
-          amount,
-          reason,
-        };
-
-        txOutcomeCache.set(hash, item);
-        activities.push(item);
-      } catch {
-        // Individual RPC fetch fallback
-      }
+    for (const item of fetchedItems) {
+      if (item) activities.push(item);
     }
 
     onchainCacheMap.set(agentAccount, { timestamp: Date.now(), data: activities });

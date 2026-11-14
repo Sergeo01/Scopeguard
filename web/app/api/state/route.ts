@@ -27,17 +27,18 @@ export async function GET(req: Request) {
   const ownerId = queryOwner || process.env.SCOPEGUARD_OWNER_ACCOUNT || process.env.OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
 
   try {
-    let effectiveAgentId = queryAgent || defaultAgent;
+    let effectiveAgentId = queryAgent || (queryOwner ? `agent.${queryOwner}` : defaultAgent);
 
-    const cacheKey = `${guardId}:${effectiveAgentId}:${ownerId}`;
+    const initialKey = queryAgent || `auto:${ownerId}`;
+    const cacheKey = `${guardId}:${initialKey}:${ownerId}`;
     const now = Date.now();
     const hasCacheBuster = searchParams.has("v") || searchParams.has("fresh") || searchParams.has("t");
-    const cached = cacheMap.get(cacheKey);
+    const cached = cacheMap.get(cacheKey) || cacheMap.get(`${guardId}:${effectiveAgentId}:${ownerId}`);
     if (!hasCacheBuster && cached && now - cached.timestamp < CACHE_TTL_MS) {
       return NextResponse.json({
         ...cached.state,
         cached: true,
-        activities: await getMergedActivities(effectiveAgentId),
+        activities: cached.state.activities || await getMergedActivities(effectiveAgentId),
       }, {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -176,6 +177,7 @@ export async function GET(req: Request) {
     };
 
     cacheMap.set(cacheKey, { state: statePayload, timestamp: now });
+    cacheMap.set(`${guardId}:${effectiveAgentId}:${ownerId}`, { state: statePayload, timestamp: now });
 
     return NextResponse.json(statePayload, {
       headers: {

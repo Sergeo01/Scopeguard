@@ -109,9 +109,27 @@ function formatNearBalance(raw: string): string {
 export default function DashboardPage() {
   const { user, accountId: connectedWalletId, isConnected: isWalletConnected, openAuthModal, refreshBalance } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
-  const [agentId, setAgentId] = useState("agent2.sergeo-guard.testnet");
+  const [agentId, setAgentId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const qAgent = sp.get("agent");
+      if (qAgent) return qAgent;
+      const savedAccount = localStorage.getItem("scopeguard_connected_account");
+      if (savedAccount) return `agent.${savedAccount}`;
+    }
+    return process.env.NEXT_PUBLIC_AGENT_ACCOUNT_ID || "agent2.sergeo-guard.testnet";
+  });
   const [guardId, setGuardId] = useState<string | null>(tryGetPolicyContractId);
-  const [ownerId, setOwnerId] = useState("sergeo-guard.testnet");
+  const [ownerId, setOwnerId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const qOwner = sp.get("owner");
+      if (qOwner) return qOwner;
+      const savedAccount = localStorage.getItem("scopeguard_connected_account");
+      if (savedAccount) return savedAccount;
+    }
+    return process.env.NEXT_PUBLIC_OWNER_ACCOUNT_ID || "sergeo-guard.testnet";
+  });
   const [queriedAgent, setQueriedAgent] = useState<string | null>(null);
   const [queriedOwner, setQueriedOwner] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "policy" | "approvals" | "activity" | "emergency" | "alerts">("overview");
@@ -152,16 +170,16 @@ export default function DashboardPage() {
   const [policy, setPolicy] = useState<any>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [rejectCount, setRejectCount] = useState(0);
-  const [vaultBalance, setVaultBalance] = useState("350");
+  const [vaultBalance, setVaultBalance] = useState("");
   const [nearVaultBalance, setNearVaultBalance] = useState("0");
   const [rawNearVaultBalance, setRawNearVaultBalance] = useState("0");
   const [fleetAgents, setFleetAgents] = useState<string[]>([]);
-  const [highWaterMark, setHighWaterMark] = useState<string>("350");
+  const [highWaterMark, setHighWaterMark] = useState<string>("");
   const [maxDrawdownBps, setMaxDrawdownBps] = useState<number | null>(2000);
   const [leaseExpiresAt, setLeaseExpiresAt] = useState<number | string | null>(null);
   const [canaryMethods, setCanaryMethods] = useState<string[]>([]);
   const [intentRecipients, setIntentRecipients] = useState<string[]>([]);
-  const [dailyCapTotal, setDailyCapTotal] = useState(500);
+  const [dailyCapTotal, setDailyCapTotal] = useState(0);
   const [dailyCapSpent, setDailyCapSpent] = useState(0);
   const [velocityUsed, setVelocityUsed] = useState(0);
   const [velocityMax, setVelocityMax] = useState(5);
@@ -276,7 +294,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams();
       if (explicitAgent) {
         params.set("agent", explicitAgent);
-      } else if (!isWalletConnected && agentId) {
+      } else if (agentId) {
         params.set("agent", agentId);
       }
       if (effectiveOwner) params.set("owner", effectiveOwner);
@@ -322,9 +340,9 @@ export default function DashboardPage() {
           const paused = Boolean(data.budget.paused);
           setIsPaused(paused);
           setRuleToggles((prev) => ({ ...prev, 2: !paused }));
-          setDailyCapTotal(data.budget.cap !== undefined ? Number(data.budget.cap) : 500);
+          setDailyCapTotal(data.budget.cap !== undefined ? Number(data.budget.cap) : 0);
           setDailyCapSpent(data.budget.spent !== undefined ? Number(data.budget.spent) : 0);
-          const vBalance = data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "350";
+          const vBalance = data.budget.vault_balance !== undefined ? String(data.budget.vault_balance) : "0";
           setVaultBalance(vBalance);
           const rawNear = data.budget.near_vault_balance !== undefined ? String(data.budget.near_vault_balance) : "0";
           setRawNearVaultBalance(rawNear);
@@ -991,7 +1009,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
-                  {isInitialLoading ? "--" : `${vaultBalance} mUSD`}
+                  {isInitialLoading || !vaultBalance ? "--" : `${vaultBalance} mUSD`}
                 </span>
                 <span className="text-xs font-mono text-slate-500">
                   Working Pot

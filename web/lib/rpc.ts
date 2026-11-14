@@ -10,6 +10,9 @@ export function getVerifiedRpcEndpoints(): string[] {
   const endpoints = [
     customRpc,
     "https://test.rpc.fastnear.com",
+    "https://rpc.testnet.fastnear.com",
+    "https://rpc.testnet.near.org",
+    "https://archival-rpc.testnet.near.org",
   ].filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
 
   return Array.from(new Set(endpoints));
