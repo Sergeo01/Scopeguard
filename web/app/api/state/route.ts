@@ -4,7 +4,7 @@ export const fetchCache = "force-no-store";
 
 import { NextResponse } from "next/server";
 import { connect, keyStores, utils } from "near-api-js";
-import { getRecentActivities } from "@/lib/ledger";
+import { getRecentActivities, getMergedActivities } from "@/lib/ledger";
 import { getPolicyContractId } from "@/lib/config";
 import { getVerifiedRpcEndpoints } from "@/lib/rpc";
 
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       return NextResponse.json({
         ...cached.state,
         cached: true,
-        activities: getRecentActivities(),
+        activities: await getMergedActivities(effectiveAgentId),
       }, {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -172,7 +172,7 @@ export async function GET(req: Request) {
       agentPublicKey,
       gasAllowanceNear,
       isScopedKeyConfigured,
-      activities: getRecentActivities(),
+      activities: await getMergedActivities(effectiveAgentId),
     };
 
     cacheMap.set(cacheKey, { state: statePayload, timestamp: now });

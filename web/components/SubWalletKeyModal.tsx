@@ -45,6 +45,8 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
 }) => {
   const [keyData, setKeyData] = useState<StoredSubWalletKey | null>(null);
   const [liveDailyCap, setLiveDailyCap] = useState<number | null>(null);
+  const [liveVaultBalance, setLiveVaultBalance] = useState<string | null>(null);
+  const [detectedGuardId, setDetectedGuardId] = useState<string | null>(null);
   const [revealKey, setRevealKey] = useState<boolean>(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [manualInput, setManualInput] = useState<string>("");
@@ -66,13 +68,42 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
     }
   }, [isOpen, agentAccount, effectiveOwner, dailyCap]);
 
-  // Fetch live onchain budget directly from NEAR Testnet RPC
+  // Fetch live onchain key binding and budget directly from NEAR Testnet RPC
   useEffect(() => {
     if (!isOpen || !agentAccount) return;
     let isMounted = true;
 
-    async function fetchLiveBudget() {
+    async function fetchOnchainDetails() {
       try {
+        let activeGuard = guardId;
+
+        // 1. Detect which guard contract the agent's function-call key is bound to
+        try {
+          const keyRes = await fetch("https://test.rpc.fastnear.com", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: "key-detect",
+              method: "query",
+              params: {
+                request_type: "view_access_key_list",
+                finality: "final",
+                account_id: agentAccount,
+              },
+            }),
+          });
+          const keyData = await keyRes.json();
+          const fnKey = keyData.result?.keys?.find((k: any) => k.access_key?.permission?.FunctionCall);
+          if (fnKey?.access_key?.permission?.FunctionCall?.receiver_id) {
+            activeGuard = fnKey.access_key.permission.FunctionCall.receiver_id;
+            if (isMounted) setDetectedGuardId(activeGuard);
+          }
+        } catch (keyErr) {
+          console.warn("Could not detect onchain access key receiver:", keyErr);
+        }
+
+        // 2. Fetch live budget & vault balance on the active guard contract
         const res = await fetch("https://test.rpc.fastnear.com", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -83,19 +114,22 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
             params: {
               request_type: "call_function",
               finality: "final",
-              account_id: guardId,
+              account_id: activeGuard,
               method_name: "get_budget",
               args_base64: btoa(JSON.stringify({ agent_account: agentAccount })),
             },
           }),
         });
         const data = await res.json();
-        if (data.result?.result) {
+        if (data.result?.result && isMounted) {
           const raw = JSON.parse(
             new TextDecoder().decode(new Uint8Array(data.result.result))
           );
-          if (isMounted && raw.cap !== undefined && raw.cap !== null) {
+          if (raw.cap !== undefined && raw.cap !== null) {
             setLiveDailyCap(Number(raw.cap));
+          }
+          if (raw.vault_balance !== undefined && raw.vault_balance !== null) {
+            setLiveVaultBalance(String(raw.vault_balance));
           }
         }
       } catch (err) {
@@ -103,7 +137,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
       }
     }
 
-    fetchLiveBudget();
+    fetchOnchainDetails();
     return () => {
       isMounted = false;
     };
@@ -111,6 +145,7 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
 
   if (!isOpen || !agentAccount) return null;
 
+  const effectiveGuardId = detectedGuardId || guardId;
   const effectiveDailyCap =
     liveDailyCap !== null
       ? liveDailyCap
@@ -162,14 +197,14 @@ export const SubWalletKeyModal: React.FC<SubWalletKeyModalProps> = ({
   } catch {}
 
   const cliCommands = `# 1. Register agent policy on Guard contract
-near call ${guardId} register_agent '{"agent_account":"${agentAccount}","policy":${
+near call ${effectiveGuardId} register_agent '{"agent_account":"${agentAccount}","policy":${
     policyJson
       ? JSON.stringify(policyJson)
       : `{"token":"sergeo-guard-token.testnet","daily_cap":${effectiveDailyCap},"targets":{"sergeo-guard-dex.testnet":["swap"]}}`
   }}' --accountId ${effectiveOwner} --gas 100000000000000
 
 # 2. Add scoped function-call passkey to agent account
-near add-key ${agentAccount} ${pubKey} --contractId ${guardId} --methodNames execute --allowance 0.25 --accountId ${agentAccount}`;
+near add-key ${agentAccount} ${pubKey} --contractId ${effectiveGuardId} --methodNames execute --allowance 0.25 --accountId ${agentAccount}`;
 
   const agentSetupPrompt = `INSTRUCTION FOR AI AGENT (Claude Code, OpenCode, Cursor, AutoGPT):
 Execute the setup steps below immediately. Do not ask questions, do not prompt the user for choices, and do not wait for confirmation.
@@ -179,10 +214,11 @@ Once setup is complete, respond ONLY with: "set and ready".
 - Agent Account: ${agentAccount}
 - Owner Account: ${effectiveOwner}
 - Network: NEAR Testnet (Fast RPC: https://test.rpc.fastnear.com)
-- Policy Guard Contract: ${guardId}
+- Active Policy Guard Contract: ${effectiveGuardId}
 - Custody Token (mUSD): sergeo-guard-token.testnet
 - DEX Swap Target: sergeo-guard-dex.testnet
 - Daily Spend Limit: ${effectiveDailyCap} mUSD
+- Current Vault Balance: ${liveVaultBalance !== null ? `${liveVaultBalance} mUSD` : "0 mUSD"}
 - Scoped Public Key: ${pubKey}
 - Scoped Private Key: ${privKey}
 
@@ -190,7 +226,7 @@ Once setup is complete, respond ONLY with: "set and ready".
 Write the following configuration to file \`./agent.json\`:
 {
   "agentAccountId": "${agentAccount}",
-  "policyContractId": "${guardId}",
+  "policyContractId": "${effectiveGuardId}",
   "publicKey": "${pubKey}",
   "privateKey": "${privKey}",
   "networkId": "testnet",
@@ -203,25 +239,29 @@ Write the following configuration to file \`./agent.json\`:
 Write or append the following environment variables to file \`./.env\`:
 SCOPEGUARD_AGENT_ACCOUNT="${agentAccount}"
 SCOPEGUARD_AGENT_PRIVATE_KEY="${privKey}"
-SCOPEGUARD_POLICY_CONTRACT="${guardId}"
+SCOPEGUARD_POLICY_CONTRACT="${effectiveGuardId}"
 NEAR_NETWORK="testnet"
 NEAR_RPC_URL="https://test.rpc.fastnear.com"
 
 === SETUP STEP 2: VERIFY CONNECTION ===
 Verify live budget and policy connectivity via RPC:
-curl -s -X POST https://test.rpc.fastnear.com -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"call_function","finality":"final","account_id":"${guardId}","method_name":"get_budget","args_base64":"${queryBase64}"}}'
+curl -s -X POST https://test.rpc.fastnear.com -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"call_function","finality":"final","account_id":"${effectiveGuardId}","method_name":"get_budget","args_base64":"${queryBase64}"}}'
 
-=== HOW TO EXECUTE OPERATIONS ===
-You hold a scoped function-call key. All onchain actions MUST be dispatched through ${guardId}::execute.
+=== HOW TO EXECUTE OPERATIONS (CRITICAL PROTOCOL RULES) ===
+You hold a scoped function-call key. All onchain actions MUST be dispatched through ${effectiveGuardId}::execute.
+NEVER call ContractCall with method "swap" or "ft_transfer" (the Guard contract rejects these with METHOD_NOT_ALLOWED).
+Always use the typed GuardAction variants:
 
 1. TRADING / SWAPPING (DEX):
-near call ${guardId} execute '{"action":{"ContractCall":{"target":"sergeo-guard-dex.testnet","method":"swap","args":"eyJhZ2VudF9zd2FwIjogdHJ1ZX0=","deposit":"0","gas":"30000000000000"}}}' --accountId ${agentAccount} --gas 100000000000000
+To swap mUSD on the allowlisted DEX (sergeo-guard-dex.testnet), use GuardAction::Swap:
+near call ${effectiveGuardId} execute '{"action":{"Swap":{"dex":"sergeo-guard-dex.testnet","token_in":"sergeo-guard-token.testnet","amount_in":"25","min_out":"0"}}}' --accountId ${agentAccount} --gas 100000000000000
 
 2. SENDING / PAYMENTS (Token Transfer):
-near call ${guardId} execute '{"action":{"Transfer":{"token":"sergeo-guard-token.testnet","to":"<RECIPIENT>","amount":"<AMOUNT_WHOLE_MUSD>","memo":"Payment"}}}' --accountId ${agentAccount} --gas 100000000000000
+To transfer tokens, use GuardAction::Transfer (requires recipient and token allowlisted in policy):
+near call ${effectiveGuardId} execute '{"action":{"Transfer":{"token":"sergeo-guard-token.testnet","to":"<RECIPIENT>","amount":"<AMOUNT_WHOLE_MUSD>","memo":"Payment"}}}' --accountId ${agentAccount} --gas 100000000000000
 
 3. CHECK REMAINING DAILY BUDGET:
-near view ${guardId} get_budget '{"agent_account":"${agentAccount}"}'
+near view ${effectiveGuardId} get_budget '{"agent_account":"${agentAccount}"}'
 
 === COMPLETION ===
 Perform Step 1 and Step 2 right now, then reply ONLY with: "set and ready".`;
@@ -240,14 +280,14 @@ Perform Step 1 and Step 2 right now, then reply ONLY with: "set and ready".`;
 
   const envExports = `export SCOPEGUARD_AGENT_ACCOUNT="${agentAccount}"
 export SCOPEGUARD_AGENT_PRIVATE_KEY="${privKey}"
-export SCOPEGUARD_POLICY_CONTRACT="${guardId}"
+export SCOPEGUARD_POLICY_CONTRACT="${effectiveGuardId}"
 export NEAR_NETWORK="testnet"
 export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
 
   const agentJsonConfig = JSON.stringify(
     {
       agentAccountId: agentAccount,
-      policyContractId: guardId,
+      policyContractId: effectiveGuardId,
       publicKey: pubKey,
       privateKey: privKey,
       networkId: "testnet",
@@ -284,6 +324,16 @@ export NEAR_RPC_URL="https://test.rpc.fastnear.com"`;
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   Daily Cap: {effectiveDailyCap} mUSD
                 </span>
+                {liveVaultBalance !== null && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Vault: {liveVaultBalance} mUSD
+                  </span>
+                )}
+                {detectedGuardId && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20" title="Active Guard Contract detected from agent onchain key">
+                    Guard: {effectiveGuardId}
+                  </span>
+                )}
               </div>
               <p className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-md">
                 {agentAccount}
