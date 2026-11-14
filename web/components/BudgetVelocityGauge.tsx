@@ -6,6 +6,7 @@ import { CreditCard, Fuel, Gauge, Clock, ShieldCheck, TrendingDown, Timer, Cross
 export interface BudgetVelocityGaugeProps {
   gasBudgetNearTotal: number;
   gasBudgetNearRemaining?: number | null;
+  isScopedKeyConfigured?: boolean | null;
   dailyCapTotal: number;
   dailyCapSpent: number;
   velocityUsed: number;
@@ -22,6 +23,7 @@ export interface BudgetVelocityGaugeProps {
 export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
   gasBudgetNearTotal,
   gasBudgetNearRemaining,
+  isScopedKeyConfigured = null,
   dailyCapTotal,
   dailyCapSpent,
   velocityUsed,
@@ -204,6 +206,8 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
             <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
               {hasScopedGasKey
                 ? `${gasBudgetNearRemaining!.toFixed(3)} NEAR`
+                : isScopedKeyConfigured === null
+                ? "Checking Key..."
                 : "No Scoped Key"}
             </span>
           </div>
@@ -220,6 +224,11 @@ export const BudgetVelocityGauge: React.FC<BudgetVelocityGaugeProps> = ({
                 <>
                   <span>{gasBudgetNearRemaining!.toFixed(3)} of {gasBudgetNearTotal.toFixed(2)} NEAR</span>
                   <span>Gas only</span>
+                </>
+              ) : isScopedKeyConfigured === null ? (
+                <>
+                  <span className="text-slate-500 font-medium">could not verify key state</span>
+                  <span>Gas unknown</span>
                 </>
               ) : (
                 <>

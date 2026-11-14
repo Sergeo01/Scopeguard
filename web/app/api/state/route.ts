@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     const now = Date.now();
     const hasCacheBuster = searchParams.has("v") || searchParams.has("fresh") || searchParams.has("t");
     const cached = cacheMap.get(cacheKey) || cacheMap.get(`${guardId}:${effectiveAgentId}:${ownerId}`);
-    if (!hasCacheBuster && cached && now - cached.timestamp < CACHE_TTL_MS) {
+    if (!hasCacheBuster && cached && cached.state.isScopedKeyConfigured !== null && now - cached.timestamp < CACHE_TTL_MS) {
       return NextResponse.json({
         ...cached.state,
         cached: true,
@@ -127,13 +127,22 @@ export async function GET(req: Request) {
     // display a key that no longer controls anything.
     let agentPublicKey: string | null = null;
     let gasAllowanceNear: string | null = null;
-    let isScopedKeyConfigured = false;
+    let isScopedKeyConfigured: boolean | null = null;
+    let keyLookupSucceeded = false;
 
-    try {
-      if (activeNear) {
-        const agentAccount = await activeNear.account(effectiveAgentId);
+    // Failover loop for access key inspection
+    for (const nodeUrl of rpcUrls) {
+      try {
+        const near = await connect({
+          networkId: process.env.NEAR_NETWORK || "testnet",
+          nodeUrl,
+          keyStore: new keyStores.InMemoryKeyStore(),
+        });
+
+        const agentAccount = await near.account(effectiveAgentId);
         const accessKeys = await agentAccount.getAccessKeys();
-        if (accessKeys && accessKeys.length > 0) {
+        if (Array.isArray(accessKeys)) {
+          keyLookupSucceeded = true;
           const scopedKey = accessKeys.find((k: any) => {
             const perm = k.access_key?.permission;
             return (
@@ -146,19 +155,23 @@ export async function GET(req: Request) {
           if (scopedKey) {
             agentPublicKey = scopedKey.public_key;
             isScopedKeyConfigured = true;
-            if (scopedKey.access_key?.permission?.FunctionCall?.allowance) {
+            const perm = scopedKey.access_key?.permission as any;
+            if (perm?.FunctionCall?.allowance) {
               gasAllowanceNear = utils.format.formatNearAmount(
-                scopedKey.access_key.permission.FunctionCall.allowance
+                perm.FunctionCall.allowance
               );
             }
           } else {
             agentPublicKey = null;
             isScopedKeyConfigured = false;
+            gasAllowanceNear = null;
           }
+          break;
         }
+      } catch (err: any) {
+        markRpcFailed(nodeUrl);
+        console.warn(`RPC ${nodeUrl} error in getAccessKeys: ${err.message}. Retrying key lookup...`);
       }
-    } catch {
-      // Leave null if lookup fails
     }
 
     const statePayload = {
@@ -176,9 +189,11 @@ export async function GET(req: Request) {
       activities: await getMergedActivities(effectiveAgentId),
     };
 
-    const cacheTimestamp = Date.now();
-    cacheMap.set(cacheKey, { state: statePayload, timestamp: cacheTimestamp });
-    cacheMap.set(`${guardId}:${effectiveAgentId}:${ownerId}`, { state: statePayload, timestamp: cacheTimestamp });
+    if (keyLookupSucceeded) {
+      const cacheTimestamp = Date.now();
+      cacheMap.set(cacheKey, { state: statePayload, timestamp: cacheTimestamp });
+      cacheMap.set(`${guardId}:${effectiveAgentId}:${ownerId}`, { state: statePayload, timestamp: cacheTimestamp });
+    }
 
     return NextResponse.json(statePayload, {
       headers: {

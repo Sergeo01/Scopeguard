@@ -91,7 +91,6 @@ const txOutcomeCache = new Map<string, ActivityItem>();
 const ONCHAIN_CACHE_TTL_MS = 15000;
 
 const TESTNET_RPCS = [
-  "https://rpc.testnet.near.org",
   "https://test.rpc.fastnear.com",
   "https://rpc.testnet.fastnear.com",
 ];

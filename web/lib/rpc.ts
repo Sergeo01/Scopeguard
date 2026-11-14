@@ -15,10 +15,8 @@ export function getVerifiedRpcEndpoints(): string[] {
   const customRpc = process.env.NEAR_TESTNET_RPC || process.env.NEXT_PUBLIC_NEAR_RPC;
   const endpoints = [
     customRpc,
-    "https://rpc.testnet.near.org",
     "https://test.rpc.fastnear.com",
     "https://rpc.testnet.fastnear.com",
-    "https://archival-rpc.testnet.near.org",
   ].filter((url): url is string => Boolean(url && typeof url === "string" && url.trim().length > 0));
 
   const unique = Array.from(new Set(endpoints));

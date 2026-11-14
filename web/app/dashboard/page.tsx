@@ -135,7 +135,7 @@ export default function DashboardPage() {
   const [queriedOwner, setQueriedOwner] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "policy" | "approvals" | "activity" | "emergency" | "alerts">("overview");
   const [gasAllowanceNear, setGasAllowanceNear] = useState<number | null>(null);
-  const [isScopedKeyConfigured, setIsScopedKeyConfigured] = useState<boolean>(false);
+  const [isScopedKeyConfigured, setIsScopedKeyConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -322,12 +322,12 @@ export default function DashboardPage() {
           setOwnerId(data.ownerId);
         }
         if (data.agentPublicKey) setAgentPublicKey(data.agentPublicKey);
-        if (data.isScopedKeyConfigured && data.gasAllowanceNear !== undefined && data.gasAllowanceNear !== null) {
+        if (data.isScopedKeyConfigured === true && data.gasAllowanceNear !== undefined && data.gasAllowanceNear !== null) {
           setGasAllowanceNear(parseFloat(data.gasAllowanceNear));
           setIsScopedKeyConfigured(true);
         } else {
           setGasAllowanceNear(null);
-          setIsScopedKeyConfigured(Boolean(data.isScopedKeyConfigured));
+          setIsScopedKeyConfigured(data.isScopedKeyConfigured ?? null);
         }
         if (data.policy) {
           setPolicy(data.policy);
@@ -1302,6 +1302,7 @@ export default function DashboardPage() {
       <BudgetVelocityGauge
         gasBudgetNearTotal={0.25}
         gasBudgetNearRemaining={gasAllowanceNear}
+        isScopedKeyConfigured={isScopedKeyConfigured}
         dailyCapTotal={dailyCapTotal}
         dailyCapSpent={dailyCapSpent}
         velocityUsed={velocityUsed}

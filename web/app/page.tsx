@@ -289,7 +289,7 @@ export default function HomePage() {
               }
               setIsAgentPaused(Boolean(data.budget.paused));
             }
-            if (typeof data.isScopedKeyConfigured === "boolean") {
+            if (typeof data.isScopedKeyConfigured === "boolean" || data.isScopedKeyConfigured === null) {
               setIsScopedKeyConfigured(data.isScopedKeyConfigured);
             }
           }
@@ -1097,6 +1097,8 @@ export default function HomePage() {
                       ? "The automated circuit breaker halted actions onchain to prevent fund loss. Reset below to replay."
                       : isScopedKeyConfigured === false
                       ? "Warning: No scoped function-call key found on NEAR Testnet."
+                      : isScopedKeyConfigured === null
+                      ? "Could not verify key state on NEAR Testnet."
                       : "Operating key is verified on NEAR Testnet and ready for evaluation."}
                   </p>
                 </div>
